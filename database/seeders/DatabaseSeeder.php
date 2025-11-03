@@ -13,11 +13,26 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->withPersonalTeam()->create();
-
-        User::factory()->withPersonalTeam()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            PaisSeeder::class,
+            DepartamentoSeeder::class,
+            CiudadSeeder::class,
+            EstadoSeeder::class,
+            EstadoInmuebleSeeder::class,
+            UbicacionSeeder::class,
+            ProyectoSeeder::class,
+            TorreSeeder::class,
+            PisoTorreSeeder::class,
+            TipoApartamentoSeeder::class,
+            ApartamentoSeeder::class,
+            LocalSeeder::class,
+            ParqueaderoSeeder::class,
+            ZonaSocialSeeder::class,
+            PoliticaComisionSeeder::class,
+            PoliticaPrecioProyectoSeeder::class,
+            CargoSeeder::class,
+            DependenciaSeeder::class,
+            EmpleadoSeeder::class,
         ]);
     }
 }
