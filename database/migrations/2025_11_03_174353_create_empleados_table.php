@@ -21,6 +21,7 @@ return new class extends Migration
             $table->foreignId('id_cargo')->constrained('cargos', 'id_cargo')->onDelete('restrict');
             $table->foreignId('id_dependencia')->constrained('dependencias', 'id_dependencia')->onDelete('restrict');
             $table->boolean('estado')->default(true);
+            $table->rememberToken();
             $table->timestamps();
         });
     }
