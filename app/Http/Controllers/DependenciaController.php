@@ -27,7 +27,7 @@ class DependenciaController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:80|unique:dependencia,nombre',
+            'nombre' => 'required|string|max:80|unique:dependencias,nombre',
             'descripcion' => 'nullable|string|max:200'
         ], [
             'nombre.required' => 'El nombre de la dependencia es obligatorio',
@@ -87,7 +87,7 @@ class DependenciaController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:80|unique:dependencia,nombre,' . $id . ',id_dependencia',
+            'nombre' => 'required|string|max:80|unique:dependencias,nombre,' . $id . ',id_dependencia',
             'descripcion' => 'nullable|string|max:200'
         ], [
             'nombre.required' => 'El nombre de la dependencia es obligatorio',

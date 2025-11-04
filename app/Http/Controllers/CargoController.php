@@ -27,7 +27,7 @@ class CargoController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:80|unique:cargo,nombre',
+            'nombre' => 'required|string|max:80|unique:cargos,nombre',
             'descripcion' => 'nullable|string|max:200'
         ], [
             'nombre.required' => 'El nombre del cargo es obligatorio',
@@ -87,7 +87,7 @@ class CargoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:80|unique:cargo,nombre,' . $id . ',id_cargo',
+            'nombre' => 'required|string|max:80|unique:cargos,nombre,' . $id . ',id_cargo',
             'descripcion' => 'nullable|string|max:200'
         ], [
             'nombre.required' => 'El nombre del cargo es obligatorio',

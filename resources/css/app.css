@@ -3,5 +3,53 @@
 @tailwind utilities;
 
 [x-cloak] {
-    display: none;
+  display: none;
+}
+
+:root {
+  --color-50: #fffde6;
+  --color-100: #fff9b8;
+  --color-200: #fff58a;
+  --color-300: #fff15c;
+  --color-400: #ffee2e;
+  --color-500: #ffea00;
+  --color-600: #d1c000;
+  --color-700: #a39600;
+  --color-800: #756c00;
+  --color-900: #474100;
+  --color-950: #1a1700;
+}
+
+/* Base adjustments */
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  background: linear-gradient(180deg, var(--color-50) 0%, #ffffff 30%);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial;
+}
+
+/* Pequeños ajustes para inputs para mejor UX */
+input:focus,
+button:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 234, 0, 0.12);
+}
+
+/* tarjeta de login */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(16, 24, 40, 0.08);
 }

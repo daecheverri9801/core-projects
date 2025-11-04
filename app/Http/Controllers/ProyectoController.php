@@ -49,8 +49,8 @@ class ProyectoController extends Controller
             'porcentaje_cuota_inicial_min' => 'nullable|numeric|min:0|max:100',
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
-            'id_estado' => 'required|exists:estado,id_estado',
-            'id_ubicacion' => 'required|exists:ubicacion,id_ubicacion'
+            'id_estado' => 'required|exists:estados,id_estado',
+            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion'
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
@@ -150,8 +150,8 @@ class ProyectoController extends Controller
             'porcentaje_cuota_inicial_min' => 'nullable|numeric|min:0|max:100',
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
-            'id_estado' => 'required|exists:estado,id_estado',
-            'id_ubicacion' => 'required|exists:ubicacion,id_ubicacion'
+            'id_estado' => 'required|exists:estados,id_estado',
+            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion'
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',

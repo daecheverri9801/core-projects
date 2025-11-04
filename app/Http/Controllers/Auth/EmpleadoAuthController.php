@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class EmpleadoAuthController extends Controller
 {
@@ -13,7 +14,7 @@ class EmpleadoAuthController extends Controller
      */
     public function showLoginForm()
     {
-        return view('auth.empleado-login'); // Crear esta vista
+        return Inertia::render('Auth/EmpleadoLogin'); // Crear esta vista
     }
 
     /**
@@ -51,6 +52,6 @@ class EmpleadoAuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login');
+        return redirect('/');
     }
 }

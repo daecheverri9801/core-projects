@@ -21,4 +21,8 @@ class Estado extends Model
     {
         return $this->hasMany(Proyecto::class, 'id_estado', 'id_estado');
     }
+    public function torres()
+    {
+        return $this->hasMany(Torre::class, 'id_estado', 'id_estado');
+    }
 }
