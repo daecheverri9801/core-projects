@@ -10,7 +10,16 @@ use App\Http\Controllers\Admin\EmpleadoController;
 use App\Http\Controllers\Admin\EstadosController;
 use App\Http\Controllers\Admin\DependenciasCargosController;
 use App\Http\Controllers\Auth\EmpleadoPasswordResetController;
+use App\Http\Controllers\Admin\UbicacionController;
 use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\Admin\AdminTorreController;
+use App\Http\Controllers\Admin\PisoTorreWebController;
+use App\Http\Controllers\Admin\ApartamentoWebController;
+use App\Http\Controllers\Admin\TipoApartamentoWebController;
+use App\Http\Controllers\Admin\LocalWebController;
+use App\Http\Controllers\Admin\ZonaSocialWebController;
+use App\Http\Controllers\Admin\ParqueaderoWebController;
+
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login');
@@ -54,6 +63,77 @@ Route::middleware(['auth', 'check.cargo:Administrador'])->group(function () {
     Route::post('/cargos', [DependenciasCargosController::class, 'storeCargo'])->name('cargos.store');
     Route::put('/cargos/{id}', [DependenciasCargosController::class, 'updateCargo'])->name('cargos.update');
     Route::delete('/cargos/{id}', [DependenciasCargosController::class, 'destroyCargo'])->name('cargos.destroy');
+    Route::get('/ubicacion/jerarquia', [UbicacionController::class, 'getJerarquia'])->name('ubicacion.jerarquia');
+    Route::post('/ubicacion', [UbicacionController::class, 'store'])->name('ubicacion.store');
+
+    Route::prefix('admin/torres')->name('admin.torres.')->group(function () {
+        Route::get('/', [AdminTorreController::class, 'index'])->name('index');
+        Route::get('/create', [AdminTorreController::class, 'create'])->name('create');
+        Route::post('/', [AdminTorreController::class, 'store'])->name('store');
+        Route::get('/{id_torre}', [AdminTorreController::class, 'show'])->name('show');
+        Route::get('/{id_torre}/edit', [AdminTorreController::class, 'edit'])->name('edit');
+        Route::put('/{id_torre}', [AdminTorreController::class, 'update'])->name('update');
+        Route::delete('/{id_torre}', [AdminTorreController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::get('/pisos-torre', [PisoTorreWebController::class, 'index'])->name('pisostorre.index');
+    Route::get('/pisos-torre/create', [PisoTorreWebController::class, 'create'])->name('pisostorre.create');
+    Route::post('/pisos-torre', [PisoTorreWebController::class, 'store'])->name('pisostorre.store');
+    Route::get('/pisos-torre/{id}', [PisoTorreWebController::class, 'show'])->name('pisostorre.show');
+    Route::get('/pisos-torre/{id}/edit', [PisoTorreWebController::class, 'edit'])->name('pisostorre.edit');
+    Route::put('/pisos-torre/{id}', [PisoTorreWebController::class, 'update'])->name('pisostorre.update');
+    Route::delete('/pisos-torre/{id}', [PisoTorreWebController::class, 'destroy'])->name('pisostorre.destroy');
+
+    // Auxiliar para selects dependientes
+    Route::get('/api/torres-por-proyecto/{id_proyecto}', [PisoTorreWebController::class, 'torresPorProyecto'])->name('pisostorre.torresPorProyecto');
+
+    Route::get('/apartamentos', [ApartamentoWebController::class, 'index'])->name('apartamentos.index');
+    Route::get('/apartamentos/create', [ApartamentoWebController::class, 'create'])->name('apartamentos.create');
+    Route::post('/apartamentos', [ApartamentoWebController::class, 'store'])->name('apartamentos.store');
+    Route::get('/apartamentos/{id}', [ApartamentoWebController::class, 'show'])->name('apartamentos.show');
+    Route::get('/apartamentos/{id}/edit', [ApartamentoWebController::class, 'edit'])->name('apartamentos.edit');
+    Route::put('/apartamentos/{id}', [ApartamentoWebController::class, 'update'])->name('apartamentos.update');
+    Route::delete('/apartamentos/{id}', [ApartamentoWebController::class, 'destroy'])->name('apartamentos.destroy');
+
+    // Auxiliares para selects encadenados
+    Route::get('/api/torres-por-proyecto/{id_proyecto}', [ApartamentoWebController::class, 'torresPorProyecto'])->name('apartamentos.torresPorProyecto');
+    Route::get('/api/pisos-por-torre/{id_torre}', [ApartamentoWebController::class, 'pisosPorTorre'])->name('apartamentos.pisosPorTorre');
+
+    Route::get('/tipos-apartamento', [TipoApartamentoWebController::class, 'index'])->name('tipos-apartamento.index');
+    Route::get('/tipos-apartamento/create', [TipoApartamentoWebController::class, 'create'])->name('tipos-apartamento.create');
+    Route::post('/tipos-apartamento', [TipoApartamentoWebController::class, 'store'])->name('tipos-apartamento.store');
+    Route::get('/tipos-apartamento/{id}', [TipoApartamentoWebController::class, 'show'])->name('tipos-apartamento.show');
+    Route::get('/tipos-apartamento/{id}/edit', [TipoApartamentoWebController::class, 'edit'])->name('tipos-apartamento.edit');
+    Route::put('/tipos-apartamento/{id}', [TipoApartamentoWebController::class, 'update'])->name('tipos-apartamento.update');
+    Route::delete('/tipos-apartamento/{id}', [TipoApartamentoWebController::class, 'destroy'])->name('tipos-apartamento.destroy');
+
+    Route::get('/locales', [LocalWebController::class, 'index'])->name('locales.index');
+    Route::get('/locales/create', [LocalWebController::class, 'create'])->name('locales.create');
+    Route::post('/locales', [LocalWebController::class, 'store'])->name('locales.store');
+    Route::get('/locales/{id}', [LocalWebController::class, 'show'])->name('locales.show');
+    Route::get('/locales/{id}/edit', [LocalWebController::class, 'edit'])->name('locales.edit');
+    Route::put('/locales/{id}', [LocalWebController::class, 'update'])->name('locales.update');
+    Route::delete('/locales/{id}', [LocalWebController::class, 'destroy'])->name('locales.destroy');
+
+    // Auxiliares para selects encadenados
+    Route::get('/api/torres-por-proyecto/{id_proyecto}', [LocalWebController::class, 'torresPorProyecto'])->name('locales.torresPorProyecto');
+    Route::get('/api/pisos-por-torre/{id_torre}', [LocalWebController::class, 'pisosPorTorre'])->name('locales.pisosPorTorre');
+
+    Route::get('/zonas-sociales', [ZonaSocialWebController::class, 'index'])->name('zonas-sociales.index');
+    Route::get('/zonas-sociales/create', [ZonaSocialWebController::class, 'create'])->name('zonas-sociales.create');
+    Route::post('/zonas-sociales', [ZonaSocialWebController::class, 'store'])->name('zonas-sociales.store');
+    Route::get('/zonas-sociales/{id}', [ZonaSocialWebController::class, 'show'])->name('zonas-sociales.show');
+    Route::get('/zonas-sociales/{id}/edit', [ZonaSocialWebController::class, 'edit'])->name('zonas-sociales.edit');
+    Route::put('/zonas-sociales/{id}', [ZonaSocialWebController::class, 'update'])->name('zonas-sociales.update');
+    Route::delete('/zonas-sociales/{id}', [ZonaSocialWebController::class, 'destroy'])->name('zonas-sociales.destroy');
+
+    Route::get('/parqueaderos', [ParqueaderoWebController::class, 'index'])->name('parqueaderos.index');
+    Route::get('/parqueaderos/create', [ParqueaderoWebController::class, 'create'])->name('parqueaderos.create');
+    Route::post('/parqueaderos', [ParqueaderoWebController::class, 'store'])->name('parqueaderos.store');
+    Route::get('/parqueaderos/{id}', [ParqueaderoWebController::class, 'show'])->name('parqueaderos.show');
+    Route::get('/parqueaderos/{id}/edit', [ParqueaderoWebController::class, 'edit'])->name('parqueaderos.edit');
+    Route::put('/parqueaderos/{id}', [ParqueaderoWebController::class, 'update'])->name('parqueaderos.update');
+    Route::delete('/parqueaderos/{id}', [ParqueaderoWebController::class, 'destroy'])->name('parqueaderos.destroy');
 });
 
 // Ruta para cualquier empleado autenticado
@@ -66,7 +146,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/test-email', function () {
     Mail::raw('Este es un correo de prueba', function ($message) {
         $message->to('daniel.arango20125@ucaldas.edu.co')
-                ->subject('Correo de prueba');
+            ->subject('Correo de prueba');
     });
 
     return 'Correo enviado';

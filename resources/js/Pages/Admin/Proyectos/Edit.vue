@@ -456,6 +456,50 @@
             </p>
           </div>
 
+          <!-- Prima Altura -->
+          <div class="md:col-span-2 border-t pt-4 mt-4">
+            <h3 class="text-base font-semibold mb-3">Configuración Prima Altura</h3>
+          </div>
+
+          <div>
+            <label class="form-label">Prima Altura Base (desde piso 2)</label>
+            <input
+              v-model.number="form.prima_altura_base"
+              type="number"
+              step="0.01"
+              min="0"
+              class="form-input"
+              placeholder="Ej: 500000"
+            />
+            <p v-if="form.errors.prima_altura_base" class="form-error">{{ form.errors.prima_altura_base }}</p>
+          </div>
+
+          <div>
+            <label class="form-label">Incremento por Piso</label>
+            <input
+              v-model.number="form.prima_altura_incremento"
+              type="number"
+              step="0.01"
+              min="0"
+              class="form-input"
+              placeholder="Ej: 100000"
+            />
+            <p v-if="form.errors.prima_altura_incremento" class="form-error">
+              {{ form.errors.prima_altura_incremento }}
+            </p>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="flex items-center gap-2">
+              <input
+                v-model="form.prima_altura_activa"
+                type="checkbox"
+                class="rounded border-gray-300"
+              />
+              <span class="text-sm font-medium">Activar Prima Altura en este proyecto</span>
+            </label>
+          </div>
+
           <!-- Ubicación -->
           <div>
             <label for="id_ubicacion" class="block text-sm font-medium text-gray-700 mb-1"
@@ -514,10 +558,10 @@ import {
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
-  proyecto: Object,
-  estados: Array,
-  ubicaciones: Array,
-  empleado: Object,
+  proyecto: { type: Object, default: () => ({}) },
+  estados: { type: Array, default: () => [] },
+  ubicaciones: { type: Array, default: () => [] },
+  empleado: { type: Object, default: null },
 })
 
 const empleadoCompleto = computed(() => {
@@ -562,25 +606,28 @@ function logout() {
 }
 
 const form = useForm({
-  nombre: props.proyecto.nombre || '',
-  descripcion: props.proyecto.descripcion || '',
-  fecha_inicio: props.proyecto.fecha_inicio || '',
-  fecha_finalizacion: props.proyecto.fecha_finalizacion || '',
-  presupuesto_inicial: props.proyecto.presupuesto_inicial || '',
-  presupuesto_final: props.proyecto.presupuesto_final || '',
-  metros_construidos: props.proyecto.metros_construidos || '',
-  cantidad_locales: props.proyecto.cantidad_locales || '',
-  cantidad_apartamentos: props.proyecto.cantidad_apartamentos || '',
-  cantidad_parqueaderos_vehiculo: props.proyecto.cantidad_parqueaderos_vehiculo || '',
-  cantidad_parqueaderos_moto: props.proyecto.cantidad_parqueaderos_moto || '',
-  estrato: props.proyecto.estrato || '',
-  numero_pisos: props.proyecto.numero_pisos || '',
-  numero_torres: props.proyecto.numero_torres || '',
-  porcentaje_cuota_inicial_min: props.proyecto.porcentaje_cuota_inicial_min || '',
-  valor_min_separacion: props.proyecto.valor_min_separacion || '',
-  plazo_cuota_inicial_meses: props.proyecto.plazo_cuota_inicial_meses || '',
-  id_estado: props.proyecto.id_estado || '',
-  id_ubicacion: props.proyecto.id_ubicacion || '',
+  nombre: props.proyecto?.nombre || '',
+  descripcion: props.proyecto?.descripcion || '',
+  fecha_inicio: props.proyecto?.fecha_inicio || '',
+  fecha_finalizacion: props.proyecto?.fecha_finalizacion || '',
+  presupuesto_inicial: props.proyecto?.presupuesto_inicial || '',
+  presupuesto_final: props.proyecto?.presupuesto_final || '',
+  metros_construidos: props.proyecto?.metros_construidos || '',
+  cantidad_locales: props.proyecto?.cantidad_locales || '',
+  cantidad_apartamentos: props.proyecto?.cantidad_apartamentos || '',
+  cantidad_parqueaderos_vehiculo: props.proyecto?.cantidad_parqueaderos_vehiculo || '',
+  cantidad_parqueaderos_moto: props.proyecto?.cantidad_parqueaderos_moto || '',
+  estrato: props.proyecto?.estrato || '',
+  numero_pisos: props.proyecto?.numero_pisos || '',
+  numero_torres: props.proyecto?.numero_torres || '',
+  porcentaje_cuota_inicial_min: props.proyecto?.porcentaje_cuota_inicial_min || '',
+  valor_min_separacion: props.proyecto?.valor_min_separacion || '',
+  plazo_cuota_inicial_meses: props.proyecto?.plazo_cuota_inicial_meses || '',
+  id_estado: props.proyecto?.id_estado || '',
+  id_ubicacion: props.proyecto?.id_ubicacion || '',
+  prima_altura_base: props.proyecto?.prima_altura_base ?? null,
+  prima_altura_incremento: props.proyecto?.prima_altura_incremento ?? null,
+  prima_altura_activa: props.proyecto?.prima_altura_activa ?? false,
 })
 
 function submit() {

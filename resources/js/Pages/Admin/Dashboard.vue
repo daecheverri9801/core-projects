@@ -51,11 +51,14 @@
         <AdminButton icon="FolderIcon" text="Proyectos" href="/proyectos" />
         <AdminButton icon="UsersIcon" text="Empleados" href="/empleados" />
         <AdminButton icon="CheckCircleIcon" text="Estados" href="/estados" />
-        <AdminButton
-          icon="BuildingOfficeIcon"
-          text="Dependencias y Cargos"
-          href="/dependencias-cargos"
-        />
+        <AdminButton icon="BuildingOfficeIcon" text="Dependencias y Cargos" href="/dependencias-cargos" />
+        <AdminButton icon="HomeIcon" text="Torres" href="/admin/torres" />
+        <AdminButton icon="HomeIcon" text="Pisos Torre" href="/pisos-torre" />
+        <AdminButton icon="HomeIcon" text="Apartamentos" href="/apartamentos" />
+        <AdminButton icon="HomeIcon" text="Tipos Apartamento" href="/tipos-apartamento" />
+        <AdminButton icon="HomeIcon" text="Locales" href="/locales" />
+        <AdminButton icon="HomeIcon" text="Zonas Sociales" href="/zonas-sociales" />
+        <AdminButton icon="HomeIcon" text="Parqueaderos" href="/parqueaderos" />
       </div>
     </main>
 
@@ -67,21 +70,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { Link } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
 import Logo from '@/Components/Logo.vue'
 import AdminButton from '@/Components/AdminButton.vue'
-import { computed } from 'vue';
 
 import {
   UserIcon,
   ChevronDownIcon,
-  FolderIcon,
-  UsersIcon,
-  CheckCircleIcon,
   HomeIcon,
-  BuildingOfficeIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({

@@ -18,7 +18,8 @@ class TipoApartamento extends Model
         'area_privada',
         'cantidad_habitaciones',
         'cantidad_banos',
-        'valor_m2'
+        'valor_m2',
+        'valor_estimado',
     ];
 
     public function apartamentos()

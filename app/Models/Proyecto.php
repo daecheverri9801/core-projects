@@ -31,7 +31,10 @@ class Proyecto extends Model
         'valor_min_separacion',
         'plazo_cuota_inicial_meses',
         'id_estado',
-        'id_ubicacion'
+        'id_ubicacion',
+        'prima_altura_base',
+        'prima_altura_incremento',
+        'prima_altura_activa',
     ];
 
     protected $casts = [
@@ -39,7 +42,8 @@ class Proyecto extends Model
         'presupuesto_final' => 'decimal:2',
         'metros_construidos' => 'decimal:2',
         'porcentaje_cuota_inicial_min' => 'decimal:2',
-        'valor_min_separacion' => 'decimal:2'
+        'valor_min_separacion' => 'decimal:2',
+        'prima_altura_activa' => 'boolean',
     ];
 
     public function estado_proyecto()

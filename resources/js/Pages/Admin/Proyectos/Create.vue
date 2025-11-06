@@ -463,26 +463,79 @@
                 {{ form.errors.id_estado }}
               </p>
             </div>
+            <div class="md:col-span-2 border-t pt-4 mt-4">
+              <h3 class="text-base font-semibold mb-3">Configuración Prima Altura</h3>
+            </div>
+
+            <div>
+              <label class="form-label">Prima Altura Base (desde piso 2)</label>
+              <input
+                v-model.number="form.prima_altura_base"
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-input"
+                placeholder="Ej: 500000"
+              />
+              <p v-if="form.errors.prima_altura_base" class="form-error">
+                {{ form.errors.prima_altura_base }}
+              </p>
+            </div>
+
+            <div>
+              <label class="form-label">Incremento por Piso</label>
+              <input
+                v-model.number="form.prima_altura_incremento"
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-input"
+                placeholder="Ej: 100000"
+              />
+              <p v-if="form.errors.prima_altura_incremento" class="form-error">
+                {{ form.errors.prima_altura_incremento }}
+              </p>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="form.prima_altura_activa"
+                  type="checkbox"
+                  class="rounded border-gray-300"
+                />
+                <span class="text-sm font-medium">Activar Prima Altura en este proyecto</span>
+              </label>
+            </div>
 
             <!-- Ubicación -->
             <div>
               <label for="id_ubicacion" class="block text-sm font-medium text-gray-700 mb-1"
                 >Ubicación <span class="text-red-500">*</span></label
               >
-              <select
-                id="id_ubicacion"
-                v-model="form.id_ubicacion"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              >
-                <option value="" disabled>Seleccione una ubicación</option>
-                <option
-                  v-for="ubicacion in ubicaciones"
-                  :key="ubicacion.id_ubicacion"
-                  :value="ubicacion.id_ubicacion"
+              <div class="flex gap-2 items-center">
+                <select
+                  id="id_ubicacion"
+                  v-model="form.id_ubicacion"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                 >
-                  {{ ubicacion.direccion }}, {{ ubicacion.ciudad.nombre }}
-                </option>
-              </select>
+                  <option value="" disabled>Seleccione una ubicación</option>
+                  <option
+                    v-for="ubicacion in ubicaciones"
+                    :key="ubicacion.id_ubicacion"
+                    :value="ubicacion.id_ubicacion"
+                  >
+                    {{ ubicacion.direccion }}, {{ ubicacion.ciudad.nombre }}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  @click="openModal = true"
+                  class="ml-2 rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600"
+                >
+                  Crear Ubicación
+                </button>
+              </div>
               <p v-if="form.errors.id_ubicacion" class="mt-1 text-sm text-red-600">
                 {{ form.errors.id_ubicacion }}
               </p>
@@ -499,16 +552,146 @@
         </div>
       </main>
     </div>
+
+    <!-- Modal Crear Ubicación -->
+    <transition name="fade">
+      <div
+        v-if="openModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
+        <div class="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+          <h3 class="text-xl font-semibold mb-4">Crear Nueva Ubicación</h3>
+
+          <form @submit.prevent="submitUbicacion" class="space-y-4 max-h-[70vh] overflow-auto">
+            <!-- País -->
+            <div>
+              <label for="pais" class="block text-sm font-medium text-gray-700 mb-1"
+                >País <span class="text-red-500">*</span></label
+              >
+              <select
+                id="pais"
+                v-model="selectedPais"
+                @change="onPaisChange"
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                required
+              >
+                <option value="" disabled>Seleccione un país</option>
+                <option v-for="pais in paises" :key="pais.id_pais" :value="pais.id_pais">
+                  {{ pais.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Departamento -->
+            <div>
+              <label for="departamento" class="block text-sm font-medium text-gray-700 mb-1"
+                >Departamento <span class="text-red-500">*</span></label
+              >
+              <select
+                id="departamento"
+                v-model="selectedDepartamento"
+                @change="onDepartamentoChange"
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                :disabled="!selectedPais"
+                required
+              >
+                <option value="" disabled>Seleccione un departamento</option>
+                <option
+                  v-for="dep in departamentosFiltrados"
+                  :key="dep.id_departamento"
+                  :value="dep.id_departamento"
+                >
+                  {{ dep.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Ciudad -->
+            <div>
+              <label for="ciudad" class="block text-sm font-medium text-gray-700 mb-1"
+                >Ciudad <span class="text-red-500">*</span></label
+              >
+              <select
+                id="ciudad"
+                v-model="selectedCiudad"
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                :disabled="!selectedDepartamento"
+                required
+              >
+                <option value="" disabled>Seleccione una ciudad</option>
+                <option
+                  v-for="ciudad in ciudadesFiltradas"
+                  :key="ciudad.id_ciudad"
+                  :value="ciudad.id_ciudad"
+                >
+                  {{ ciudad.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Barrio -->
+            <div>
+              <label for="barrio" class="block text-sm font-medium text-gray-700 mb-1"
+                >Barrio</label
+              >
+              <input
+                id="barrio"
+                v-model="formUbicacion.barrio"
+                type="text"
+                maxlength="120"
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+              />
+              <p v-if="errorsUbicacion.barrio" class="mt-1 text-sm text-red-600">
+                {{ errorsUbicacion.barrio }}
+              </p>
+            </div>
+
+            <!-- Dirección -->
+            <div>
+              <label for="direccion" class="block text-sm font-medium text-gray-700 mb-1"
+                >Dirección <span class="text-red-500">*</span></label
+              >
+              <input
+                id="direccion"
+                v-model="formUbicacion.direccion"
+                type="text"
+                maxlength="300"
+                required
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+              />
+              <p v-if="errorsUbicacion.direccion" class="mt-1 text-sm text-red-600">
+                {{ errorsUbicacion.direccion }}
+              </p>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-6">
+              <button
+                type="button"
+                @click="closeModal"
+                class="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                :disabled="loadingUbicacion"
+                class="rounded bg-brand-500 px-6 py-2 text-white hover:bg-brand-600 disabled:opacity-50"
+              >
+                Guardar Ubicación
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/inertia-vue3'
-import { Link, router, usePage } from '@inertiajs/inertia-vue3'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useForm, Link, usePage } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
 import Logo from '@/Components/Logo.vue'
-
 import {
   UserIcon,
   ChevronDownIcon,
@@ -516,16 +699,15 @@ import {
   UsersIcon,
   CheckCircleIcon,
   BuildingOfficeIcon,
-  PlusIcon,
   HomeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
-  estados: Array,
-  ubicaciones: Array,
-  empleado: Object,
+  estados: { type: Array, default: () => [] },
+  ubicaciones: { type: Array, default: () => [] },
+  empleado: { type: Object, default: null },
 })
 
 const empleadoCompleto = computed(() => {
@@ -555,8 +737,6 @@ function handleClickOutside(event) {
   }
 }
 
-import { onMounted, onBeforeUnmount } from 'vue'
-
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
@@ -569,6 +749,7 @@ function logout() {
   Inertia.post('/logout')
 }
 
+// Formulario proyecto
 const form = useForm({
   nombre: '',
   descripcion: '',
@@ -589,7 +770,118 @@ const form = useForm({
   plazo_cuota_inicial_meses: '',
   id_estado: '',
   id_ubicacion: '',
+  prima_altura_base: null,
+  prima_altura_incremento: null,
+  prima_altura_activa: false,
 })
+
+// Variables para modal ubicación
+const openModal = ref(false)
+const paises = ref([])
+const selectedPais = ref('')
+const departamentosFiltrados = ref([])
+const selectedDepartamento = ref('')
+const ciudadesFiltradas = ref([])
+const selectedCiudad = ref('')
+
+const formUbicacion = ref({
+  id_ciudad: '',
+  barrio: '',
+  direccion: '',
+})
+
+const errorsUbicacion = ref({})
+const loadingUbicacion = ref(false)
+
+// Cargar países y jerarquía al montar
+async function cargarJerarquia() {
+  try {
+    const response = await fetch('/ubicacion/jerarquia')
+    const data = await response.json()
+    if (data.success) {
+      paises.value = data.data
+    }
+  } catch (error) {
+    console.error('Error cargando jerarquía:', error)
+  }
+}
+
+onMounted(() => {
+  cargarJerarquia()
+})
+
+// Filtrar departamentos según país seleccionado
+function onPaisChange() {
+  selectedDepartamento.value = ''
+  selectedCiudad.value = ''
+  departamentosFiltrados.value = []
+  ciudadesFiltradas.value = []
+  if (!selectedPais.value) return
+  const pais = paises.value.find((p) => p.id_pais === selectedPais.value)
+  departamentosFiltrados.value = pais ? pais.departamentos : []
+}
+
+// Filtrar ciudades según departamento seleccionado
+function onDepartamentoChange() {
+  selectedCiudad.value = ''
+  ciudadesFiltradas.value = []
+  if (!selectedDepartamento.value) return
+  const departamento = departamentosFiltrados.value.find(
+    (d) => d.id_departamento === selectedDepartamento.value
+  )
+  ciudadesFiltradas.value = departamento ? departamento.ciudades : []
+}
+
+// Enviar formulario de ubicación
+async function submitUbicacion() {
+  errorsUbicacion.value = {}
+
+  if (!selectedCiudad.value) {
+    errorsUbicacion.value.id_ciudad = 'La ciudad es obligatoria'
+    return
+  }
+  if (!formUbicacion.value.direccion) {
+    errorsUbicacion.value.direccion = 'La dirección es obligatoria'
+    return
+  }
+
+  loadingUbicacion.value = true
+
+  Inertia.post(
+    '/ubicacion',
+    {
+      id_ciudad: selectedCiudad.value,
+      barrio: formUbicacion.value.barrio,
+      direccion: formUbicacion.value.direccion,
+    },
+    {
+      onSuccess: (page) => {
+        // Agregar nueva ubicación a la lista y seleccionar
+        const nuevaUbicacion = page.props.ubicacionNueva // Asegúrate que el backend envíe esta prop
+        if (nuevaUbicacion) {
+          form.id_ubicacion = nuevaUbicacion.id_ubicacion
+          props.ubicaciones.push(nuevaUbicacion)
+        }
+        closeModal()
+        // Reset form
+        selectedPais.value = ''
+        selectedDepartamento.value = ''
+        selectedCiudad.value = ''
+        formUbicacion.value = { id_ciudad: '', barrio: '', direccion: '' }
+        errorsUbicacion.value = {}
+        loadingUbicacion.value = false
+      },
+      onError: (errors) => {
+        errorsUbicacion.value = errors || {}
+        loadingUbicacion.value = false
+      },
+    }
+  )
+}
+
+function closeModal() {
+  openModal.value = false
+}
 
 const currentRoute = computed(() => {
   const comp = usePage()?.component

@@ -29,8 +29,8 @@ class TorreController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre_torre' => 'required|string|max:50',
             'numero_pisos' => 'nullable|integer|min:1|max:32767',
-            'id_proyecto' => 'required|exists:proyecto,id_proyecto',
-            'id_estado' => 'required|exists:estado,id_estado'
+            'id_proyecto' => 'required|exists:proyectos,id_proyecto',
+            'id_estado' => 'required|exists:estados,id_estado'
         ], [
             'nombre_torre.required' => 'El nombre de la torre es obligatorio',
             'nombre_torre.max' => 'El nombre de la torre no puede exceder 50 caracteres',
@@ -102,8 +102,8 @@ class TorreController extends Controller
         $validator = Validator::make($request->all(), [
             'nombre_torre' => 'required|string|max:50',
             'numero_pisos' => 'nullable|integer|min:1|max:32767',
-            'id_proyecto' => 'required|exists:proyecto,id_proyecto',
-            'id_estado' => 'required|exists:estado,id_estado'
+            'id_proyecto' => 'required|exists:proyectos,id_proyecto',
+            'id_estado' => 'required|exists:estados,id_estado'
         ], [
             'nombre_torre.required' => 'El nombre de la torre es obligatorio',
             'nombre_torre.max' => 'El nombre de la torre no puede exceder 50 caracteres',

@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use App\Models\Estado;
 use App\Models\Ubicacion;
+use App\Models\Torre;
+
 
 
 class ProyectoController extends Controller
@@ -89,28 +91,35 @@ class ProyectoController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        
+
         $proyecto = Proyecto::create($request->all());
         $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
         return redirect()->route('proyecto.index')->with('success', 'Proyecto creado exitosamente');
     }
 
-    public function show(Proyecto $proyecto, Request $request)
+    public function show($id_proyecto)
     {
-        $empleado = $request->user()->load('cargo');
-        $proyecto->load([
-            'estado_proyecto',
-            'ubicacion.ciudad.departamento.pais',
-            'torres.pisos',
-            'zonasSociales',
-            'politicasPrecios',
-            'politicasComisiones'
-        ]);
+        $tab = request()->get('tab', 'detalle');
+        $search = request()->get('search');
 
-        return Inertia::render('Admin/Proyectos/Show', [
+        $proyecto = Proyecto::with(['ubicacion.ciudad', 'estado_proyecto'])->findOrFail($id_proyecto);
+
+        $torres = Torre::with(['estado'])
+            ->where('id_proyecto', $id_proyecto)
+            ->when($search, fn($q) => $q->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
+            ->orderBy('id_torre', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        return \Inertia\Inertia::render('Admin/Proyectos/Show', [
             'proyecto' => $proyecto,
-            'empleado' => $empleado,
+            'tab' => $tab,
+            'torres' => $torres,
+            'filters' => [
+                'search' => $search,
+            ],
+            'empleado' => auth()->user()->empleado ?? null,
         ]);
     }
 

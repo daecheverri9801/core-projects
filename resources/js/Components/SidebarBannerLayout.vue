@@ -4,7 +4,7 @@
     <nav
       :class="[
         'bg-white border-r border-brand-200/30 flex flex-col transition-width duration-300',
-        sidebarOpen ? 'w-64' : 'w-16'
+        sidebarOpen ? 'w-64' : 'w-16',
       ]"
     >
       <div class="flex items-center gap-4 px-4 py-5 border-b border-brand-200/30 justify-between">
@@ -45,6 +45,88 @@
           </Link>
         </li>
         <li>
+          <Link
+            href="/admin/torres"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{ 'bg-brand-100 text-brand-900': currentRoute.startsWith('admin/torres') }"
+          >
+            <HomeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Torres</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/pisos-torre"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('pisos-torre'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Pisos de Torre</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/apartamentos"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('apartamentos'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Apartamentos</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/tipos-apartamento"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('tipos-apartamento'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Tipos Apartamento</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/locales"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('locales'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Locales</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/zonas-sociales"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('zonas-sociales'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Zonas Sociales</span>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/parqueaderos"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('parqueaderos'),
+            }"
+          >
+            <BuildingOfficeIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Parqueaderos</span>
+          </Link>
+        </li>
+        <li>          
           <Link
             href="/empleados"
             class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"

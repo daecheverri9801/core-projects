@@ -18,7 +18,8 @@ class Apartamento extends Model
         'id_torre',
         'id_piso_torre',
         'id_estado_inmueble',
-        'valor_total'
+        'valor_total',
+        'prima_altura',
     ];
 
     protected $casts = [
