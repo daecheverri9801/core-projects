@@ -103,7 +103,9 @@ class ProyectoController extends Controller
         $tab = request()->get('tab', 'detalle');
         $search = request()->get('search');
 
-        $proyecto = Proyecto::with(['ubicacion.ciudad', 'estado_proyecto'])->findOrFail($id_proyecto);
+        $proyecto = Proyecto::with(['ubicacion.ciudad', 'estado_proyecto', 'politicasPrecio' => function ($query) {
+            $query->orderBy('aplica_desde', 'desc');
+        }])->findOrFail($id_proyecto);
 
         $torres = Torre::with(['estado'])
             ->where('id_proyecto', $id_proyecto)

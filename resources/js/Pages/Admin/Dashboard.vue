@@ -59,6 +59,7 @@
         <AdminButton icon="HomeIcon" text="Locales" href="/locales" />
         <AdminButton icon="HomeIcon" text="Zonas Sociales" href="/zonas-sociales" />
         <AdminButton icon="HomeIcon" text="Parqueaderos" href="/parqueaderos" />
+        <AdminButton icon="HomeIcon" text="Politicas" href="/politicas-precio-proyecto" />
       </div>
     </main>
 

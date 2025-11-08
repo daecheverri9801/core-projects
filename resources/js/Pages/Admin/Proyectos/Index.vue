@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout>
+  <SidebarBannerLayout :empleado="empleado">
     <div class="flex min-h-screen bg-brand-50">
       <div class="flex-1 flex flex-col">
         <main class="p-8">
@@ -183,21 +183,11 @@ import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
 import {
-  UserIcon,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  HomeIcon,
-  FolderIcon,
-  UsersIcon,
-  CheckCircleIcon,
-  BuildingOfficeIcon,
   PlusIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline'
-import Logo from '@/Components/Logo.vue'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({

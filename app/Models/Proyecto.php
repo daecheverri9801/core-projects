@@ -66,7 +66,7 @@ class Proyecto extends Model
         return $this->hasMany(ZonaSocial::class, 'id_proyecto', 'id_proyecto');
     }
 
-    public function politicasPrecios()
+    public function politicasPrecio()
     {
         return $this->hasMany(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto');
     }
@@ -74,5 +74,16 @@ class Proyecto extends Model
     public function politicasComisiones()
     {
         return $this->hasMany(PoliticaComision::class, 'id_proyecto', 'id_proyecto');
+    }
+
+    public function politicaVigente()
+    {
+        return $this->hasOne(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto')
+            ->where('estado', true)
+            ->where(function ($query) {
+                $query->whereNull('aplica_desde')
+                    ->orWhere('aplica_desde', '<=', now());
+            })
+            ->latest('aplica_desde');
     }
 }

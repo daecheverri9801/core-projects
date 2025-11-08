@@ -44,13 +44,26 @@
             <span v-if="sidebarOpen">Proyectos</span>
           </Link>
         </li>
+
+        <li>
+          <Link
+            href="/politicas-precio-proyecto"
+            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
+            :class="{
+              'bg-brand-100 text-brand-900': currentRoute.startsWith('politicas-precio-proyecto'),
+            }"
+          >
+            <FolderIcon class="w-6 h-6" />
+            <span v-if="sidebarOpen">Políticas de Precio</span>
+          </Link>
+        </li>
         <li>
           <Link
             href="/admin/torres"
             class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
             :class="{ 'bg-brand-100 text-brand-900': currentRoute.startsWith('admin/torres') }"
           >
-            <HomeIcon class="w-6 h-6" />
+            <BuildingOfficeIcon class="w-6 h-6" />
             <span v-if="sidebarOpen">Torres</span>
           </Link>
         </li>
@@ -126,7 +139,7 @@
             <span v-if="sidebarOpen">Parqueaderos</span>
           </Link>
         </li>
-        <li>          
+        <li>
           <Link
             href="/empleados"
             class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
@@ -154,7 +167,7 @@
               'bg-brand-100 text-brand-900': currentRoute.startsWith('dependencias-cargos'),
             }"
           >
-            <BuildingOfficeIcon class="w-6 h-6" />
+            <IdentificationIcon class="w-6 h-6" />
             <span v-if="sidebarOpen">Dependencias y Cargos</span>
           </Link>
         </li>
@@ -234,6 +247,7 @@ import {
   HomeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  IdentificationIcon,
 } from '@heroicons/vue/24/outline'
 
 const empleado = usePage().props.value.auth?.empleado || null

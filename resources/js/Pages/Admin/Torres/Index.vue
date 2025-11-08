@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout>
+  <SidebarBannerLayout :empleado="empleado">
     <template #title>Torres</template>
 
     <div class="bg-white rounded-lg shadow p-6">

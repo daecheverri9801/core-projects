@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\TipoApartamentoWebController;
 use App\Http\Controllers\Admin\LocalWebController;
 use App\Http\Controllers\Admin\ZonaSocialWebController;
 use App\Http\Controllers\Admin\ParqueaderoWebController;
+use App\Http\Controllers\Admin\PoliticaPrecioProyectoWebController;
 
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
@@ -134,6 +135,15 @@ Route::middleware(['auth', 'check.cargo:Administrador'])->group(function () {
     Route::get('/parqueaderos/{id}/edit', [ParqueaderoWebController::class, 'edit'])->name('parqueaderos.edit');
     Route::put('/parqueaderos/{id}', [ParqueaderoWebController::class, 'update'])->name('parqueaderos.update');
     Route::delete('/parqueaderos/{id}', [ParqueaderoWebController::class, 'destroy'])->name('parqueaderos.destroy');
+
+    Route::prefix('politicas-precio-proyecto')->group(function () {
+        Route::get('/', [PoliticaPrecioProyectoWebController::class, 'index'])->name('politicas-precio-proyecto.index');
+        Route::get('/crear', [PoliticaPrecioProyectoWebController::class, 'create'])->name('politicas-precio-proyecto.create');
+        Route::post('/', [PoliticaPrecioProyectoWebController::class, 'store'])->name('politicas-precio-proyecto.store');
+        Route::get('/{id}', [PoliticaPrecioProyectoWebController::class, 'show'])->name('politicas-precio-proyecto.show');
+        Route::get('/{id}/editar', [PoliticaPrecioProyectoWebController::class, 'edit'])->name('politicas-precio-proyecto.edit');
+        Route::put('/{id}', [PoliticaPrecioProyectoWebController::class, 'update'])->name('politicas-precio-proyecto.update');
+    });
 });
 
 // Ruta para cualquier empleado autenticado

@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout>
+  <SidebarBannerLayout :empleado="empleado">
     <template #title>Editar Torre</template>
 
     <div class="max-w-3xl mx-auto bg-white rounded-lg shadow p-8">

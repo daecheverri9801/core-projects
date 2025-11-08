@@ -1,708 +1,586 @@
 <template>
-  <div class="flex min-h-screen bg-brand-50">
-    <!-- Sidebar vertical colapsable -->
-    <nav
-      :class="[
-        'bg-white border-r border-brand-200/30 flex flex-col transition-width duration-300',
-        sidebarOpen ? 'w-64' : 'w-16',
-      ]"
-    >
-      <div class="flex items-center gap-4 px-4 py-5 border-b border-brand-200/30 justify-between">
-        <div class="flex items-center gap-4">
-          <Logo class="w-10 h-10" />
-          <h1 v-if="sidebarOpen" class="text-xl font-semibold text-brand-900 whitespace-nowrap">
-            Panel
-          </h1>
-        </div>
-        <button
-          @click="toggleSidebar"
-          class="text-gray-500 hover:text-gray-700 focus:outline-none"
-          :aria-label="sidebarOpen ? 'Cerrar menú' : 'Abrir menú'"
-        >
-          <ChevronLeftIcon v-if="sidebarOpen" class="w-6 h-6 transition-transform" />
-          <ChevronRightIcon v-else class="w-6 h-6 transition-transform" />
-        </button>
-      </div>
-      <ul class="flex flex-col mt-6 space-y-1 px-2">
-        <li>
-          <Link
-            href="/dashboard"
-            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
-            :class="{ 'bg-brand-100 text-brand-900': currentRoute === 'dashboard' }"
-          >
-            <HomeIcon class="w-6 h-6" />
-            <span v-if="sidebarOpen">Dashboard</span>
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/proyectos"
-            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
-            :class="{ 'bg-brand-100 text-brand-900': currentRoute.startsWith('proyectos') }"
-          >
-            <FolderIcon class="w-6 h-6" />
-            <span v-if="sidebarOpen">Proyectos</span>
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/empleados"
-            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
-            :class="{ 'bg-brand-100 text-brand-900': currentRoute.startsWith('empleados') }"
-          >
-            <UsersIcon class="w-6 h-6" />
-            <span v-if="sidebarOpen">Empleados</span>
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/estados"
-            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
-            :class="{ 'bg-brand-100 text-brand-900': currentRoute.startsWith('estados') }"
-          >
-            <CheckCircleIcon class="w-6 h-6" />
-            <span v-if="sidebarOpen">Estados</span>
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/dependencias-cargos"
-            class="flex items-center gap-3 px-4 py-3 rounded-md font-semibold text-brand-700 hover:bg-brand-100"
-            :class="{
-              'bg-brand-100 text-brand-900': currentRoute.startsWith('dependencias-cargos'),
-            }"
-          >
-            <BuildingOfficeIcon class="w-6 h-6" />
-            <span v-if="sidebarOpen">Dependencias y Cargos</span>
-          </Link>
-        </li>
-      </ul>
-    </nav>
+  <SidebarBannerLayout :empleado="empleado">
+    <div class="flex min-h-screen bg-brand-50">
+      <div class="flex-1 flex flex-col">
+        <main class="p-8 overflow-auto">
+          <div class="max-w-3xl mx-auto bg-white rounded-lg shadow p-8">
+            <h2 class="text-3xl font-bold mb-6 text-gray-900">Crear Proyecto</h2>
 
-    <!-- Contenido principal -->
-    <div class="flex-1 flex flex-col">
-      <!-- Banner superior -->
-      <header
-        class="bg-brand-500/5 border-b border-brand-200/30 px-6 py-4 flex items-center justify-between"
-      >
-        <div class="flex items-center gap-4">
-          <Logo class="w-10 h-10" />
-          <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
-        </div>
-
-        <!-- Usuario y menú -->
-        <div class="relative" id="user-menu">
-          <button @click="toggleMenu" class="flex items-center gap-2 focus:outline-none">
-            <div class="text-right max-w-[180px] sm:max-w-xs truncate">
-              <div class="font-semibold text-gray-800" :title="empleadoCompleto">
-                {{ empleadoCompleto }}
-              </div>
-              <div
-                class="text-sm text-gray-500 flex items-center gap-1 truncate"
-                :title="empleado?.cargo?.nombre || 'Cargo'"
-              >
-                <UserIcon class="w-4 h-4 text-gray-400" />
-                {{ empleado?.cargo?.nombre || 'Cargo' }}
-              </div>
-            </div>
-            <ChevronDownIcon class="w-5 h-5 text-gray-600" />
-          </button>
-
-          <transition name="fade">
-            <ul
-              v-if="menuOpen"
-              class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md z-10"
-            >
-              <li>
-                <Link href="/perfil" class="block px-4 py-2 hover:bg-gray-100">Perfil</Link>
-              </li>
-              <li>
-                <button @click="logout" class="w-full text-left px-4 py-2 hover:bg-gray-100">
-                  Logout
-                </button>
-              </li>
-            </ul>
-          </transition>
-        </div>
-      </header>
-
-      <!-- Formulario -->
-      <main class="p-8 overflow-auto">
-        <div class="max-w-3xl mx-auto bg-white rounded-lg shadow p-8">
-          <h2 class="text-3xl font-bold mb-6 text-gray-900">Crear Proyecto</h2>
-
-          <form @submit.prevent="submit" class="space-y-6">
-            <!-- Nombre -->
-            <div>
-              <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1"
-                >Nombre <span class="text-red-500">*</span></label
-              >
-              <input
-                id="nombre"
-                v-model="form.nombre"
-                type="text"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              />
-              <p v-if="form.errors.nombre" class="mt-1 text-sm text-red-600">
-                {{ form.errors.nombre }}
-              </p>
-            </div>
-
-            <!-- Descripción -->
-            <div>
-              <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1"
-                >Descripción</label
-              >
-              <textarea
-                id="descripcion"
-                v-model="form.descripcion"
-                rows="3"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              ></textarea>
-              <p v-if="form.errors.descripcion" class="mt-1 text-sm text-red-600">
-                {{ form.errors.descripcion }}
-              </p>
-            </div>
-
-            <!-- Fechas -->
-            <div class="grid grid-cols-2 gap-6">
+            <form @submit.prevent="submit" class="space-y-6">
+              <!-- Nombre -->
               <div>
-                <label for="fecha_inicio" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Fecha Inicio</label
+                <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Nombre <span class="text-red-500">*</span></label
                 >
                 <input
-                  id="fecha_inicio"
-                  v-model="form.fecha_inicio"
-                  type="date"
+                  id="nombre"
+                  v-model="form.nombre"
+                  type="text"
                   class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                 />
-                <p v-if="form.errors.fecha_inicio" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.fecha_inicio }}
+                <p v-if="form.errors.nombre" class="mt-1 text-sm text-red-600">
+                  {{ form.errors.nombre }}
                 </p>
               </div>
 
+              <!-- Descripción -->
               <div>
-                <label for="fecha_finalizacion" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Fecha Finalización</label
+                <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Descripción</label
                 >
-                <input
-                  id="fecha_finalizacion"
-                  v-model="form.fecha_finalizacion"
-                  type="date"
+                <textarea
+                  id="descripcion"
+                  v-model="form.descripcion"
+                  rows="3"
                   class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.fecha_finalizacion" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.fecha_finalizacion }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Presupuestos y metros -->
-            <div class="grid grid-cols-3 gap-6">
-              <div>
-                <label
-                  for="presupuesto_inicial"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Presupuesto Inicial</label
-                >
-                <input
-                  id="presupuesto_inicial"
-                  v-model="form.presupuesto_inicial"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.presupuesto_inicial" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.presupuesto_inicial }}
+                ></textarea>
+                <p v-if="form.errors.descripcion" class="mt-1 text-sm text-red-600">
+                  {{ form.errors.descripcion }}
                 </p>
               </div>
 
-              <div>
-                <label for="presupuesto_final" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Presupuesto Final</label
-                >
-                <input
-                  id="presupuesto_final"
-                  v-model="form.presupuesto_final"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.presupuesto_final" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.presupuesto_final }}
-                </p>
-              </div>
-
-              <div>
-                <label for="metros_construidos" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Metros Construidos</label
-                >
-                <input
-                  id="metros_construidos"
-                  v-model="form.metros_construidos"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.metros_construidos" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.metros_construidos }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Cantidades -->
-            <div class="grid grid-cols-4 gap-6">
-              <div>
-                <label for="cantidad_locales" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Cantidad Locales</label
-                >
-                <input
-                  id="cantidad_locales"
-                  v-model="form.cantidad_locales"
-                  type="number"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.cantidad_locales" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.cantidad_locales }}
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="cantidad_apartamentos"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Cantidad Apartamentos</label
-                >
-                <input
-                  id="cantidad_apartamentos"
-                  v-model="form.cantidad_apartamentos"
-                  type="number"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.cantidad_apartamentos" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.cantidad_apartamentos }}
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="cantidad_parqueaderos_vehiculo"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Parqueaderos Vehículo</label
-                >
-                <input
-                  id="cantidad_parqueaderos_vehiculo"
-                  v-model="form.cantidad_parqueaderos_vehiculo"
-                  type="number"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p
-                  v-if="form.errors.cantidad_parqueaderos_vehiculo"
-                  class="mt-1 text-sm text-red-600"
-                >
-                  {{ form.errors.cantidad_parqueaderos_vehiculo }}
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="cantidad_parqueaderos_moto"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Parqueaderos Moto</label
-                >
-                <input
-                  id="cantidad_parqueaderos_moto"
-                  v-model="form.cantidad_parqueaderos_moto"
-                  type="number"
-                  min="0"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.cantidad_parqueaderos_moto" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.cantidad_parqueaderos_moto }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Estrato, pisos, torres -->
-            <div class="grid grid-cols-3 gap-6">
-              <div>
-                <label for="estrato" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Estrato</label
-                >
-                <input
-                  id="estrato"
-                  v-model="form.estrato"
-                  type="number"
-                  min="1"
-                  max="6"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.estrato" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.estrato }}
-                </p>
-              </div>
-
-              <div>
-                <label for="numero_pisos" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Número Pisos</label
-                >
-                <input
-                  id="numero_pisos"
-                  v-model="form.numero_pisos"
-                  type="number"
-                  min="1"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.numero_pisos" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.numero_pisos }}
-                </p>
-              </div>
-
-              <div>
-                <label for="numero_torres" class="block text-sm font-medium text-gray-700 mb-1"
-                  >Número Torres</label
-                >
-                <input
-                  id="numero_torres"
-                  v-model="form.numero_torres"
-                  type="number"
-                  min="1"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.numero_torres" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.numero_torres }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Financiación -->
-            <div class="grid grid-cols-3 gap-6">
-              <div>
-                <label
-                  for="porcentaje_cuota_inicial_min"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >% Cuota Inicial Mínima</label
-                >
-                <input
-                  id="porcentaje_cuota_inicial_min"
-                  v-model="form.porcentaje_cuota_inicial_min"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p
-                  v-if="form.errors.porcentaje_cuota_inicial_min"
-                  class="mt-1 text-sm text-red-600"
-                >
-                  {{ form.errors.porcentaje_cuota_inicial_min }}
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="valor_min_separacion"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Valor Mínimo Separación</label
-                >
-                <input
-                  id="valor_min_separacion"
-                  v-model="form.valor_min_separacion"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.valor_min_separacion" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.valor_min_separacion }}
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="plazo_cuota_inicial_meses"
-                  class="block text-sm font-medium text-gray-700 mb-1"
-                  >Plazo Cuota Inicial (meses)</label
-                >
-                <input
-                  id="plazo_cuota_inicial_meses"
-                  v-model="form.plazo_cuota_inicial_meses"
-                  type="number"
-                  min="1"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <p v-if="form.errors.plazo_cuota_inicial_meses" class="mt-1 text-sm text-red-600">
-                  {{ form.errors.plazo_cuota_inicial_meses }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Estado -->
-            <div>
-              <label for="id_estado" class="block text-sm font-medium text-gray-700 mb-1"
-                >Estado <span class="text-red-500">*</span></label
-              >
-              <select
-                id="id_estado"
-                v-model="form.id_estado"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              >
-                <option value="" disabled>Seleccione un estado</option>
-                <option v-for="estado in estados" :key="estado.id_estado" :value="estado.id_estado">
-                  {{ estado.nombre }}
-                </option>
-              </select>
-              <p v-if="form.errors.id_estado" class="mt-1 text-sm text-red-600">
-                {{ form.errors.id_estado }}
-              </p>
-            </div>
-            <div class="md:col-span-2 border-t pt-4 mt-4">
-              <h3 class="text-base font-semibold mb-3">Configuración Prima Altura</h3>
-            </div>
-
-            <div>
-              <label class="form-label">Prima Altura Base (desde piso 2)</label>
-              <input
-                v-model.number="form.prima_altura_base"
-                type="number"
-                step="0.01"
-                min="0"
-                class="form-input"
-                placeholder="Ej: 500000"
-              />
-              <p v-if="form.errors.prima_altura_base" class="form-error">
-                {{ form.errors.prima_altura_base }}
-              </p>
-            </div>
-
-            <div>
-              <label class="form-label">Incremento por Piso</label>
-              <input
-                v-model.number="form.prima_altura_incremento"
-                type="number"
-                step="0.01"
-                min="0"
-                class="form-input"
-                placeholder="Ej: 100000"
-              />
-              <p v-if="form.errors.prima_altura_incremento" class="form-error">
-                {{ form.errors.prima_altura_incremento }}
-              </p>
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="flex items-center gap-2">
-                <input
-                  v-model="form.prima_altura_activa"
-                  type="checkbox"
-                  class="rounded border-gray-300"
-                />
-                <span class="text-sm font-medium">Activar Prima Altura en este proyecto</span>
-              </label>
-            </div>
-
-            <!-- Ubicación -->
-            <div>
-              <label for="id_ubicacion" class="block text-sm font-medium text-gray-700 mb-1"
-                >Ubicación <span class="text-red-500">*</span></label
-              >
-              <div class="flex gap-2 items-center">
-                <select
-                  id="id_ubicacion"
-                  v-model="form.id_ubicacion"
-                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                >
-                  <option value="" disabled>Seleccione una ubicación</option>
-                  <option
-                    v-for="ubicacion in ubicaciones"
-                    :key="ubicacion.id_ubicacion"
-                    :value="ubicacion.id_ubicacion"
+              <!-- Fechas -->
+              <div class="grid grid-cols-2 gap-6">
+                <div>
+                  <label for="fecha_inicio" class="block text-sm font-medium text-gray-700 mb-1"
+                    >Fecha Inicio</label
                   >
-                    {{ ubicacion.direccion }}, {{ ubicacion.ciudad.nombre }}
+                  <input
+                    id="fecha_inicio"
+                    v-model="form.fecha_inicio"
+                    type="date"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.fecha_inicio" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.fecha_inicio }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="fecha_finalizacion"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Fecha Finalización</label
+                  >
+                  <input
+                    id="fecha_finalizacion"
+                    v-model="form.fecha_finalizacion"
+                    type="date"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.fecha_finalizacion" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.fecha_finalizacion }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Presupuestos y metros -->
+              <div class="grid grid-cols-3 gap-6">
+                <div>
+                  <label
+                    for="presupuesto_inicial"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Presupuesto Inicial</label
+                  >
+                  <input
+                    id="presupuesto_inicial"
+                    v-model="form.presupuesto_inicial"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.presupuesto_inicial" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.presupuesto_inicial }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="presupuesto_final"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Presupuesto Final</label
+                  >
+                  <input
+                    id="presupuesto_final"
+                    v-model="form.presupuesto_final"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.presupuesto_final" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.presupuesto_final }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="metros_construidos"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Metros Construidos</label
+                  >
+                  <input
+                    id="metros_construidos"
+                    v-model="form.metros_construidos"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.metros_construidos" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.metros_construidos }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Cantidades -->
+              <div class="grid grid-cols-4 gap-6">
+                <div>
+                  <label for="cantidad_locales" class="block text-sm font-medium text-gray-700 mb-1"
+                    >Cantidad Locales</label
+                  >
+                  <input
+                    id="cantidad_locales"
+                    v-model="form.cantidad_locales"
+                    type="number"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.cantidad_locales" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.cantidad_locales }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="cantidad_apartamentos"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Cantidad Apartamentos</label
+                  >
+                  <input
+                    id="cantidad_apartamentos"
+                    v-model="form.cantidad_apartamentos"
+                    type="number"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.cantidad_apartamentos" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.cantidad_apartamentos }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="cantidad_parqueaderos_vehiculo"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Parqueaderos Vehículo</label
+                  >
+                  <input
+                    id="cantidad_parqueaderos_vehiculo"
+                    v-model="form.cantidad_parqueaderos_vehiculo"
+                    type="number"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p
+                    v-if="form.errors.cantidad_parqueaderos_vehiculo"
+                    class="mt-1 text-sm text-red-600"
+                  >
+                    {{ form.errors.cantidad_parqueaderos_vehiculo }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="cantidad_parqueaderos_moto"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Parqueaderos Moto</label
+                  >
+                  <input
+                    id="cantidad_parqueaderos_moto"
+                    v-model="form.cantidad_parqueaderos_moto"
+                    type="number"
+                    min="0"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p
+                    v-if="form.errors.cantidad_parqueaderos_moto"
+                    class="mt-1 text-sm text-red-600"
+                  >
+                    {{ form.errors.cantidad_parqueaderos_moto }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Estrato, pisos, torres -->
+              <div class="grid grid-cols-3 gap-6">
+                <div>
+                  <label for="estrato" class="block text-sm font-medium text-gray-700 mb-1"
+                    >Estrato</label
+                  >
+                  <input
+                    id="estrato"
+                    v-model="form.estrato"
+                    type="number"
+                    min="1"
+                    max="6"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.estrato" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.estrato }}
+                  </p>
+                </div>
+
+                <div>
+                  <label for="numero_pisos" class="block text-sm font-medium text-gray-700 mb-1"
+                    >Número Pisos</label
+                  >
+                  <input
+                    id="numero_pisos"
+                    v-model="form.numero_pisos"
+                    type="number"
+                    min="1"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.numero_pisos" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.numero_pisos }}
+                  </p>
+                </div>
+
+                <div>
+                  <label for="numero_torres" class="block text-sm font-medium text-gray-700 mb-1"
+                    >Número Torres</label
+                  >
+                  <input
+                    id="numero_torres"
+                    v-model="form.numero_torres"
+                    type="number"
+                    min="1"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.numero_torres" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.numero_torres }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Financiación -->
+              <div class="grid grid-cols-3 gap-6">
+                <div>
+                  <label
+                    for="porcentaje_cuota_inicial_min"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >% Cuota Inicial Mínima</label
+                  >
+                  <input
+                    id="porcentaje_cuota_inicial_min"
+                    v-model="form.porcentaje_cuota_inicial_min"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p
+                    v-if="form.errors.porcentaje_cuota_inicial_min"
+                    class="mt-1 text-sm text-red-600"
+                  >
+                    {{ form.errors.porcentaje_cuota_inicial_min }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="valor_min_separacion"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Valor Mínimo Separación</label
+                  >
+                  <input
+                    id="valor_min_separacion"
+                    v-model="form.valor_min_separacion"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.valor_min_separacion" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.valor_min_separacion }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="plazo_cuota_inicial_meses"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Plazo Cuota Inicial (meses)</label
+                  >
+                  <input
+                    id="plazo_cuota_inicial_meses"
+                    v-model="form.plazo_cuota_inicial_meses"
+                    type="number"
+                    min="1"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.plazo_cuota_inicial_meses" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.plazo_cuota_inicial_meses }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Estado -->
+              <div>
+                <label for="id_estado" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Estado <span class="text-red-500">*</span></label
+                >
+                <select
+                  id="id_estado"
+                  v-model="form.id_estado"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="" disabled>Seleccione un estado</option>
+                  <option
+                    v-for="estado in estados"
+                    :key="estado.id_estado"
+                    :value="estado.id_estado"
+                  >
+                    {{ estado.nombre }}
                   </option>
                 </select>
-                <button
-                  type="button"
-                  @click="openModal = true"
-                  class="ml-2 rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600"
-                >
-                  Crear Ubicación
-                </button>
+                <p v-if="form.errors.id_estado" class="mt-1 text-sm text-red-600">
+                  {{ form.errors.id_estado }}
+                </p>
               </div>
-              <p v-if="form.errors.id_ubicacion" class="mt-1 text-sm text-red-600">
-                {{ form.errors.id_ubicacion }}
-              </p>
-            </div>
+              <div class="md:col-span-2 border-t pt-4 mt-4">
+                <h3 class="text-base font-semibold mb-3">Configuración Prima Altura</h3>
+              </div>
 
-            <button
-              type="submit"
-              :disabled="form.processing"
-              class="mt-6 w-full rounded bg-brand-500 px-6 py-3 text-white font-semibold shadow hover:bg-brand-600 disabled:opacity-50"
-            >
-              Guardar Proyecto
-            </button>
-          </form>
-        </div>
-      </main>
-    </div>
+              <div>
+                <label class="form-label">Prima Altura Base (desde piso 2)</label>
+                <input
+                  v-model.number="form.prima_altura_base"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="form-input"
+                  placeholder="Ej: 500000"
+                />
+                <p v-if="form.errors.prima_altura_base" class="form-error">
+                  {{ form.errors.prima_altura_base }}
+                </p>
+              </div>
 
-    <!-- Modal Crear Ubicación -->
-    <transition name="fade">
-      <div
-        v-if="openModal"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      >
-        <div class="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
-          <h3 class="text-xl font-semibold mb-4">Crear Nueva Ubicación</h3>
+              <div>
+                <label class="form-label">Incremento por Piso</label>
+                <input
+                  v-model.number="form.prima_altura_incremento"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="form-input"
+                  placeholder="Ej: 100000"
+                />
+                <p v-if="form.errors.prima_altura_incremento" class="form-error">
+                  {{ form.errors.prima_altura_incremento }}
+                </p>
+              </div>
 
-          <form @submit.prevent="submitUbicacion" class="space-y-4 max-h-[70vh] overflow-auto">
-            <!-- País -->
-            <div>
-              <label for="pais" class="block text-sm font-medium text-gray-700 mb-1"
-                >País <span class="text-red-500">*</span></label
-              >
-              <select
-                id="pais"
-                v-model="selectedPais"
-                @change="onPaisChange"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                required
-              >
-                <option value="" disabled>Seleccione un país</option>
-                <option v-for="pais in paises" :key="pais.id_pais" :value="pais.id_pais">
-                  {{ pais.nombre }}
-                </option>
-              </select>
-            </div>
+              <div class="md:col-span-2">
+                <label class="flex items-center gap-2">
+                  <input
+                    v-model="form.prima_altura_activa"
+                    type="checkbox"
+                    class="rounded border-gray-300"
+                  />
+                  <span class="text-sm font-medium">Activar Prima Altura en este proyecto</span>
+                </label>
+              </div>
 
-            <!-- Departamento -->
-            <div>
-              <label for="departamento" class="block text-sm font-medium text-gray-700 mb-1"
-                >Departamento <span class="text-red-500">*</span></label
-              >
-              <select
-                id="departamento"
-                v-model="selectedDepartamento"
-                @change="onDepartamentoChange"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                :disabled="!selectedPais"
-                required
-              >
-                <option value="" disabled>Seleccione un departamento</option>
-                <option
-                  v-for="dep in departamentosFiltrados"
-                  :key="dep.id_departamento"
-                  :value="dep.id_departamento"
+              <!-- Ubicación -->
+              <div>
+                <label for="id_ubicacion" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Ubicación <span class="text-red-500">*</span></label
                 >
-                  {{ dep.nombre }}
-                </option>
-              </select>
-            </div>
+                <div class="flex gap-2 items-center">
+                  <select
+                    id="id_ubicacion"
+                    v-model="form.id_ubicacion"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  >
+                    <option value="" disabled>Seleccione una ubicación</option>
+                    <option
+                      v-for="ubicacion in ubicaciones"
+                      :key="ubicacion.id_ubicacion"
+                      :value="ubicacion.id_ubicacion"
+                    >
+                      {{ ubicacion.direccion }}, {{ ubicacion.ciudad.nombre }}
+                    </option>
+                  </select>
+                  <button
+                    type="button"
+                    @click="openModal = true"
+                    class="ml-2 rounded bg-brand-500 px-3 py-1 text-white hover:bg-brand-600"
+                  >
+                    Crear Ubicación
+                  </button>
+                </div>
+                <p v-if="form.errors.id_ubicacion" class="mt-1 text-sm text-red-600">
+                  {{ form.errors.id_ubicacion }}
+                </p>
+              </div>
 
-            <!-- Ciudad -->
-            <div>
-              <label for="ciudad" class="block text-sm font-medium text-gray-700 mb-1"
-                >Ciudad <span class="text-red-500">*</span></label
-              >
-              <select
-                id="ciudad"
-                v-model="selectedCiudad"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                :disabled="!selectedDepartamento"
-                required
-              >
-                <option value="" disabled>Seleccione una ciudad</option>
-                <option
-                  v-for="ciudad in ciudadesFiltradas"
-                  :key="ciudad.id_ciudad"
-                  :value="ciudad.id_ciudad"
-                >
-                  {{ ciudad.nombre }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Barrio -->
-            <div>
-              <label for="barrio" class="block text-sm font-medium text-gray-700 mb-1"
-                >Barrio</label
-              >
-              <input
-                id="barrio"
-                v-model="formUbicacion.barrio"
-                type="text"
-                maxlength="120"
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              />
-              <p v-if="errorsUbicacion.barrio" class="mt-1 text-sm text-red-600">
-                {{ errorsUbicacion.barrio }}
-              </p>
-            </div>
-
-            <!-- Dirección -->
-            <div>
-              <label for="direccion" class="block text-sm font-medium text-gray-700 mb-1"
-                >Dirección <span class="text-red-500">*</span></label
-              >
-              <input
-                id="direccion"
-                v-model="formUbicacion.direccion"
-                type="text"
-                maxlength="300"
-                required
-                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              />
-              <p v-if="errorsUbicacion.direccion" class="mt-1 text-sm text-red-600">
-                {{ errorsUbicacion.direccion }}
-              </p>
-            </div>
-
-            <div class="flex justify-end gap-4 mt-6">
-              <button
-                type="button"
-                @click="closeModal"
-                class="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
               <button
                 type="submit"
-                :disabled="loadingUbicacion"
-                class="rounded bg-brand-500 px-6 py-2 text-white hover:bg-brand-600 disabled:opacity-50"
+                :disabled="form.processing"
+                class="mt-6 w-full rounded bg-brand-500 px-6 py-3 text-white font-semibold shadow hover:bg-brand-600 disabled:opacity-50"
               >
-                Guardar Ubicación
+                Guardar Proyecto
               </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
+        </main>
       </div>
-    </transition>
-  </div>
+
+      <!-- Modal Crear Ubicación -->
+      <transition name="fade">
+        <div
+          v-if="openModal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        >
+          <div class="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+            <h3 class="text-xl font-semibold mb-4">Crear Nueva Ubicación</h3>
+
+            <form @submit.prevent="submitUbicacion" class="space-y-4 max-h-[70vh] overflow-auto">
+              <!-- País -->
+              <div>
+                <label for="pais" class="block text-sm font-medium text-gray-700 mb-1"
+                  >País <span class="text-red-500">*</span></label
+                >
+                <select
+                  id="pais"
+                  v-model="selectedPais"
+                  @change="onPaisChange"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  required
+                >
+                  <option value="" disabled>Seleccione un país</option>
+                  <option v-for="pais in paises" :key="pais.id_pais" :value="pais.id_pais">
+                    {{ pais.nombre }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Departamento -->
+              <div>
+                <label for="departamento" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Departamento <span class="text-red-500">*</span></label
+                >
+                <select
+                  id="departamento"
+                  v-model="selectedDepartamento"
+                  @change="onDepartamentoChange"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  :disabled="!selectedPais"
+                  required
+                >
+                  <option value="" disabled>Seleccione un departamento</option>
+                  <option
+                    v-for="dep in departamentosFiltrados"
+                    :key="dep.id_departamento"
+                    :value="dep.id_departamento"
+                  >
+                    {{ dep.nombre }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Ciudad -->
+              <div>
+                <label for="ciudad" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Ciudad <span class="text-red-500">*</span></label
+                >
+                <select
+                  id="ciudad"
+                  v-model="selectedCiudad"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  :disabled="!selectedDepartamento"
+                  required
+                >
+                  <option value="" disabled>Seleccione una ciudad</option>
+                  <option
+                    v-for="ciudad in ciudadesFiltradas"
+                    :key="ciudad.id_ciudad"
+                    :value="ciudad.id_ciudad"
+                  >
+                    {{ ciudad.nombre }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Barrio -->
+              <div>
+                <label for="barrio" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Barrio</label
+                >
+                <input
+                  id="barrio"
+                  v-model="formUbicacion.barrio"
+                  type="text"
+                  maxlength="120"
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                />
+                <p v-if="errorsUbicacion.barrio" class="mt-1 text-sm text-red-600">
+                  {{ errorsUbicacion.barrio }}
+                </p>
+              </div>
+
+              <!-- Dirección -->
+              <div>
+                <label for="direccion" class="block text-sm font-medium text-gray-700 mb-1"
+                  >Dirección <span class="text-red-500">*</span></label
+                >
+                <input
+                  id="direccion"
+                  v-model="formUbicacion.direccion"
+                  type="text"
+                  maxlength="300"
+                  required
+                  class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                />
+                <p v-if="errorsUbicacion.direccion" class="mt-1 text-sm text-red-600">
+                  {{ errorsUbicacion.direccion }}
+                </p>
+              </div>
+
+              <div class="flex justify-end gap-4 mt-6">
+                <button
+                  type="button"
+                  @click="closeModal"
+                  class="rounded border border-gray-300 px-4 py-2 hover:bg-gray-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  :disabled="loadingUbicacion"
+                  class="rounded bg-brand-500 px-6 py-2 text-white hover:bg-brand-600 disabled:opacity-50"
+                >
+                  Guardar Ubicación
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </transition>
+    </div>
+  </SidebarBannerLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useForm, Link, usePage } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
-import Logo from '@/Components/Logo.vue'
-import {
-  UserIcon,
-  ChevronDownIcon,
-  FolderIcon,
-  UsersIcon,
-  CheckCircleIcon,
-  BuildingOfficeIcon,
-  HomeIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from '@heroicons/vue/24/outline'
+import SidebarBannerLayout from '@/Layouts/SidebarBannerLayout.vue'
 
 const props = defineProps({
   estados: { type: Array, default: () => [] },

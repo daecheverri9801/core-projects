@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout>
+  <SidebarBannerLayout :empleado="empleado">
     <template #title>Torre: {{ torre.nombre_torre }}</template>
 
     <div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-8">

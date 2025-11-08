@@ -36,7 +36,15 @@
             "
           />
           <InfoItem label="Prima Altura" :value="formatCurrency(apartamento.prima_altura || 0)" />
-          <InfoItem label="Valor Total" :value="formatCurrency(apartamento.valor_total || 0)" />
+          <InfoItem
+            label="Valor Base (Tipo + Prima Altura)"
+            :value="formatCurrency(apartamento.valor_total || 0)"
+          />
+          <InfoItem
+            label="Ajuste por Política"
+            :value="formatCurrency(apartamento.valor_politica || 0)"
+          />
+          <InfoItem label="Valor Final" :value="formatCurrency(apartamento.valor_final || 0)" />
           <InfoItem label="Ubicación" :value="resumen.ubicacion || '—'" />
         </div>
       </div>

@@ -20,10 +20,14 @@ class Apartamento extends Model
         'id_estado_inmueble',
         'valor_total',
         'prima_altura',
+        'valor_politica',
+        'valor_final',
     ];
 
     protected $casts = [
-        'valor_total' => 'decimal:2'
+        'valor_total' => 'decimal:2',
+        'valor_politica' => 'decimal:2',
+        'valor_final' => 'decimal:2',
     ];
 
     public function tipoApartamento()
