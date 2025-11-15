@@ -357,7 +357,7 @@ class ApartamentoWebController extends Controller
 
     private function calcularValorConPolitica($valorBase, $idProyecto)
     {
-        $proyecto = \App\Models\Proyecto::with('politicaVigente')->find($idProyecto);
+        $proyecto = Proyecto::with('politicaVigente')->find($idProyecto);
         if (!$proyecto || !$proyecto->politicaVigente) {
             return [
                 'valor_politica' => 0,
@@ -372,7 +372,7 @@ class ApartamentoWebController extends Controller
             'torre',
             fn($q) =>
             $q->where('id_proyecto', $idProyecto)
-        )->whereNotNull('cliente_id')->count();
+        )->whereNotNull('documento')->count();
 
         $ventasPorEscalon = $politica->ventas_por_escalon ?? 0;
         $porcentajeAumento = $politica->porcentaje_aumento ?? 0;

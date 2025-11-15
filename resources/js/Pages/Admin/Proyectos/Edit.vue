@@ -427,7 +427,7 @@ import { ref, computed } from 'vue'
 import { useForm } from '@inertiajs/inertia-vue3'
 import { Link, usePage } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
-import SidebarBannerLayout from '@/Layouts/SidebarBannerLayout.vue'
+import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({
   proyecto: { type: Object, default: () => ({}) },

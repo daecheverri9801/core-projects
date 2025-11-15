@@ -580,7 +580,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useForm, Link, usePage } from '@inertiajs/inertia-vue3'
 import { Inertia } from '@inertiajs/inertia'
-import SidebarBannerLayout from '@/Layouts/SidebarBannerLayout.vue'
+import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({
   estados: { type: Array, default: () => [] },

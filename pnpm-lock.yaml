@@ -22,7 +22,7 @@ importers:
         specifier: ^9.39.0
         version: 9.39.0
       '@inertiajs/vue3':
-        specifier: ^2.0
+        specifier: ^2.2.15
         version: 2.2.15(vue@3.5.22)
       '@tailwindcss/forms':
         specifier: ^0.5.7

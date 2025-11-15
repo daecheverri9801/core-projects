@@ -2,37 +2,25 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
+    public function run()
     {
+        // Seeders del módulo de Ventas
         $this->call([
-            PaisSeeder::class,
-            DepartamentoSeeder::class,
-            CiudadSeeder::class,
-            EstadoSeeder::class,
-            EstadoInmuebleSeeder::class,
-            UbicacionSeeder::class,
-            ProyectoSeeder::class,
-            TorreSeeder::class,
-            PisoTorreSeeder::class,
-            TipoApartamentoSeeder::class,
-            ApartamentoSeeder::class,
-            LocalSeeder::class,
-            ParqueaderoSeeder::class,
-            ZonaSocialSeeder::class,
-            PoliticaComisionSeeder::class,
-            PoliticaPrecioProyectoSeeder::class,
-            CargoSeeder::class,
-            DependenciaSeeder::class,
-            EmpleadoSeeder::class,
+            TipoClienteSeeder::class,
+            TipoDocumentoSeeder::class,
+            ClienteSeeder::class,
+            FormaPagoSeeder::class,
+            EstadoVentaSeeder::class,
+            ConceptoPagoSeeder::class,
+            MedioPagoSeeder::class,
+            VentaSeeder::class,
+            PlanAmortizacionVentaSeeder::class,
+            PlanAmortizacionCuotaSeeder::class,
+            PagoSeeder::class,
         ]);
     }
 }

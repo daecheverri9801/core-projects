@@ -21,6 +21,19 @@ use App\Http\Controllers\Admin\ZonaSocialWebController;
 use App\Http\Controllers\Admin\ParqueaderoWebController;
 use App\Http\Controllers\Admin\PoliticaPrecioProyectoWebController;
 
+use App\Http\Controllers\Ventas\TipoClienteWebController;
+use App\Http\Controllers\Ventas\TipoDocumentoWebController;
+use App\Http\Controllers\Ventas\ClienteWebController;
+use App\Http\Controllers\Ventas\FormaPagoWebController;
+use App\Http\Controllers\Ventas\EstadoVentaWebController;
+use App\Http\Controllers\Ventas\ConceptoPagoWebController;
+use App\Http\Controllers\Ventas\MedioPagoWebController;
+use App\Http\Controllers\Ventas\VentaWebController;
+use App\Http\Controllers\Ventas\PlanAmortizacionVentaWebController;
+use App\Http\Controllers\Ventas\PagoWebController;
+use App\Http\Controllers\Ventas\PlanAmortizacionCuotaWebController;
+use App\Http\Controllers\Ventas\CatalogoWebController;
+
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login');
@@ -145,6 +158,138 @@ Route::middleware(['auth', 'check.cargo:Administrador'])->group(function () {
         Route::put('/{id}', [PoliticaPrecioProyectoWebController::class, 'update'])->name('politicas-precio-proyecto.update');
     });
 });
+
+// ============================================
+// RUTAS WEB - MÓDULO DE VENTAS
+// ============================================
+
+// Catálogo (Módulo de Ventas)
+Route::get('/catalogo', [CatalogoWebController::class, 'index'])->name('catalogo.index');
+Route::get('/catalogo/{tipo}/{id}', [CatalogoWebController::class, 'show'])->name('catalogo.show');
+
+
+// 1. Tipos de Cliente
+Route::resource('tipos-cliente', TipoClienteWebController::class)->names([
+    'index' => 'tipos-cliente.index',
+    'create' => 'tipos-cliente.create',
+    'store' => 'tipos-cliente.store',
+    'show' => 'tipos-cliente.show',
+    'edit' => 'tipos-cliente.edit',
+    'update' => 'tipos-cliente.update',
+    'destroy' => 'tipos-cliente.destroy',
+]);
+
+// 2. Tipos de Documento
+Route::resource('tipos-documento', TipoDocumentoWebController::class)->names([
+    'index' => 'tipos-documento.index',
+    'create' => 'tipos-documento.create',
+    'store' => 'tipos-documento.store',
+    'show' => 'tipos-documento.show',
+    'edit' => 'tipos-documento.edit',
+    'update' => 'tipos-documento.update',
+    'destroy' => 'tipos-documento.destroy',
+]);
+
+// 3. Clientes (usando documento como parámetro)
+Route::get('clientes', [ClienteWebController::class, 'index'])->name('clientes.index');
+Route::get('clientes/create', [ClienteWebController::class, 'create'])->name('clientes.create');
+Route::post('clientes', [ClienteWebController::class, 'store'])->name('clientes.store');
+Route::get('clientes/{documento}', [ClienteWebController::class, 'show'])->name('clientes.show');
+Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
+Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
+Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
+
+// 4. Formas de Pago
+Route::resource('formas-pago', FormaPagoWebController::class)->names([
+    'index' => 'formas-pago.index',
+    'create' => 'formas-pago.create',
+    'store' => 'formas-pago.store',
+    'show' => 'formas-pago.show',
+    'edit' => 'formas-pago.edit',
+    'update' => 'formas-pago.update',
+    'destroy' => 'formas-pago.destroy',
+]);
+
+// 5. Estados de Venta
+Route::resource('estados-venta', EstadoVentaWebController::class)->names([
+    'index' => 'estados-venta.index',
+    'create' => 'estados-venta.create',
+    'store' => 'estados-venta.store',
+    'show' => 'estados-venta.show',
+    'edit' => 'estados-venta.edit',
+    'update' => 'estados-venta.update',
+    'destroy' => 'estados-venta.destroy',
+]);
+
+// 6. Conceptos de Pago
+Route::resource('conceptos-pago', ConceptoPagoWebController::class)->names([
+    'index' => 'conceptos-pago.index',
+    'create' => 'conceptos-pago.create',
+    'store' => 'conceptos-pago.store',
+    'show' => 'conceptos-pago.show',
+    'edit' => 'conceptos-pago.edit',
+    'update' => 'conceptos-pago.update',
+    'destroy' => 'conceptos-pago.destroy',
+]);
+
+// 7. Medios de Pago
+Route::resource('medios-pago', MedioPagoWebController::class)->names([
+    'index' => 'medios-pago.index',
+    'create' => 'medios-pago.create',
+    'store' => 'medios-pago.store',
+    'show' => 'medios-pago.show',
+    'edit' => 'medios-pago.edit',
+    'update' => 'medios-pago.update',
+    'destroy' => 'medios-pago.destroy',
+]);
+
+// 8. Ventas
+Route::resource('ventas', VentaWebController::class)->names([
+    'index' => 'ventas.index',
+    'create' => 'ventas.create',
+    'store' => 'ventas.store',
+    'show' => 'ventas.show',
+    'edit' => 'ventas.edit',
+    'update' => 'ventas.update',
+    'destroy' => 'ventas.destroy',
+]);
+
+Route::get('/ventas/inmuebles-disponibles', [VentaWebController::class, 'getInmueblesDisponibles'])
+    ->name('ventas.inmuebles');
+
+// 9. Planes de Amortización de Venta
+Route::resource('planes-amortizacion-venta', PlanAmortizacionVentaWebController::class)->names([
+    'index' => 'planes-amortizacion-venta.index',
+    'create' => 'planes-amortizacion-venta.create',
+    'store' => 'planes-amortizacion-venta.store',
+    'show' => 'planes-amortizacion-venta.show',
+    'edit' => 'planes-amortizacion-venta.edit',
+    'update' => 'planes-amortizacion-venta.update',
+    'destroy' => 'planes-amortizacion-venta.destroy',
+]);
+
+// 10. Pagos
+Route::resource('pagos', PagoWebController::class)->names([
+    'index' => 'pagos.index',
+    'create' => 'pagos.create',
+    'store' => 'pagos.store',
+    'show' => 'pagos.show',
+    'edit' => 'pagos.edit',
+    'update' => 'pagos.update',
+    'destroy' => 'pagos.destroy',
+]);
+
+// 11. Planes de Amortización - Cuotas
+Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController::class)->names([
+    'index' => 'planes-amortizacion-cuota.index',
+    'create' => 'planes-amortizacion-cuota.create',
+    'store' => 'planes-amortizacion-cuota.store',
+    'show' => 'planes-amortizacion-cuota.show',
+    'edit' => 'planes-amortizacion-cuota.edit',
+    'update' => 'planes-amortizacion-cuota.update',
+    'destroy' => 'planes-amortizacion-cuota.destroy',
+]);
+
 
 // Ruta para cualquier empleado autenticado
 Route::middleware(['auth'])->group(function () {

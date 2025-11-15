@@ -38,4 +38,9 @@ class Torre extends Model
     {
         return $this->belongsTo(Estado::class, 'id_estado', 'id_estado');
     }
+
+    public function locales()
+    {
+        return $this->hasMany(Local::class, 'id_torre', 'id_torre');
+    }
 }

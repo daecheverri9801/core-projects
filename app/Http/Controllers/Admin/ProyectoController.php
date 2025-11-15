@@ -95,7 +95,7 @@ class ProyectoController extends Controller
         $proyecto = Proyecto::create($request->all());
         $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
-        return redirect()->route('proyecto.index')->with('success', 'Proyecto creado exitosamente');
+        return redirect()->route('proyectos.index')->with('success', 'Proyecto creado exitosamente');
     }
 
     public function show($id_proyecto)
