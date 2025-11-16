@@ -48,4 +48,9 @@ class Local extends Model
     {
         return $this->hasMany(Venta::class, 'id_local');
     }
+
+    public function getValorComercialAttribute()
+    {
+        return $this->valor_total ?? 0;
+    }
 }

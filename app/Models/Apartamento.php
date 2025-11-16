@@ -22,6 +22,7 @@ class Apartamento extends Model
         'prima_altura',
         'valor_politica',
         'valor_final',
+        'documento',
     ];
 
     protected $casts = [
@@ -64,5 +65,14 @@ class Apartamento extends Model
     public function ventas()
     {
         return $this->hasMany(Venta::class, 'id_apartamento');
+    }
+
+    public function getValorComercialAttribute()
+    {
+        $base = $this->valor_total ?? 0;
+        $prima = $this->prima_altura ?? 0;
+        $politica = $this->valor_politica ?? 0;
+
+        return $base + $prima + $politica;
     }
 }

@@ -68,7 +68,7 @@ class TipoApartamentoWebController extends Controller
         if ($area > 0 && $valorM2 > 0) {
             $valorCalculado = $area * $valorM2 * 1.08;
             // Redondear a la siguiente centena de mil (100,000) hacia arriba
-            $validated['valor_estimado'] = ceil($valorCalculado / 100000) * 100000;
+            $validated['valor_estimado'] = ceil($valorCalculado);
         } else {
             $validated['valor_estimado'] = null;
         }
@@ -154,8 +154,7 @@ class TipoApartamentoWebController extends Controller
         $valorM2 = (float)($validated['valor_m2'] ?? 0);
         if ($area > 0 && $valorM2 > 0) {
             $valorCalculado = $area * $valorM2 * 1.08;
-            // Redondear a la siguiente centena de mil (100,000) hacia arriba
-            $validated['valor_estimado'] = ceil($valorCalculado / 100000) * 100000;
+            $validated['valor_estimado'] = ceil($valorCalculado);
         } else {
             $validated['valor_estimado'] = null;
         }

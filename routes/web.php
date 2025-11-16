@@ -33,6 +33,8 @@ use App\Http\Controllers\Ventas\PlanAmortizacionVentaWebController;
 use App\Http\Controllers\Ventas\PagoWebController;
 use App\Http\Controllers\Ventas\PlanAmortizacionCuotaWebController;
 use App\Http\Controllers\Ventas\CatalogoWebController;
+use App\Http\Controllers\Ventas\CotizadorWebController;
+use App\Http\Controllers\Ventas\SimuladorWebController;
 
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
@@ -289,6 +291,16 @@ Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController:
     'update' => 'planes-amortizacion-cuota.update',
     'destroy' => 'planes-amortizacion-cuota.destroy',
 ]);
+
+Route::prefix('cotizador')->middleware(['auth'])->group(function () {
+    Route::get('/', [CotizadorWebController::class, 'index'])->name('cotizador.index');
+    Route::get('/create', [CotizadorWebController::class, 'create'])->name('cotizador.create');
+    Route::post('/', [CotizadorWebController::class, 'store'])->name('cotizador.store');
+    Route::get('/show', [CotizadorWebController::class, 'show'])->name('cotizador.show');
+});
+
+Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
+    ->name('simulador.index');
 
 
 // Ruta para cualquier empleado autenticado

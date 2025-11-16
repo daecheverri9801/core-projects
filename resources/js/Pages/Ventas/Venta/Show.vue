@@ -68,7 +68,7 @@ const formatCurrency = (value) =>
             <div>
               <p class="text-sm text-gray-500">Cliente</p>
               <p class="font-semibold text-gray-900">
-                {{ venta.clientes?.nombre ?? 'No asignado' }}
+                {{ venta.cliente?.nombre ?? 'No asignado' }}
               </p>
               <p class="text-xs text-gray-600 mt-1">{{ venta.documento_cliente }}</p>
             </div>
@@ -109,6 +109,48 @@ const formatCurrency = (value) =>
           </ul>
         </div>
 
+        <!-- RESUMEN DEL PLAN DE AMORTIZACIÓN -->
+        <div class="pt-6 border-t border-gray-200">
+          <h2 class="text-lg font-bold text-gray-900 mb-3">Plan de Amortización</h2>
+
+          <!-- NO EXISTE -->
+          <div
+            v-if="!venta.plan_amortizacion"
+            class="p-4 bg-yellow-50 rounded-lg border border-yellow-200"
+          >
+            <p class="text-sm text-yellow-800 mb-3">Esta venta no tiene un plan de amortización.</p>
+            <Link
+              :href="`/planes-amortizacion-venta/create?id_venta=${venta.id_venta}`"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-[#f4c430] text-gray-900 rounded-lg font-semibold hover:bg-[#e5b520]"
+            >
+              <PlusIcon class="w-5 h-5" /> Crear Plan
+            </Link>
+          </div>
+
+          <!-- EXISTE -->
+          <div v-else class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InfoRow label="Tipo de Plan" :value="venta.plan_amortizacion.tipo_plan ?? '—'" />
+              <InfoRow label="Plazo" :value="`${venta.plan_amortizacion.plazo_meses} meses`" />
+              <InfoRow label="Interés" :value="`${venta.plan_amortizacion.valor_interes_anual}%`" />
+              <InfoRow label="Inicio" :value="formatDate(venta.plan_amortizacion.fecha_inicio)" />
+            </div>
+
+            <div class="mt-4 flex items-center justify-between">
+              <span class="text-gray-700 text-sm">
+                Total Cuotas: <strong>{{ venta.plan_amortizacion.cuotas?.length ?? 0 }}</strong>
+              </span>
+
+              <Link
+                :href="`/planes-amortizacion-venta/${venta.plan_amortizacion.id_plan}`"
+                class="inline-flex items-center gap-2 text-[#1e3a5f] font-semibold hover:underline"
+              >
+                Ver detalle <ArrowLeftIcon class="w-4 h-4 rotate-180" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
         <!-- Descripción -->
         <div v-if="venta.descripcion" class="pt-4 border-t border-gray-200">
           <h2 class="text-lg font-bold text-gray-900 mb-2">Observaciones</h2>
@@ -116,37 +158,70 @@ const formatCurrency = (value) =>
         </div>
       </div>
 
-      <!-- Columna lateral -->
+      <!-- COLUMNA LATERAL -->
       <div class="space-y-6">
+        <!-- Estado de Venta -->
         <div
           class="bg-gradient-to-br from-[#1e3a5f] to-[#2c5282] rounded-xl shadow-lg p-6 text-white"
         >
           <h3 class="text-xl font-bold mb-2">Estado de la Venta</h3>
-          <p>
-            {{
-              venta.apartamento?.estado_inmueble?.estado_inmueble ||
-              venta.local?.estado_inmueble?.estado_inmueble
-            }}
+          <p class="text-lg font-semibold">
+            {{ venta.apartamento?.estado_inmueble?.nombre || venta.local?.estado_inmueble?.nombre }}
           </p>
           <p class="text-sm text-blue-200">
             Forma de Pago: {{ venta.forma_pago?.forma_pago ?? '—' }}
           </p>
         </div>
 
+        <!-- DATOS ASOCIADOS -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
           <h3 class="text-lg font-bold text-gray-900">Datos Asociados</h3>
+
           <p class="flex items-center text-gray-700">
             <CreditCardIcon class="w-5 h-5 mr-2 text-gray-400" /> Pagos:
             {{ venta.pagos?.length ?? 0 }}
           </p>
+
           <p class="flex items-center text-gray-700">
-            <DocumentTextIcon class="w-5 h-5 mr-2 text-gray-400" /> Plan de Amortización:
-            <span class="ml-1">{{
-              venta.plan_amortizacion
-                ? (venta.plan_amortizacion.cuotas?.length ?? 0)
-                : 'No generado'
-            }}</span>
+            <DocumentTextIcon class="w-5 h-5 mr-2 text-gray-400" />
+            Plan Amortización:
+            <span class="ml-1 font-semibold">
+              {{
+                venta.plan_amortizacion
+                  ? `${venta.plan_amortizacion.cuotas?.length ?? 0} cuotas`
+                  : 'No generado'
+              }}
+            </span>
           </p>
+
+          <!-- Botón crear/ver plan -->
+          <div class="pt-4 mt-2 border-t border-gray-200">
+            <!-- SI NO EXISTE -->
+            <Link
+              v-if="!venta.plan_amortizacion"
+              :href="`/planes-amortizacion-venta/create?id_venta=${venta.id_venta}`"
+              class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#f4c430] text-gray-900 rounded-lg font-semibold hover:bg-[#e5b520] transition"
+            >
+              <PlusIcon class="w-5 h-5" /> Crear Plan de Amortización
+            </Link>
+
+            <!-- SI EXISTE -->
+            <div v-else class="space-y-3">
+              <Link
+                :href="`/planes-amortizacion-venta/${venta.plan_amortizacion.id_plan}`"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg font-semibold hover:bg-[#2c5282] transition"
+              >
+                <EyeIcon class="w-5 h-5" /> Ver Plan de Amortización
+              </Link>
+
+              <Link
+                :href="`/planes-amortizacion-venta/${venta.plan_amortizacion.id_plan}/edit`"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition"
+              >
+                <PencilIcon class="w-5 h-5" /> Editar Plan
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

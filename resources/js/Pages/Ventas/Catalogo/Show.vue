@@ -43,7 +43,7 @@
             <div class="text-right">
               <p class="text-sm text-gray-500">Precio Final</p>
               <p class="text-4xl font-bold text-[#1e3a5f]">
-                {{ formatCurrency(inmueble.valor_final) }}
+                {{ formatCurrency(inmueble.valor_comercial) }}
               </p>
             </div>
           </div>
@@ -106,7 +106,7 @@
                 <div class="flex justify-between items-center pt-4 border-t-2 border-gray-200">
                   <span class="text-lg font-bold text-gray-900">Precio Final</span>
                   <span class="text-2xl font-bold text-[#1e3a5f]">{{
-                    formatCurrency(inmueble.valor_final)
+                    formatCurrency(inmueble.valor_comercial)
                   }}</span>
                 </div>
               </div>
@@ -146,6 +146,12 @@
               >
                 <CheckCircleIcon class="h-5 w-5 mr-2" />
                 Iniciar Venta
+              </Link>
+              <Link
+                :href="`/catalogo/simulador/${inmueble.tipo}/${inmueble.id}`"
+                class="mt-3 w-full bg-[#1e3a5f] text-white py-3 rounded-lg font-bold text-center hover:bg-[#2c5282] transition-colors flex items-center justify-center"
+              >
+                Simular Cuotas
               </Link>
             </div>
 
@@ -218,5 +224,6 @@ const desglosePrecio = [
   ...(props.inmueble.valor_politica > 0
     ? [{ label: 'Ajuste por Política', value: props.inmueble.valor_politica }]
     : []),
+  { label: 'Cuota Inicial', value: props.inmueble.cuota_inicial },
 ]
 </script>
