@@ -3,9 +3,11 @@
     <template #title>Detalle del Piso</template>
 
     <div class="space-y-6">
+      <!-- INFORMACIÓN DEL PISO -->
       <div class="bg-white rounded-lg border p-4 md:p-6">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-brand-900">Información</h2>
+
           <div class="flex items-center gap-2">
             <Link :href="`/pisos-torre/${piso.id_piso_torre}/edit`" class="btn-secondary">
               Editar
@@ -23,15 +25,20 @@
         </div>
       </div>
 
+      <!-- RESUMEN -->
       <div class="bg-white rounded-lg border p-4 md:p-6">
         <h2 class="text-lg font-semibold text-brand-900 mb-3">Resumen de Apartamentos</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Total -->
           <div class="p-4 border rounded-md">
             <div class="text-sm text-gray-500">Total apartamentos</div>
-            <div class="text-2xl font-bold">{{ resumen.total_apartamentos }}</div>
+            <div class="text-2xl font-bold">
+              {{ resumen.total_apartamentos }}
+            </div>
           </div>
 
+          <!-- Por estado -->
           <div class="p-4 border rounded-md md:col-span-1 col-span-1">
             <div class="text-sm font-medium mb-2">Por estado</div>
             <ul class="text-sm space-y-1">
@@ -40,20 +47,16 @@
                 :key="e.estado"
                 class="flex justify-between"
               >
-                <span>{{ e.estado }}</span
-                ><span class="font-semibold">{{ e.cantidad }}</span>
+                <span>{{ e.estado }}</span>
+                <span class="font-semibold">{{ e.cantidad }}</span>
               </li>
-              <li
-                v-if="
-                  !resumen.apartamentos_por_estado || resumen.apartamentos_por_estado.length === 0
-                "
-                class="text-gray-500"
-              >
+              <li v-if="!resumen.apartamentos_por_estado?.length" class="text-gray-500">
                 Sin datos
               </li>
             </ul>
           </div>
 
+          <!-- Por tipo -->
           <div class="p-4 border rounded-md md:col-span-1 col-span-1">
             <div class="text-sm font-medium mb-2">Por tipo</div>
             <ul class="text-sm space-y-1">
@@ -62,15 +65,10 @@
                 :key="t.tipo"
                 class="flex justify-between"
               >
-                <span>{{ t.tipo }}</span
-                ><span class="font-semibold">{{ t.cantidad }}</span>
+                <span>{{ t.tipo }}</span>
+                <span class="font-semibold">{{ t.cantidad }}</span>
               </li>
-              <li
-                v-if="!resumen.apartamentos_por_tipo || resumen.apartamentos_por_tipo.length === 0"
-                class="text-gray-500"
-              >
-                Sin datos
-              </li>
+              <li v-if="!resumen.apartamentos_por_tipo?.length" class="text-gray-500">Sin datos</li>
             </ul>
           </div>
         </div>
@@ -84,24 +82,14 @@
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
-import { Link } from '@inertiajs/inertia-vue3'
+import InfoItem from '@/Components/InfoItem.vue'
+import { Link } from '@inertiajs/vue3'
 
 const props = defineProps({
   piso: { type: Object, required: true },
   resumen: { type: Object, required: true },
   empleado: { type: Object, default: null },
 })
-
-// Item simple para mostrar pares etiqueta-valor
-const InfoItem = {
-  props: { label: String, value: [String, Number] },
-  template: `
-    <div>
-      <div class="text-sm text-gray-500">{{ label }}</div>
-      <div class="text-base font-medium text-brand-900">{{ value }}</div>
-    </div>
-  `,
-}
 </script>
 
 <style scoped>

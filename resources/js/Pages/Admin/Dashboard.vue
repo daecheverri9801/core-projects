@@ -72,8 +72,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import AdminButton from '@/Components/AdminButton.vue'
 
@@ -118,7 +117,7 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 </script>
 

@@ -22,7 +22,8 @@
 
 <script setup>
 import { reactive } from 'vue'
-import { Inertia } from '@inertiajs/inertia'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import VentasPageHeader from '../Components/VentasPageHeader.vue'
@@ -52,7 +53,7 @@ function submit() {
   form.processing = true
   form.errors = {}
 
-  Inertia.put(
+  router.put(
     `/clientes/${props.cliente.documento}`,
     {
       nombre: form.nombre,

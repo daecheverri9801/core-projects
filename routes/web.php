@@ -256,6 +256,30 @@ Route::resource('ventas', VentaWebController::class)->names([
     'destroy' => 'ventas.destroy',
 ]);
 
+Route::prefix('ventas')->group(function () {
+
+    Route::post(
+        '/separaciones/{id}/cancelar',
+        [VentaWebController::class, 'cancelarSeparacion']
+    )
+        ->name('ventas.separaciones.cancelar');
+
+    Route::post(
+        '/separaciones/{id}/convertir-venta',
+        [VentaWebController::class, 'convertirEnVenta']
+    )
+        ->name('ventas.separaciones.convertir');
+
+    Route::get(
+        '/cron/vencer-separaciones',
+        [VentaWebController::class, 'vencerSeparaciones']
+    );
+});
+
+
+
+
+
 Route::get('/ventas/inmuebles-disponibles', [VentaWebController::class, 'getInmueblesDisponibles'])
     ->name('ventas.inmuebles');
 

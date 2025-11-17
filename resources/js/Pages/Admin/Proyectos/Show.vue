@@ -110,6 +110,28 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-3 gap-6">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">% Cuota Inicial Mínima</h3>
+                <p class="text-gray-900">{{ proyecto.porcentaje_cuota_inicial_min ?? '-' }}%</p>
+              </div>
+
+              <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Valor Mínimo Separación</h3>
+                <p class="text-gray-900">{{ formatCurrency(proyecto.valor_min_separacion) }}</p>
+              </div>
+
+              <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Plazo Cuota Inicial</h3>
+                <p class="text-gray-900">{{ proyecto.plazo_cuota_inicial_meses }} meses</p>
+              </div>
+
+              <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Plazo Máximo Separación</h3>
+                <p class="text-gray-900">{{ proyecto.plazo_max_separacion_dias }} días</p>
+              </div>
+            </div>
+
             <!-- Políticas de Precio -->
             <div class="mt-6 pt-6 border-t">
               <div class="flex items-center justify-between mb-4">
@@ -192,8 +214,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 import { PencilIcon, EyeIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
@@ -202,6 +223,9 @@ const props = defineProps({
   proyecto: Object,
   empleado: Object,
 })
+
+const page = usePage()
+const empleado = computed(() => page.props.auth?.empleado)
 
 function formatCurrency(val) {
   if (val === null || val === undefined) return '—'
@@ -241,7 +265,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 
 const currentRoute = computed(() => {

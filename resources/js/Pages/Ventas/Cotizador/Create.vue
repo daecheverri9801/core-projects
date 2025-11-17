@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3'
+import { Head, Link, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 

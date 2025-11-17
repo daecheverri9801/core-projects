@@ -30,4 +30,15 @@ class PoliticaPrecioProyecto extends Model
     {
         return $this->belongsTo(Proyecto::class, 'id_proyecto', 'id_proyecto');
     }
+
+    public function esActiva()
+    {
+        return $this->estado === true;
+    }
+
+    public function estaVigente()
+    {
+        return $this->estado === true &&
+            (is_null($this->aplica_desde) || $this->aplica_desde <= now());
+    }
 }

@@ -8,7 +8,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.39.0",
-        "@inertiajs/vue3": "^2.2.15",
+        "@inertiajs/vue3": "^2.2.17",
         "@tailwindcss/forms": "^0.5.7",
         "@tailwindcss/typography": "^0.5.10",
         "@tailwindcss/vite": "^4.0.0",
@@ -28,8 +28,6 @@
     },
     "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd",
     "dependencies": {
-        "@heroicons/vue": "^2.2.0",
-        "@inertiajs/inertia": "^0.11.1",
-        "@inertiajs/inertia-vue3": "^0.6.0"
+        "@heroicons/vue": "^2.2.0"
     }
 }

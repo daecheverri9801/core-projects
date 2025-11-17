@@ -204,8 +204,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import VentasPageHeader from '../Components/VentasPageHeader.vue'
@@ -286,7 +285,7 @@ function confirmDelete() {
 }
 
 function handleConfirm() {
-  Inertia.delete(`/clientes/${props.cliente.documento}`)
+  router.delete(`/clientes/${props.cliente.documento}`)
   showConfirmDialog.value = false
 }
 

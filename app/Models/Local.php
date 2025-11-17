@@ -53,4 +53,11 @@ class Local extends Model
     {
         return $this->valor_total ?? 0;
     }
+
+    public function estaCongelado()
+    {
+        return $this->id_estado_inmueble &&
+            $this->estadoInmueble &&
+            strtolower($this->estadoInmueble->nombre) === 'congelado';
+    }
 }

@@ -12,6 +12,9 @@ class Venta extends Model
     protected $table = 'ventas';
     protected $primaryKey = 'id_venta';
 
+    const TIPO_VENTA = 'venta';
+    const TIPO_SEPARACION = 'separacion';
+
     protected $fillable = [
         'id_empleado',
         'documento_cliente',
@@ -28,11 +31,25 @@ class Venta extends Model
         'valor_base',
         'iva',
         'valor_total',
+        'plazo_separacion_dias',
+        'plazo_cuota_inicial_meses',
+        'cuota_inicial',
+        'valor_restante',
+        'tipo_operacion',
+        'valor_separacion',
+        'fecha_limite_separacion',
     ];
 
     protected $casts = [
         'fecha_venta' => 'date',
         'fecha_vencimiento' => 'date',
+        'fecha_limite_separacion' => 'date',
+        'valor_base' => 'decimal:2',
+        'iva' => 'decimal:2',
+        'valor_total' => 'decimal:2',
+        'cuota_inicial' => 'decimal:2',
+        'valor_restante' => 'decimal:2',
+        'valor_separacion' => 'decimal:2',
     ];
 
     // Relaciones
@@ -81,6 +98,21 @@ class Venta extends Model
         return $this->hasMany(Pago::class, 'id_venta', 'id_venta');
     }
 
+    // Helpers
+    public function esVenta(): bool
+    {
+        return $this->tipo_operacion === self::TIPO_VENTA;
+    }
+
+    public function esSeparacion(): bool
+    {
+        return $this->tipo_operacion === self::TIPO_SEPARACION;
+    }
+
+    public function estaVencida()
+    {
+        return $this->fecha_vencimiento && now()->greaterThan($this->fecha_vencimiento);
+    }
     // ✅ NUEVA: Relación polimórfica para obtener el inmueble (apartamento o local)
     public function inmueble()
     {

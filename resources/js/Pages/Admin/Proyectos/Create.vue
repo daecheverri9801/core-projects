@@ -266,7 +266,8 @@
               </div>
 
               <!-- Financiación -->
-              <div class="grid grid-cols-3 gap-6">
+              <!-- Financiación -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <label
                     for="porcentaje_cuota_inicial_min"
@@ -324,6 +325,25 @@
                   />
                   <p v-if="form.errors.plazo_cuota_inicial_meses" class="mt-1 text-sm text-red-600">
                     {{ form.errors.plazo_cuota_inicial_meses }}
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    for="plazo_max_separacion_dias"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Plazo Máximo Separación (días)</label
+                  >
+                  <input
+                    id="plazo_max_separacion_dias"
+                    v-model="form.plazo_max_separacion_dias"
+                    type="number"
+                    min="1"
+                    max="365"
+                    class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <p v-if="form.errors.plazo_max_separacion_dias" class="mt-1 text-sm text-red-600">
+                    {{ form.errors.plazo_max_separacion_dias }}
                   </p>
                 </div>
               </div>
@@ -578,8 +598,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useForm, Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { useForm, Link, usePage, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({
@@ -624,7 +643,7 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 
 // Formulario proyecto
@@ -651,6 +670,7 @@ const form = useForm({
   prima_altura_base: null,
   prima_altura_incremento: null,
   prima_altura_activa: false,
+  plazo_max_separacion_dias: '',
 })
 
 // Variables para modal ubicación
@@ -725,7 +745,7 @@ async function submitUbicacion() {
 
   loadingUbicacion.value = true
 
-  Inertia.post(
+  router.post(
     '/ubicacion',
     {
       id_ciudad: selectedCiudad.value,
@@ -770,7 +790,7 @@ const currentRoute = computed(() => {
 })
 
 function submit() {
-  form.post('/proyectos')
+  router.post('/proyectos', form)
 }
 </script>
 

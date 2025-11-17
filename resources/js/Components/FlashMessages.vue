@@ -43,7 +43,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { usePage } from '@inertiajs/inertia-vue3'
+import { usePage } from '@inertiajs/vue3'
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -58,7 +58,7 @@ let messageId = 0
 
 // Observar cambios en flash messages
 watch(
-  () => page.props.value.flash,
+  () => page.props.flash,
   (flash) => {
     if (flash?.success) {
       addMessage('success', flash.success)
@@ -78,7 +78,7 @@ watch(
 
 // Verificar mensajes al montar
 onMounted(() => {
-  const flash = page.props.value.flash
+  const flash = page.props.flash
   if (flash?.success) addMessage('success', flash.success)
   if (flash?.error) addMessage('error', flash.error)
   if (flash?.warning) addMessage('warning', flash.warning)

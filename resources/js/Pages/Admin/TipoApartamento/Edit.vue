@@ -87,8 +87,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -110,7 +109,7 @@ const errors = ref({})
 
 function submit() {
   errors.value = {}
-  Inertia.put(
+  router.put(
     `/tipos-apartamento/${props.tipo.id_tipo_apartamento}`,
     { ...form },
     {

@@ -47,8 +47,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -71,7 +70,7 @@ const processing = ref(false)
 function submit() {
   errors.value = {}
   processing.value = true
-  Inertia.put(
+  router.put(
     `/parqueaderos/${props.parqueadero.id_parqueadero}`,
     {
       numero: form.numero,

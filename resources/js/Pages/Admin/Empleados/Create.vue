@@ -139,7 +139,7 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/inertia-vue3'
+import { useForm, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import ErrorMessage from '@/Components/ErrorMessage.vue'

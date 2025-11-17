@@ -40,7 +40,8 @@
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
-import { Link } from '@inertiajs/inertia-vue3'
+import { Link } from '@inertiajs/vue3'
+import InfoItem from '@/Components/InfoItem.vue'
 
 const props = defineProps({
   local: { type: Object, required: true },
@@ -48,15 +49,6 @@ const props = defineProps({
   empleado: { type: Object, default: null },
 })
 
-const InfoItem = {
-  props: { label: String, value: [String, Number] },
-  template: `
-    <div>
-      <div class="text-sm text-gray-500">{{ label }}</div>
-      <div class="text-base font-medium text-brand-900">{{ value }}</div>
-    </div>
-  `,
-}
 
 function formatArea(val) {
   if (val === null || val === undefined) return '—'

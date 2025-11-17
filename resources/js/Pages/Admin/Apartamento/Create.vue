@@ -64,7 +64,7 @@
                 :key="t.id_tipo_apartamento"
                 :value="t.id_tipo_apartamento"
               >
-                {{ t.nombre }}
+                {{ t.nombre }} — {{ formatCurrency(t.valor_estimado) }}
               </option>
             </select>
             <p v-if="errors.id_tipo_apartamento" class="form-error">
@@ -129,8 +129,8 @@
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link } from '@inertiajs/vue3'
+import { router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -222,7 +222,7 @@ const valorEstimadoTipo = computed(() => {
 
 function submit() {
   errors.value = {}
-  Inertia.post(
+  router.post(
     '/apartamentos',
     {
       numero: form.numero,

@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { useForm, Link } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({

@@ -140,8 +140,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
@@ -156,11 +155,11 @@ const showConfirmDelete = ref(false)
 const empleadoToDelete = ref(null)
 
 function search() {
-  Inertia.get('/empleados', { search: filters.search }, { preserveState: true, replace: true })
+  router.get('/empleados', { search: filters.search }, { preserveState: true, replace: true })
 }
 
 function changePage(page) {
-  Inertia.get(
+  router.get(
     '/empleados',
     { page, search: filters.search },
     { preserveState: true, replace: true }
@@ -173,7 +172,7 @@ function confirmDelete(id) {
 }
 
 function deleteEmpleado() {
-  Inertia.delete(`/empleados/${empleadoToDelete.value}`, {
+  router.delete(`/empleados/${empleadoToDelete.value}`, {
     onSuccess: () => {
       showConfirmDelete.value = false
       empleadoToDelete.value = null

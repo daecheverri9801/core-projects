@@ -90,8 +90,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -121,7 +120,7 @@ const filtered = computed(() => {
 function confirmDelete(id) {
   // Modal/confirmación simple; si tienes un modal global reemplázalo
   if (confirm('¿Eliminar este piso? Esta acción no se puede deshacer.')) {
-    Inertia.delete(`/pisos-torre/${id}`)
+    router.delete(`/pisos-torre/${id}`)
   }
 }
 </script>

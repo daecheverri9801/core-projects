@@ -244,8 +244,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Head, Link } from '@inertiajs/inertia-vue3' // ✅ Cambiado a v0.6.0
-import { Inertia } from '@inertiajs/inertia' // ✅ Usar Inertia directamente
+import { Head, Link, router } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import {
   MagnifyingGlassIcon,
@@ -309,7 +308,7 @@ const filteredInmuebles = computed(() => {
 
 // Aplicar filtros
 const applyFilters = () => {
-  Inertia.get(
+  router.get(
     '/catalogo',
     {
       proyecto: selectedProyecto.value,
@@ -330,7 +329,7 @@ const clearFilters = () => {
   selectedTipo.value = ''
   precioMin.value = ''
   precioMax.value = ''
-  Inertia.get('/catalogo')
+  router.get('/catalogo')
 }
 
 // Formatear moneda

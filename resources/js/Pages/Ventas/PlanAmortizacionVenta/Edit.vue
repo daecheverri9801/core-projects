@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import { Head, useForm } from '@inertiajs/inertia-vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import VentasCard from '@/Pages/Ventas/Components/VentasCard.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'

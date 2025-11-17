@@ -318,6 +318,26 @@
               </div>
             </div>
 
+            <div>
+              <label
+                for="plazo_max_separacion_dias"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Plazo Máximo Separación (días)</label
+              >
+
+              <input
+                id="plazo_max_separacion_dias"
+                v-model="form.plazo_max_separacion_dias"
+                type="number"
+                min="1"
+                class="block w-full rounded-md border border-gray-300 px-4 py-2 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+              />
+
+              <p v-if="form.errors.plazo_max_separacion_dias" class="mt-1 text-sm text-red-600">
+                {{ form.errors.plazo_max_separacion_dias }}
+              </p>
+            </div>
+
             <!-- Estado -->
             <div>
               <label for="id_estado" class="block text-sm font-medium text-gray-700 mb-1"
@@ -424,9 +444,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/inertia-vue3'
-import { Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { useForm, Link, usePage, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({
@@ -474,7 +492,7 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 
 const form = useForm({
@@ -500,6 +518,7 @@ const form = useForm({
   prima_altura_base: props.proyecto?.prima_altura_base ?? null,
   prima_altura_incremento: props.proyecto?.prima_altura_incremento ?? null,
   prima_altura_activa: props.proyecto?.prima_altura_activa ?? false,
+  plazo_max_separacion_dias: props.proyecto?.plazo_max_separacion_dias || '',
 })
 
 function submit() {

@@ -35,14 +35,10 @@
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
-import { Link } from '@inertiajs/inertia-vue3'
+import { Link } from '@inertiajs/vue3'
+import InfoItem from '@/Components/InfoItem.vue'
 
 const props = defineProps({ zona: Object, empleado: Object })
-const InfoItem = {
-  props: { label: String, value: [String, Number] },
-  template: `
-<div><div class="text-sm text-gray-500">{{ label }}</div><div class="text-base text-brand-900 font-medium">{{ value }}</div></div>`,
-}
 </script>
 
 <style scoped>

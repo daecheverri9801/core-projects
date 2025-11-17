@@ -108,7 +108,6 @@
             />
             <p class="text-xs text-gray-500">Valor Estimado + Prima Altura.</p>
           </div>
-
         </div>
 
         <div class="mt-6 flex items-center gap-3">
@@ -124,8 +123,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -134,8 +132,8 @@ const props = defineProps({
   proyectos: { type: Array, default: () => [] },
   tipos: { type: Array, default: () => [] },
   estados: { type: Array, default: () => [] },
-  torres: { type: Array, default: () => [] },
-  pisos: { type: Array, default: () => [] },
+  torres: { type: Array, default: () => [] }, // torres correctas del proyecto
+  pisos: { type: Array, default: () => [] }, // pisos correctos de la torre
   empleado: { type: Object, default: null },
 })
 
@@ -151,74 +149,91 @@ const form = reactive({
 const errors = ref({})
 const torres = ref([])
 const pisos = ref([])
-const processing = ref(false)
 
+// =========================
+// CARGA INICIAL CORRECTA
+// =========================
 onMounted(() => {
-  torres.value = props.torresInicial || []
-  pisos.value = props.pisosInicial || []
+  torres.value = [...props.torres]
+  pisos.value = [...props.pisos]
 })
 
+setTimeout(() => {
+  form.id_torre = form.id_torre
+  form.id_piso_torre = form.id_piso_torre
+}, 50)
+
+// =========================
+// CAMBIO DE PROYECTO
+// =========================
 async function onProyectoChange() {
   form.id_torre = ''
   form.id_piso_torre = ''
+
   torres.value = []
   pisos.value = []
+
   if (!form.id_proyecto) return
-  try {
-    const res = await fetch(`/api/torres-por-proyecto/${form.id_proyecto}`)
-    if (!res.ok) throw new Error('Error cargando torres')
-    torres.value = await res.json()
-  } catch (e) {
-    console.error(e)
-  }
+
+  const res = await fetch(`/api/torres-por-proyecto/${form.id_proyecto}`)
+  torres.value = await res.json()
 }
 
+// =========================
+// CAMBIO DE TORRE
+// =========================
 async function onTorreChange() {
   form.id_piso_torre = ''
   pisos.value = []
+
   if (!form.id_torre) return
-  try {
-    const res = await fetch(`/api/pisos-por-torre/${form.id_torre}`)
-    if (!res.ok) throw new Error('Error cargando pisos')
-    pisos.value = await res.json()
-  } catch (e) {
-    console.error(e)
-  }
+
+  const res = await fetch(`/api/pisos-por-torre/${form.id_torre}`)
+  pisos.value = await res.json()
 }
 
+// =========================
+// PRIMA ALTURA (CORREGIDA)
+// =========================
 const primaAlturaCalculada = computed(() => {
-  // Buscar el piso seleccionado
-  const piso = props.pisos.find(p => p.id_piso_torre === form.id_piso_torre)
-  if (!piso || !piso.nivel) return 0
+  const piso = pisos.value.find((p) => Number(p.id_piso_torre) === Number(form.id_piso_torre))
+  if (!piso || piso.nivel == null) return 0
 
-  const nivel = parseInt(piso.nivel)
+  const nivel = Number(piso.nivel)
   if (nivel < 2) return 0
 
-  // Buscar la torre seleccionada y su proyecto
-  const torre = props.torres.find(t => t.id_torre === form.id_torre)
+  // Igual que CREATE
+  const torre = torres.value.find((t) => Number(t.id_torre) === Number(form.id_torre))
   if (!torre || !torre.proyecto) return 0
 
   const proyecto = torre.proyecto
   if (!proyecto.prima_altura_activa) return 0
 
-  const base = parseFloat(proyecto.prima_altura_base || 0)
-  const incremento = parseFloat(proyecto.prima_altura_incremento || 0)
+  const base = Number(proyecto.prima_altura_base || 0)
+  const incremento = Number(proyecto.prima_altura_incremento || 0)
 
-  return base + ((nivel - 2) * incremento)
+  return base + (nivel - 2) * incremento
+})
+
+// =========================
+// VALOR TOTAL
+// =========================
+const valorEstimadoTipo = computed(() => {
+  const t = props.tipos.find((x) => x.id_tipo_apartamento === form.id_tipo_apartamento)
+  return t ? Number(t.valor_estimado || 0) : 0
 })
 
 const valorTotalCalculado = computed(() => {
   return valorEstimadoTipo.value + primaAlturaCalculada.value
 })
 
-const valorEstimadoTipo = computed(() => {
-  const t = props.tipos.find(x => x.id_tipo_apartamento === form.id_tipo_apartamento)
-  return t ? parseFloat(t.valor_estimado || 0) : 0
-})
-
+// =========================
+// SUBMIT
+// =========================
 function submit() {
   errors.value = {}
-  Inertia.put(
+
+  router.put(
     `/apartamentos/${props.apartamento.id_apartamento}`,
     {
       numero: form.numero,
@@ -228,16 +243,17 @@ function submit() {
       id_estado_inmueble: form.id_estado_inmueble,
     },
     {
-      onError: (e) => {
-        errors.value = e || {}
-      },
+      onError: (e) => (errors.value = e),
     }
   )
 }
 
 function formatCurrency(v) {
-  const n = Number(v || 0)
-  return n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+  return Number(v || 0).toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
 }
 </script>
 

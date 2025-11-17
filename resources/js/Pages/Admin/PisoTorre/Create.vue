@@ -64,8 +64,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -100,7 +99,7 @@ async function loadTorres() {
 
 function submit() {
   errors.value = {}
-  Inertia.post(
+  router.post(
     '/pisos-torre',
     {
       id_torre: form.id_torre,

@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { Link } from '@inertiajs/inertia-vue3'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({

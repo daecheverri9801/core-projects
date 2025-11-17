@@ -119,8 +119,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 
 const props = defineProps({
@@ -143,7 +142,7 @@ function confirmDelete(torre) {
 }
 function doDelete() {
   if (!deleteModal.value.torre) return
-  Inertia.delete(route('admin.torres.destroy', deleteModal.value.torre.id_torre), {
+  router.delete(route('admin.torres.destroy', deleteModal.value.torre.id_torre), {
     onFinish: () => { deleteModal.value = { open: false, torre: null } }
   })
 }

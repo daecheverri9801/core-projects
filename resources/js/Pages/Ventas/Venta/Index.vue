@@ -1,6 +1,5 @@
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Head, Link, router } from '@inertiajs/vue3'
 import { onMounted } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import { EyeIcon, PencilIcon, TrashIcon, PlusIcon } from '@heroicons/vue/24/outline'
@@ -11,7 +10,7 @@ const props = defineProps({
 
 function eliminar(id) {
   if (confirm('¿Desea eliminar esta venta?')) {
-    Inertia.delete(`/ventas/${id}`)
+    router.delete(`/ventas/${id}`)
   }
 }
 

@@ -1,11 +1,11 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3'
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted} from 'vue'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid'
 import VentasLayout from '@/Components/VentasLayout.vue'
 
 const page = usePage()
-const empleado = computed(() => page.props.value.auth?.empleado || null)
+const empleado = computed(() => page.props.auth?.empleado || null)
 
 const props = defineProps({
   venta: Object,

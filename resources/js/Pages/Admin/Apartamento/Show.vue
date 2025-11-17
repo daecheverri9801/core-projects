@@ -37,14 +37,14 @@
           />
           <InfoItem label="Prima Altura" :value="formatCurrency(apartamento.prima_altura || 0)" />
           <InfoItem
-            label="Valor Base (Tipo + Prima Altura)"
+            label="Valor Base"
             :value="formatCurrency(apartamento.valor_total || 0)"
           />
           <InfoItem
             label="Ajuste por Política"
             :value="formatCurrency(apartamento.valor_politica || 0)"
           />
-          <InfoItem label="Valor Final" :value="formatCurrency(apartamento.valor_final || 0)" />
+          <InfoItem label="Valor Final (Tipo + Prima Altura + Política)" :value="formatCurrency(apartamento.valor_final || 0)" />
           <InfoItem label="Ubicación" :value="resumen.ubicacion || '—'" />
         </div>
       </div>
@@ -66,23 +66,14 @@
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
-import { Link } from '@inertiajs/inertia-vue3'
+import { Link } from '@inertiajs/vue3'
+import InfoItem from '@/Components/InfoItem.vue'
 
 const props = defineProps({
   apartamento: { type: Object, required: true },
   resumen: { type: Object, required: true },
   empleado: { type: Object, default: null },
 })
-
-const InfoItem = {
-  props: { label: String, value: [String, Number] },
-  template: `
-    <div>
-      <div class="text-sm text-gray-500">{{ label }}</div>
-      <div class="text-base font-medium text-brand-900">{{ value }}</div>
-    </div>
-  `,
-}
 
 const StatBox = {
   props: { label: String, value: [String, Number] },

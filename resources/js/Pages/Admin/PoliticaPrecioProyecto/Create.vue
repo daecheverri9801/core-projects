@@ -90,7 +90,8 @@
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { useForm, Link, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -99,6 +100,9 @@ const props = defineProps({
   proyectoSeleccionado: { type: [String, Number], default: null },
   empleado: { type: Object, default: null },
 })
+
+const page = usePage()
+const empleado = computed(() => page.props.auth?.empleado)
 
 const form = useForm({
   id_proyecto: props.proyectoSeleccionado || '',

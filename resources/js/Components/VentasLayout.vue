@@ -115,8 +115,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/inertia-vue3' // ✅ Mantenido en v0.6.0
-import { Inertia } from '@inertiajs/inertia' // ✅ Usar Inertia directamente
+import { Link, usePage, router } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
 import Logo from '@/Components/Logo.vue'
 import {
   UserGroupIcon,
@@ -150,7 +149,7 @@ const empleado = computed(() => {
 
   // Luego intentar con page.props.value
   if (page.props && page.props.value) {
-    return page.props.value.auth?.empleado || page.props.value.empleado || null
+    return page.props.auth?.empleado || page.props.empleado || null
   }
 
   return null

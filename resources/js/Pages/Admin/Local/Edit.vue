@@ -110,8 +110,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -181,7 +180,7 @@ const displayValorTotal = computed(() => {
 
 function submit() {
   errors.value = {}
-  Inertia.put(
+  router.put(
     `/locales/${props.local.id_local}`,
     {
       numero: form.numero,

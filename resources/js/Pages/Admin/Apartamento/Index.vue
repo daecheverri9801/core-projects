@@ -88,8 +88,8 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link } from '@inertiajs/vue3'
+import { router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { PlusIcon, EyeIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
@@ -119,6 +119,7 @@ const filtered = computed(() => {
   )
 })
 
+
 function formatCurrency(val) {
   if (val === null || val === undefined) return '—'
   const num = Number(val)
@@ -132,7 +133,7 @@ function formatCurrency(val) {
 
 function confirmDelete(id) {
   if (confirm('¿Eliminar este apartamento? Esta acción no se puede deshacer.')) {
-    Inertia.delete(`/apartamentos/${id}`)
+    router.delete(`/apartamentos/${id}`)
   }
 }
 </script>

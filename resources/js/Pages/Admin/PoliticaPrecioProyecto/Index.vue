@@ -56,13 +56,13 @@
                   >
                     <PencilSquareIcon class="w-5 h-5" />
                   </Link>
-                  <button
+                  <!-- <button
                     class="icon-btn danger"
                     @click="confirmDelete(p.id_politica_precio)"
                     title="Eliminar"
                   >
                     <TrashIcon class="w-5 h-5" />
-                  </button>
+                  </button> -->
                 </div>
               </td>
             </tr>
@@ -82,8 +82,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { EyeIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
@@ -108,11 +107,11 @@ const filtered = computed(() => {
   )
 })
 
-function confirmDelete(id) {
-  if (confirm('¿Eliminar esta política de precio? Esta acción no se puede deshacer.')) {
-    Inertia.delete(`/politicas-precio-proyecto/${id}`)
-  }
-}
+// function confirmDelete(id) {
+//   if (confirm('¿Eliminar esta política de precio? Esta acción no se puede deshacer.')) {
+//     router.delete(`/politicas-precio-proyecto/${id}`)
+//   }
+// }
 </script>
 
 <style scoped>

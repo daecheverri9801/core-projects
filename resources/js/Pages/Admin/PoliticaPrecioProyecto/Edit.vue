@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { useForm, Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -99,11 +99,16 @@ const props = defineProps({
   empleado: { type: Object, default: null },
 })
 
+const normalizarFecha = (f) => {
+  if (!f) return ''
+  return f.split('T')[0].split(' ')[0] // soporta ambos formatos
+}
+
 const form = useForm({
   id_proyecto: props.politica?.id_proyecto || '',
   ventas_por_escalon: props.politica?.ventas_por_escalon ?? null,
   porcentaje_aumento: props.politica?.porcentaje_aumento ?? null,
-  aplica_desde: props.politica?.aplica_desde || '',
+  aplica_desde: normalizarFecha(props.politica?.aplica_desde),
   estado: props.politica?.estado ?? false,
 })
 

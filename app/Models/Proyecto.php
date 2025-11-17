@@ -27,14 +27,15 @@ class Proyecto extends Model
         'estrato',
         'numero_pisos',
         'numero_torres',
-        'porcentaje_cuota_inicial_min',
-        'valor_min_separacion',
-        'plazo_cuota_inicial_meses',
         'id_estado',
         'id_ubicacion',
         'prima_altura_base',
         'prima_altura_incremento',
         'prima_altura_activa',
+        'porcentaje_cuota_inicial_min',
+        'plazo_cuota_inicial_meses',
+        'valor_min_separacion',
+        'plazo_max_separacion_dias',
     ];
 
     protected $casts = [
@@ -70,6 +71,7 @@ class Proyecto extends Model
     {
         return $this->hasMany(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto');
     }
+
 
     public function politicasComisiones()
     {

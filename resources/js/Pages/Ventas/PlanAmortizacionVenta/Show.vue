@@ -61,8 +61,7 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Head, Link, router } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import VentasCard from '@/Pages/Ventas/Components/VentasCard.vue'
 import VentasPageHeader from '@/Pages/Ventas/Components/VentasPageHeader.vue'
@@ -77,7 +76,7 @@ const props = defineProps({
 
 function eliminar() {
   if (confirm('¿Desea eliminar este plan?')) {
-    Inertia.delete(`/planes-amortizacion-venta/${props.plan.id_plan}`)
+    router.delete(`/planes-amortizacion-venta/${props.plan.id_plan}`)
   }
 }
 

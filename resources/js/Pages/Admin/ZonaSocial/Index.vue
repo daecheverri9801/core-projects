@@ -61,8 +61,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { EyeIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
@@ -83,7 +82,7 @@ const filtered = computed(() => {
 
 function confirmDelete(id) {
   if (confirm('¿Desea eliminar esta zona social?')) {
-    Inertia.delete(`/zonas-sociales/${id}`)
+    router.delete(`/zonas-sociales/${id}`)
   }
 }
 </script>

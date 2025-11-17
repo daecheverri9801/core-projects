@@ -65,8 +65,7 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Head, Link, router } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import VentasPageHeader from '@/Pages/Ventas/Components/VentasPageHeader.vue'
@@ -92,7 +91,7 @@ function formatDate(date) {
 
 function eliminar(id) {
   if (confirm('¿Desea eliminar este plan?')) {
-    Inertia.delete(`/planes-amortizacion-venta/${id}`)
+    router.delete(`/planes-amortizacion-venta/${id}`)
   }
 }
 </script>

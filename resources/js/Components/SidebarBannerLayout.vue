@@ -233,8 +233,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, usePage, router } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 
 import {
@@ -250,14 +249,19 @@ import {
   IdentificationIcon,
 } from '@heroicons/vue/24/outline'
 
-const empleado = usePage().props.value.auth?.empleado || null
+const page = usePage()
+// const empleado = computed(() => page.props.auth?.empleado || null)
 
-const empleadoCompleto = computed(() => {
-  if (!empleado) return 'Usuario'
-  return [empleado.nombre, empleado.apellido].filter(Boolean).join(' ')
+const props = defineProps({
+  empleado: Object,
 })
 
-const cargoNombre = computed(() => empleado?.cargo?.nombre || 'Cargo')
+const empleadoCompleto = computed(() => {
+  if (!props.empleado) return 'Usuario'
+  return [props.empleado.nombre, props.empleado.apellido].filter(Boolean).join(' ')
+})
+
+const cargoNombre = computed(() => props.empleado?.cargo?.nombre || 'Cargo')
 
 const menuOpen = ref(false)
 const sidebarOpen = ref(true)
@@ -290,7 +294,7 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 
 const currentRoute = computed(() => {

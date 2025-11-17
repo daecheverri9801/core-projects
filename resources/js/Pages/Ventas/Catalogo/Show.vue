@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { Head, Link } from '@inertiajs/inertia-vue3' // ✅ Cambiado a v0.6.0
+import { Head, Link, router } from '@inertiajs/vue3'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import {
   ArrowLeftIcon,
@@ -217,13 +217,7 @@ const caracteristicas = [
 
 // Desglose de precio
 const desglosePrecio = [
-  { label: 'Valor Base', value: props.inmueble.valor_base },
-  ...(props.inmueble.prima_altura > 0
-    ? [{ label: 'Prima por Altura', value: props.inmueble.prima_altura }]
-    : []),
-  ...(props.inmueble.valor_politica > 0
-    ? [{ label: 'Ajuste por Política', value: props.inmueble.valor_politica }]
-    : []),
+  // { label: 'Valor Base', value: props.inmueble.valor_final },
   { label: 'Cuota Inicial', value: props.inmueble.cuota_inicial },
 ]
 </script>

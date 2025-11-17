@@ -52,7 +52,7 @@
 
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
-import { Link } from '@inertiajs/inertia-vue3'
+import { Link } from '@inertiajs/vue3'
 import { PencilIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({

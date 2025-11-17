@@ -136,12 +136,11 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useForm } from '@inertiajs/inertia-vue3'
+import { useForm, router } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import InputText from '@/Components/InputText.vue'
 import InputTextarea from '@/Components/InputTextarea.vue'
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
-import { Inertia } from '@inertiajs/inertia'
 
 const props = defineProps({
   estados: Array,
@@ -256,14 +255,14 @@ function confirmDeleteEstadoInmueble(id) {
 
 function deleteItem() {
   if (deleteType.value === 'estado') {
-    Inertia.delete(`/estados/${deleteId.value}`, {
+    router.delete(`/estados/${deleteId.value}`, {
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
       },
     })
   } else if (deleteType.value === 'estadoInmueble') {
-    Inertia.delete(`/estados-inmueble/${deleteId.value}`, {
+    router.delete(`/estados-inmueble/${deleteId.value}`, {
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
@@ -280,7 +279,7 @@ function cancelDelete() {
 }
 
 function reloadPage() {
-  Inertia.reload({ only: ['estados', 'estadosInmueble'] })
+  router.reload({ only: ['estados', 'estadosInmueble'] })
 }
 </script>
 

@@ -63,7 +63,8 @@ class ProyectoController extends Controller
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
             'id_estado' => 'required|exists:estados,id_estado',
-            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion'
+            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
+            'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
@@ -84,7 +85,10 @@ class ProyectoController extends Controller
             'id_estado.required' => 'El estado del proyecto es obligatorio',
             'id_estado.exists' => 'El estado seleccionado no existe',
             'id_ubicacion.required' => 'La ubicación del proyecto es obligatoria',
-            'id_ubicacion.exists' => 'La ubicación seleccionada no existe'
+            'id_ubicacion.exists' => 'La ubicación seleccionada no existe',
+            'plazo_max_separacion_dias.integer' => 'El plazo máximo de separación debe ser un número entero.',
+            'plazo_max_separacion_dias.min' => 'El plazo debe ser mínimo de 1 día.',
+            'plazo_max_separacion_dias.max' => 'El plazo no puede superar los 3650 días.',
         ]);
 
         if ($validator->fails()) {
@@ -121,7 +125,7 @@ class ProyectoController extends Controller
             'filters' => [
                 'search' => $search,
             ],
-            'empleado' => auth()->user()->empleado ?? null,
+            'empleado' => auth()->empleado ?? null,
         ]);
     }
 
@@ -155,7 +159,8 @@ class ProyectoController extends Controller
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
             'id_estado' => 'required|exists:estados,id_estado',
-            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion'
+            'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
+            'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
@@ -176,7 +181,10 @@ class ProyectoController extends Controller
             'id_estado.required' => 'El estado del proyecto es obligatorio',
             'id_estado.exists' => 'El estado seleccionado no existe',
             'id_ubicacion.required' => 'La ubicación del proyecto es obligatoria',
-            'id_ubicacion.exists' => 'La ubicación seleccionada no existe'
+            'id_ubicacion.exists' => 'La ubicación seleccionada no existe',
+            'plazo_max_separacion_dias.integer' => 'El plazo máximo de separación debe ser un número entero.',
+            'plazo_max_separacion_dias.min' => 'El plazo debe ser mínimo de 1 día.',
+            'plazo_max_separacion_dias.max' => 'El plazo no puede superar los 3650 días.',
         ]);
 
         if ($validator->fails()) {

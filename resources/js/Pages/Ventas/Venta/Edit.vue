@@ -1,11 +1,11 @@
 <script setup>
-import { Head, Link, useForm, usePage } from '@inertiajs/inertia-vue3'
-import { ref, computed, watch, onMounted} from 'vue'
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3'
+import { ref, computed, watch, onMounted } from 'vue'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid'
 import VentasLayout from '@/Components/VentasLayout.vue'
 
 const page = usePage()
-const empleado = computed(() => page.props.value.auth?.empleado || null)
+const empleado = computed(() => page.props.auth?.empleado || null)
 
 const props = defineProps({
   venta: Object,
@@ -18,7 +18,10 @@ const props = defineProps({
   empleados: Array,
 })
 
+const inmueblesDisponibles = ref([])
+
 const form = useForm({
+  tipo_operacion: props.venta.tipo_operacion || 'venta',
   id_empleado: props.venta.id_empleado,
   documento_cliente: props.venta.documento_cliente,
   fecha_venta: props.venta.fecha_venta,
@@ -35,22 +38,42 @@ const form = useForm({
   cuota_inicial: props.venta.cuota_inicial,
   valor_restante: props.venta.valor_restante,
   descripcion: props.venta.descripcion,
+  valor_separacion: props.venta.valor_separacion,
+  fecha_limite_separacion: props.venta.fecha_limite_separacion,
 })
-
-const inmueblesDisponibles = ref([])
 
 const proyectoSeleccionado = computed(() =>
   props.proyectos.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
 )
 
-// Cargar inmuebles al montar si ya hay proyecto seleccionado
+function cargarInmueblesDelProyecto(proyectoId) {
+  const pid = parseInt(proyectoId)
+
+  const aps = props.apartamentos.filter((a) => a.torre?.id_proyecto === pid)
+  const locs = props.locales.filter((l) => l.torre?.id_proyecto === pid)
+
+  inmueblesDisponibles.value = [
+    ...aps.map((a) => ({
+      tipo: 'apartamento',
+      id: a.id_apartamento,
+      label: `Apto ${a.numero}`,
+      valor: parseFloat(a.valor_final || a.valor_total || 0),
+    })),
+    ...locs.map((l) => ({
+      tipo: 'local',
+      id: l.id_local,
+      label: `Local ${l.numero}`,
+      valor: parseFloat(l.valor_total || 0),
+    })),
+  ]
+}
+
 onMounted(() => {
   if (form.id_proyecto) {
     cargarInmueblesDelProyecto(form.id_proyecto)
   }
 })
 
-// Watcher para cambio de proyecto
 watch(
   () => form.id_proyecto,
   (nuevoProyecto) => {
@@ -62,30 +85,6 @@ watch(
   }
 )
 
-// Función para cargar inmuebles
-function cargarInmueblesDelProyecto(proyectoId) {
-  const pid = parseInt(proyectoId)
-
-  const aps = props.apartamentos.filter((a) => a.torre?.id_proyecto === pid)
-
-  const locs = props.locales.filter((l) => l.torre?.id_proyecto === pid)
-
-  inmueblesDisponibles.value = [
-    ...aps.map((a) => ({
-      tipo: 'apartamento',
-      id: a.id_apartamento,
-      label: `Apto ${a.numero}`,
-      valor: parseFloat(a.valor_final || a.valor_base || 0),
-    })),
-    ...locs.map((l) => ({
-      tipo: 'local',
-      id: l.id_local,
-      label: `Local ${l.numero}`,
-      valor: parseFloat(l.valor_total || l.valor_base || 0),
-    })),
-  ]
-}
-
 watch(
   () => form.inmueble_id,
   (nuevoInmueble) => {
@@ -93,10 +92,43 @@ watch(
     if (!inmueble || !proyectoSeleccionado.value) return
 
     form.inmueble_tipo = inmueble.tipo
-    form.valor_base = inmueble.valor
-    const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min) || 0
-    form.cuota_inicial = inmueble.valor * (porcentaje / 100)
     form.valor_total = inmueble.valor
+
+    if (form.tipo_operacion === 'venta') {
+      const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
+      form.cuota_inicial = porcentaje ? inmueble.valor * (porcentaje / 100) : 0
+      form.valor_restante = form.valor_total - form.cuota_inicial
+    } else {
+      form.cuota_inicial = 0
+      form.valor_restante = 0
+    }
+  }
+)
+
+watch(
+  () => form.tipo_operacion,
+  (tipo) => {
+    if (tipo === 'venta') {
+      if (proyectoSeleccionado.value) {
+        const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
+        form.cuota_inicial = porcentaje ? form.valor_total * (porcentaje / 100) : 0
+        form.valor_restante = form.valor_total - form.cuota_inicial
+      }
+    } else {
+      form.cuota_inicial = 0
+      form.valor_restante = 0
+    }
+  }
+)
+
+watch(
+  () => form.cuota_inicial,
+  () => {
+    if (form.tipo_operacion === 'venta') {
+      const total = parseFloat(form.valor_total) || 0
+      const inicial = parseFloat(form.cuota_inicial) || 0
+      form.valor_restante = total - inicial
+    }
   }
 )
 
@@ -116,11 +148,15 @@ function submit() {
 
 <template>
   <VentasLayout :empleado="empleado">
-    <Head title="Editar Venta" />
+    <Head title="Editar Venta / Separación" />
 
     <div class="flex justify-between items-center mb-6">
       <Link href="/ventas" class="text-sm text-[#1e3a5f] hover:underline">← Volver</Link>
-      <h1 class="text-3xl font-bold text-gray-900">Editar Venta #{{ props.venta.id_venta }}</h1>
+      <h1 class="text-3xl font-bold text-gray-900">
+        Editar {{ form.tipo_operacion === 'venta' ? 'Venta' : 'Separación' }} #{{
+          props.venta.id_venta
+        }}
+      </h1>
     </div>
 
     <form
@@ -128,6 +164,15 @@ function submit() {
       class="bg-white rounded-xl shadow p-6 space-y-6 border border-gray-200"
     >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Tipo de operación -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Operación</label>
+          <select v-model="form.tipo_operacion" class="w-full border-gray-300 rounded-lg shadow-sm">
+            <option value="venta">Venta</option>
+            <option value="separacion">Separación</option>
+          </select>
+        </div>
+
         <!-- Cliente -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
@@ -165,25 +210,23 @@ function submit() {
         <!-- Inmueble -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Inmueble</label>
-          <div>
-            <select
-              v-model="form.inmueble_id"
-              :disabled="!inmueblesDisponibles.length"
-              class="w-full border-gray-300 rounded-lg shadow-sm"
-            >
-              <option value="">Seleccione...</option>
-              <option v-for="i in inmueblesDisponibles" :key="i.id" :value="i.id">
-                {{ i.label }}
-              </option>
-            </select>
-          </div>
+          <select
+            v-model="form.inmueble_id"
+            :disabled="!inmueblesDisponibles.length"
+            class="w-full border-gray-300 rounded-lg shadow-sm"
+          >
+            <option value="">Seleccione...</option>
+            <option v-for="i in inmueblesDisponibles" :key="i.id" :value="i.id">
+              {{ i.label }}
+            </option>
+          </select>
 
           <div
             v-if="form.id_proyecto && !inmueblesDisponibles.length"
             class="mt-2 flex items-center gap-2 text-amber-600 text-sm"
           >
             <ExclamationTriangleIcon class="w-5 h-5" />
-            No hay inmuebles disponibles en este proyecto.
+            No hay inmuebles para este proyecto.
           </div>
         </div>
 
@@ -216,48 +259,67 @@ function submit() {
           </select>
         </div>
 
-        <!-- Campos automáticos -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total</label>
-          <input
-            type="text"
-            :value="
-              form.valor_total
-                ? `$${parseFloat(form.valor_total).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                : '-'
-            "
-            readonly
-            class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
-          />
-        </div>
+        <!-- Bloque económico / separación -->
+        <template v-if="form.tipo_operacion === 'venta'">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total</label>
+            <input
+              type="text"
+              :value="
+                form.valor_total
+                  ? `$${parseFloat(form.valor_total).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                  : '-'
+              "
+              readonly
+              class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
+            />
+          </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial</label>
-          <input
-            type="text"
-            :value="
-              form.cuota_inicial
-                ? `$${parseFloat(form.cuota_inicial).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                : '-'
-            "
-            readonly
-            class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
-          />
-        </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial</label>
+            <input
+              type="number"
+              v-model.number="form.cuota_inicial"
+              class="w-full border-gray-300 rounded-lg shadow-sm"
+            />
+          </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Valor Restante</label>
-          <input
-            type="text"
-            :value="
-              form.valor_total
-                ? `$${parseFloat(form.valor_restante).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                : '-'
-            "
-            readonly
-            class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
-          />
-        </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valor Restante</label>
+            <input
+              type="text"
+              :value="
+                form.valor_total
+                  ? `$${parseFloat(form.valor_restante).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                  : '-'
+              "
+              readonly
+              class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
+            />
+          </div>
+        </template>
+
+        <template v-else>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valor de Separación</label>
+            <input
+              type="number"
+              v-model.number="form.valor_separacion"
+              class="w-full border-gray-300 rounded-lg shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Fecha Límite de Separación</label
+            >
+            <input
+              type="date"
+              v-model="form.fecha_limite_separacion"
+              class="w-full border-gray-300 rounded-lg shadow-sm"
+            />
+          </div>
+        </template>
       </div>
 
       <!-- Descripción -->
@@ -286,7 +348,7 @@ function submit() {
             class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"
           ></span>
           <CheckCircleIcon v-else class="w-5 h-5" />
-          {{ form.processing ? 'Actualizando...' : 'Actualizar Venta' }}
+          {{ form.processing ? 'Actualizando...' : 'Actualizar Operación' }}
         </button>
       </div>
     </form>

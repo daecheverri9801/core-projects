@@ -23,7 +23,7 @@ class ApartamentoWebController extends Controller
                 return [
                     'id_apartamento' => $a->id_apartamento,
                     'numero' => $a->numero,
-                    'valor_total' => $a->valor_total,
+                    'valor_total' => $a->valor_final,
                     'tipo' => $a->tipoApartamento?->nombre,
                     'estado' => $a->estadoInmueble?->nombre,
                     'proyecto' => $a->torre?->proyecto?->nombre,
@@ -103,13 +103,13 @@ class ApartamentoWebController extends Controller
 
         // Calcular valor total
         $validated['prima_altura'] = $primaAltura;
-        $validated['valor_total'] = $valorBase + $primaAltura;
+        $validated['valor_total'] = $valorBase;
 
         // aplicar política
         $politicaCalc = $this->calcularValorConPolitica($validated['valor_total'], $proyecto->id_proyecto);
 
         $validated['valor_politica'] = $politicaCalc['valor_politica'];
-        $validated['valor_final'] = $politicaCalc['valor_final'];
+        $validated['valor_final'] = $politicaCalc['valor_final'] + $primaAltura;
 
         // Coherencia: el piso debe pertenecer a la torre
         $piso = PisoTorre::find($validated['id_piso_torre']);
@@ -177,28 +177,23 @@ class ApartamentoWebController extends Controller
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
         $tipos = TipoApartamento::select('id_tipo_apartamento', 'nombre', 'valor_estimado')->orderBy('nombre')->get();
         $estados = EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get();
+
+        // Proyecto del apartamento
+        $idProyecto = $a->torre?->id_proyecto;
+
+        // TORRES SOLO DEL PROYECTO ASOCIADO
         $torres = Torre::with('proyecto:id_proyecto,nombre,prima_altura_base,prima_altura_incremento,prima_altura_activa')
+            ->where('id_proyecto', $idProyecto)
             ->select('id_torre', 'nombre_torre', 'id_proyecto')
             ->orderBy('nombre_torre')
             ->get();
 
-        $pisos = PisoTorre::select('id_piso_torre', 'nivel', 'id_torre')
+
+        // PISOS SOLO DE LA TORRE ASOCIADA
+        $pisos = PisoTorre::where('id_torre', $a->id_torre)
+            ->select('id_piso_torre', 'nivel', 'id_torre')
             ->orderBy('nivel')
             ->get();
-
-        // Pre-cargar torres del proyecto y pisos de la torre actual
-        // $torres = [];
-        // $pisos = [];
-        $idProyecto = $a->torre?->id_proyecto;
-
-        if ($idProyecto) {
-            $torres = Torre::where('id_proyecto', $idProyecto)
-                ->select('id_torre', 'nombre_torre', 'id_proyecto')->orderBy('nombre_torre')->get();
-        }
-        if ($a->id_torre) {
-            $pisos = PisoTorre::where('id_torre', $a->id_torre)
-                ->select('id_piso_torre', 'nivel', 'id_torre')->orderBy('nivel')->get();
-        }
 
         return Inertia::render('Admin/Apartamento/Edit', [
             'apartamento' => [
@@ -214,12 +209,13 @@ class ApartamentoWebController extends Controller
             'proyectos' => $proyectos,
             'tipos' => $tipos,
             'estados' => $estados,
-            // 'torresInicial' => $torres,
-            // 'pisosInicial' => $pisos,
+
+            // datos filtrados correctos
             'torres' => $torres,
-            'pisos' => $pisos
+            'pisos' => $pisos,
         ]);
     }
+
 
     public function update(Request $request, $id)
     {
@@ -263,13 +259,13 @@ class ApartamentoWebController extends Controller
         $primaAltura = $this->calcularPrimaAltura($validated['id_piso_torre'], $validated['id_torre']);
 
         $validated['prima_altura'] = $primaAltura;
-        $validated['valor_total'] = $valorBase + $primaAltura;
+        $validated['valor_total'] = $valorBase;
 
         // aplicar política
         $politicaCalc = $this->calcularValorConPolitica($validated['valor_total'], $proyecto->id_proyecto);
 
         $validated['valor_politica'] = $politicaCalc['valor_politica'];
-        $validated['valor_final'] = $politicaCalc['valor_final'];
+        $validated['valor_final'] = $politicaCalc['valor_final'] + $primaAltura;
 
         // Coherencia: el piso debe pertenecer a la torre
         $piso = PisoTorre::find($validated['id_piso_torre']);
@@ -355,24 +351,22 @@ class ApartamentoWebController extends Controller
         return $base + (($nivel - 2) * $incremento);
     }
 
-    private function calcularValorConPolitica($valorBase, $idProyecto)
+    private function calcularValorConPolitica($valorConPrima, $idProyecto)
     {
         $proyecto = Proyecto::with('politicaVigente')->find($idProyecto);
         if (!$proyecto || !$proyecto->politicaVigente) {
             return [
                 'valor_politica' => 0,
-                'valor_final' => $valorBase
+                'valor_final' => $valorConPrima
             ];
         }
 
         $politica = $proyecto->politicaVigente;
 
         // supuesto: obtener total de apartamentos vendidos del proyecto
-        $ventasActuales = \App\Models\Apartamento::whereHas(
-            'torre',
-            fn($q) =>
-            $q->where('id_proyecto', $idProyecto)
-        )->whereNotNull('documento')->count();
+        $ventasActuales = \App\Models\Venta::where('id_proyecto', $idProyecto)
+            ->whereIn('tipo_operacion', ['venta', 'separacion'])
+            ->count();
 
         $ventasPorEscalon = $politica->ventas_por_escalon ?? 0;
         $porcentajeAumento = $politica->porcentaje_aumento ?? 0;
@@ -381,8 +375,8 @@ class ApartamentoWebController extends Controller
         $escalonActual = $ventasPorEscalon > 0 ? floor($ventasActuales / $ventasPorEscalon) : 0;
         $factor = pow(1 + ($porcentajeAumento / 100), $escalonActual);
 
-        $valorFinal = $valorBase * $factor;
-        $valorPolitica = $valorFinal - $valorBase;
+        $valorFinal = $valorConPrima * $factor;
+        $valorPolitica = $valorFinal - $valorConPrima;
 
         return [
             'valor_politica' => round($valorPolitica, 2),

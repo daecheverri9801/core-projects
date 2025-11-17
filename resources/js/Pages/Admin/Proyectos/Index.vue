@@ -180,8 +180,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Link, router, usePage } from '@inertiajs/inertia-vue3'
-import { Inertia } from '@inertiajs/inertia'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import {
   PlusIcon,
   EyeIcon,
@@ -195,11 +194,12 @@ const props = defineProps({
   empleado: Object,
 })
 
-
+const page = usePage()
+const empleado = computed(() => page.props.auth?.empleado)
 
 const empleadoCompleto = computed(() => {
-  if (!props.empleado) return 'Usuario'
-  return [props.empleado.nombre, props.empleado.apellido].filter(Boolean).join(' ')
+  if (!empleado.value) return 'Usuario'
+  return [empleado.value.nombre, empleado.value.apellido].filter(Boolean).join(' ')
 })
 
 const menuOpen = ref(false)
@@ -236,14 +236,14 @@ onBeforeUnmount(() => {
 })
 
 function logout() {
-  Inertia.post('/logout')
+  router.post('/logout')
 }
 
 const proyectoAEliminar = ref(null)
 const showConfirmDelete = ref(false)
 
 function confirmarEliminar() {
-  Inertia.delete(`/proyectos/${proyectoAEliminar.value}`)
+  router.delete(`/proyectos/${proyectoAEliminar.value}`)
   showConfirmDelete.value = false
   proyectoAEliminar.value = null
 }
