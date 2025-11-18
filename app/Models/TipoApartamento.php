@@ -13,6 +13,7 @@ class TipoApartamento extends Model
     protected $primaryKey = 'id_tipo_apartamento';
 
     protected $fillable = [
+        'id_proyecto',
         'nombre',
         'area_construida',
         'area_privada',
@@ -22,6 +23,10 @@ class TipoApartamento extends Model
         'valor_estimado',
     ];
 
+    public function proyecto()
+    {
+        return $this->belongsTo(Proyecto::class, 'id_proyecto', 'id_proyecto');
+    }
     public function apartamentos()
     {
         return $this->hasMany(Apartamento::class, 'id_tipo_apartamento', 'id_tipo_apartamento');

@@ -54,7 +54,7 @@
             <select v-model="form.id_tipo_apartamento" class="form-input">
               <option value="">Seleccione</option>
               <option
-                v-for="t in tipos"
+                v-for="t in tiposFiltrados"
                 :key="t.id_tipo_apartamento"
                 :value="t.id_tipo_apartamento"
               >
@@ -169,6 +169,7 @@ setTimeout(() => {
 async function onProyectoChange() {
   form.id_torre = ''
   form.id_piso_torre = ''
+  form.id_tipo_apartamento = ''
 
   torres.value = []
   pisos.value = []
@@ -255,6 +256,10 @@ function formatCurrency(v) {
     maximumFractionDigits: 0,
   })
 }
+
+const tiposFiltrados = computed(() => {
+  return props.tipos.filter((t) => Number(t.id_proyecto) === Number(form.id_proyecto))
+})
 </script>
 
 <style scoped>

@@ -20,7 +20,7 @@
         <table class="min-w-full table-auto border-collapse">
           <thead>
             <tr class="bg-brand-50 text-left text-sm text-brand-800">
-              <th class="px-3 py-2 border">ID</th>
+              <th class="px-3 py-2 border">Proyecto</th>
               <th class="px-3 py-2 border">Nombre</th>
               <th class="px-3 py-2 border text-right">Área construida</th>
               <th class="px-3 py-2 border text-right">Área privada</th>
@@ -38,7 +38,7 @@
               :key="t.id_tipo_apartamento"
               class="border-b hover:bg-gray-50"
             >
-              <td class="px-3 py-2 border">{{ t.id_tipo_apartamento }}</td>
+              <td class="px-3 py-2 border">{{ t.id_proyecto }}</td>
               <td class="px-3 py-2 border">{{ t.nombre }}</td>
               <td class="px-3 py-2 border text-right">{{ formatArea(t.area_construida) }}</td>
               <td class="px-3 py-2 border text-right">{{ formatArea(t.area_privada) }}</td>
@@ -101,6 +101,7 @@ import FlashMessages from '@/Components/FlashMessages.vue'
 import { EyeIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
+  proyectos: { type: Array, required: true },
   tipos: { type: Array, default: () => [] },
   empleado: { type: Object, default: null },
 })
@@ -112,6 +113,7 @@ const filtered = computed(() => {
   if (!q) return props.tipos
   return props.tipos.filter(
     (t) =>
+      String(t.id_proyecto).includes(q) ||
       String(t.id_tipo_apartamento).includes(q) ||
       (t.nombre || '').toLowerCase().includes(q) ||
       String(t.area_construida ?? '').includes(q) ||

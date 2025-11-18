@@ -41,7 +41,7 @@ class ApartamentoWebController extends Controller
     {
         // Selects iniciales
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
-        $tipos = TipoApartamento::select('id_tipo_apartamento', 'nombre', 'valor_estimado')->orderBy('nombre')->get();
+        $tipos = TipoApartamento::select('id_tipo_apartamento', 'id_proyecto', 'nombre', 'valor_estimado')->get();
         $estados = EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get();
         $torres = Torre::with('proyecto:id_proyecto,nombre,prima_altura_base,prima_altura_incremento,prima_altura_activa')
             ->select('id_torre', 'nombre_torre', 'id_proyecto')
@@ -175,7 +175,7 @@ class ApartamentoWebController extends Controller
         $a = Apartamento::with(['torre.proyecto', 'pisoTorre'])->findOrFail($id);
 
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
-        $tipos = TipoApartamento::select('id_tipo_apartamento', 'nombre', 'valor_estimado')->orderBy('nombre')->get();
+        $tipos = TipoApartamento::select('id_tipo_apartamento', 'id_proyecto', 'nombre', 'valor_estimado')->orderBy('nombre')->get();
         $estados = EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get();
 
         // Proyecto del apartamento

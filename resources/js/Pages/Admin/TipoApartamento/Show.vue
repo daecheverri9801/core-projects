@@ -17,7 +17,7 @@
         </div>
 
         <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <InfoItem label="ID" :value="tipo.id_tipo_apartamento" />
+          <InfoItem label="Proyecto" :value="tipo.id_proyecto" />
           <InfoItem label="Nombre" :value="tipo.nombre" />
           <InfoItem label="Área construida" :value="formatArea(tipo.area_construida)" />
           <InfoItem label="Área privada" :value="formatArea(tipo.area_privada)" />
@@ -77,6 +77,7 @@ import { Link } from '@inertiajs/vue3'
 import InfoItem from '@/Components/InfoItem.vue'
 
 const props = defineProps({
+  proyectos: { type: Array, required: true },
   tipo: { type: Object, required: true },
   apartamentos: { type: Array, default: () => [] },
   empleado: { type: Object, default: null },

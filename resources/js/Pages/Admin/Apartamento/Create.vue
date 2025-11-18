@@ -60,7 +60,7 @@
             <select v-model="form.id_tipo_apartamento" class="form-input">
               <option value="">Seleccione un tipo</option>
               <option
-                v-for="t in tipos"
+                v-for="t in tiposFiltrados"
                 :key="t.id_tipo_apartamento"
                 :value="t.id_tipo_apartamento"
               >
@@ -113,7 +113,6 @@
             />
             <p class="text-xs text-gray-500">Valor Estimado + Prima Altura.</p>
           </div>
-
         </div>
 
         <div class="mt-6 flex items-center gap-3">
@@ -163,6 +162,7 @@ function formatCurrency(v) {
 }
 
 async function onProyectoChange() {
+  form.id_tipo_apartamento = ''
   form.id_torre = ''
   form.id_piso_torre = ''
   torres.value = []
@@ -190,16 +190,20 @@ async function onTorreChange() {
   }
 }
 
+const tiposFiltrados = computed(() => {
+  return props.tipos.filter((t) => t.id_proyecto === form.id_proyecto)
+})
+
 const primaAlturaCalculada = computed(() => {
   // Buscar el piso seleccionado
-  const piso = props.pisos.find(p => p.id_piso_torre === form.id_piso_torre)
+  const piso = props.pisos.find((p) => p.id_piso_torre === form.id_piso_torre)
   if (!piso || !piso.nivel) return 0
 
   const nivel = parseInt(piso.nivel)
   if (nivel < 2) return 0
 
   // Buscar la torre seleccionada y su proyecto
-  const torre = props.torres.find(t => t.id_torre === form.id_torre)
+  const torre = props.torres.find((t) => t.id_torre === form.id_torre)
   if (!torre || !torre.proyecto) return 0
 
   const proyecto = torre.proyecto
@@ -208,7 +212,7 @@ const primaAlturaCalculada = computed(() => {
   const base = parseFloat(proyecto.prima_altura_base || 0)
   const incremento = parseFloat(proyecto.prima_altura_incremento || 0)
 
-  return base + ((nivel - 2) * incremento)
+  return base + (nivel - 2) * incremento
 })
 
 const valorTotalCalculado = computed(() => {
@@ -216,7 +220,7 @@ const valorTotalCalculado = computed(() => {
 })
 
 const valorEstimadoTipo = computed(() => {
-  const t = props.tipos.find(x => x.id_tipo_apartamento === form.id_tipo_apartamento)
+  const t = props.tipos.find((x) => x.id_tipo_apartamento === form.id_tipo_apartamento)
   return t ? parseFloat(t.valor_estimado || 0) : 0
 })
 

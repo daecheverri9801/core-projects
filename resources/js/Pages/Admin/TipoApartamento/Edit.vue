@@ -5,7 +5,16 @@
     <div class="bg-white rounded-lg border p-4 md:p-6 max-w-3xl">
       <form @submit.prevent="submit">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="md:col-span-2">
+          <div>
+            <label class="form-label">Proyecto</label>
+            <select v-model="form.id_proyecto" class="form-input">
+              <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
+                {{ p.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div>
             <label class="form-label">Nombre</label>
             <input v-model="form.nombre" type="text" maxlength="100" class="form-input" />
             <p v-if="errors.nombre" class="form-error">{{ errors.nombre }}</p>
@@ -92,11 +101,13 @@ import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
 const props = defineProps({
+  proyectos: { type: Array, required: true },
   tipo: { type: Object, required: true },
   empleado: { type: Object, default: null },
 })
 
 const form = reactive({
+  id_proyecto: props.tipo.id_proyecto || '',
   nombre: props.tipo.nombre || '',
   area_construida: props.tipo.area_construida ?? '',
   area_privada: props.tipo.area_privada ?? '',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TipoApartamento;
+use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,6 +17,7 @@ class TipoApartamentoWebController extends Controller
             ->get()
             ->map(function ($t) {
                 return [
+                    'id_proyecto' => $t->proyecto->nombre,
                     'id_tipo_apartamento' => $t->id_tipo_apartamento,
                     'nombre' => $t->nombre,
                     'area_construida' => $t->area_construida,
@@ -35,12 +37,17 @@ class TipoApartamentoWebController extends Controller
 
     public function create()
     {
-        return Inertia::render('Admin/TipoApartamento/Create');
+        $proyectos = Proyecto::orderBy('nombre')->get();
+
+        return Inertia::render('Admin/TipoApartamento/Create', [
+            'proyectos' => $proyectos,
+        ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'id_proyecto' => 'required|exists:proyectos,id_proyecto',
             'nombre' => 'required|string|max:100',
             'area_construida' => 'nullable|numeric|min:0|max:99999999.99',
             'area_privada' => 'nullable|numeric|min:0|max:99999999.99',
@@ -73,6 +80,7 @@ class TipoApartamentoWebController extends Controller
             $validated['valor_estimado'] = null;
         }
 
+        $validated['id_proyecto'] = $request->id_proyecto;
         $tipo = TipoApartamento::create($validated);
 
         return redirect()->route('tipos-apartamento.show', $tipo->id_tipo_apartamento)
@@ -86,6 +94,7 @@ class TipoApartamentoWebController extends Controller
 
         return Inertia::render('Admin/TipoApartamento/Show', [
             'tipo' => [
+                'id_proyecto' => $tipo->proyecto->nombre,
                 'id_tipo_apartamento' => $tipo->id_tipo_apartamento,
                 'nombre' => $tipo->nombre,
                 'area_construida' => $tipo->area_construida,
@@ -109,9 +118,11 @@ class TipoApartamentoWebController extends Controller
     public function edit($id)
     {
         $t = TipoApartamento::findOrFail($id);
+        $proyectos = Proyecto::orderBy('nombre')->get();
 
         return Inertia::render('Admin/TipoApartamento/Edit', [
             'tipo' => [
+                'id_proyecto' => $t->id_proyecto,
                 'id_tipo_apartamento' => $t->id_tipo_apartamento,
                 'nombre' => $t->nombre,
                 'area_construida' => $t->area_construida,
@@ -120,6 +131,7 @@ class TipoApartamentoWebController extends Controller
                 'cantidad_banos' => $t->cantidad_banos,
                 'valor_m2' => $t->valor_m2,
             ],
+            'proyectos' => $proyectos,
         ]);
     }
 
@@ -128,6 +140,7 @@ class TipoApartamentoWebController extends Controller
         $t = TipoApartamento::findOrFail($id);
 
         $validated = $request->validate([
+            'id_proyecto' => 'required|exists:proyectos,id_proyecto',
             'nombre' => 'required|string|max:100',
             'area_construida' => 'nullable|numeric|min:0|max:99999999.99',
             'area_privada' => 'nullable|numeric|min:0|max:99999999.99',
@@ -158,6 +171,8 @@ class TipoApartamentoWebController extends Controller
         } else {
             $validated['valor_estimado'] = null;
         }
+
+        $validated['id_proyecto'] = $request->id_proyecto;
 
         $t->update($validated);
 

@@ -67,6 +67,11 @@ class Proyecto extends Model
         return $this->hasMany(ZonaSocial::class, 'id_proyecto', 'id_proyecto');
     }
 
+    public function tiposApartamento()
+    {
+        return $this->hasMany(TipoApartamento::class, 'id_proyecto', 'id_proyecto');
+    }
+
     public function politicasPrecio()
     {
         return $this->hasMany(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto');
