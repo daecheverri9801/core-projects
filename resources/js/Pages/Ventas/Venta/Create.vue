@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3'
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted, reactive } from 'vue'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid'
 import VentasLayout from '@/Components/VentasLayout.vue'
 
@@ -22,7 +22,7 @@ const props = defineProps({
 const inmueblesDisponibles = ref([])
 
 const form = useForm({
-  tipo_operacion: 'venta', // 'venta' o 'separacion'
+  tipo_operacion: '', // 'venta' o 'separacion'
   id_empleado: empleado.value?.id_empleado || null,
   documento_cliente: '',
   fecha_venta: new Date().toISOString().slice(0, 10),
@@ -45,6 +45,157 @@ const form = useForm({
 const proyectoSeleccionado = computed(() =>
   props.proyectos.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
 )
+
+const estadoNombre = computed(() => {
+  const e = props.estadosInmueble.find((x) => x.id_estado_inmueble === form.id_estado_inmueble)
+  return e?.nombre || '—'
+})
+
+const erroresForm = reactive({
+  cuota_inicial: '',
+  valor_separacion: '',
+  fecha_limite_separacion: '',
+})
+
+function formatearMoneda(valor) {
+  if (valor === null || valor === undefined || valor === '') return ''
+  return Number(valor).toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
+}
+
+function parseMoneda(valorStr) {
+  if (!valorStr) return 0
+  return Number(valorStr.replace(/\./g, '').replace(/[^0-9]/g, ''))
+}
+
+watch(
+  () => form.cuota_inicial,
+  (valor) => {
+    if (form.tipo_operacion !== 'venta') {
+      erroresForm.cuota_inicial = ''
+      return
+    }
+
+    const min = Math.ceil(
+      form.valor_total * (proyectoSeleccionado.value.porcentaje_cuota_inicial_min / 100)
+    )
+
+    if (valor < min) {
+      erroresForm.cuota_inicial = `La cuota inicial mínima es $${min.toLocaleString('es-CO')}`
+    } else {
+      erroresForm.cuota_inicial = ''
+    }
+  }
+)
+
+watch(
+  () => form.valor_separacion,
+  (valor) => {
+    if (form.tipo_operacion !== 'separacion') {
+      erroresForm.valor_separacion = ''
+      return
+    }
+
+    const min = proyectoSeleccionado.value.valor_min_separacion
+
+    if (valor < min) {
+      erroresForm.valor_separacion = `El valor mínimo de separación es $${min.toLocaleString('es-CO')}`
+    } else {
+      erroresForm.valor_separacion = ''
+    }
+  }
+)
+
+watch(
+  () => form.fecha_limite_separacion,
+  (fecha) => {
+    if (form.tipo_operacion !== 'separacion') {
+      erroresForm.fecha_limite_separacion = ''
+      return
+    }
+
+    const maxDias = proyectoSeleccionado.value.plazo_max_separacion_dias
+    const hoy = new Date()
+    const fechaLimite = new Date(hoy)
+    fechaLimite.setDate(hoy.getDate() + maxDias)
+
+    const f = new Date(fecha)
+
+    if (f > fechaLimite) {
+      erroresForm.fecha_limite_separacion = `La fecha máxima permitida es ${fechaLimite.toISOString().slice(0, 10)}`
+    } else {
+      erroresForm.fecha_limite_separacion = ''
+    }
+  }
+)
+
+const errors = ref({})
+
+// Fecha mínima = hoy
+const fechaMinimaSeparacion = computed(() => {
+  return new Date().toISOString().split('T')[0]
+})
+
+// Fecha máxima = hoy + plazo permitido por el proyecto
+const fechaMaximaSeparacion = computed(() => {
+  if (!proyectoSeleccionado.value) return null
+
+  const dias = Number(proyectoSeleccionado.value.plazo_max_separacion_dias || 0)
+  const fecha = new Date()
+  fecha.setDate(fecha.getDate() + dias)
+  return fecha.toISOString().split('T')[0]
+})
+
+watch(
+  () => form.fecha_limite_separacion,
+  (val) => {
+    if (!val) return
+
+    const fecha = new Date(val)
+    const min = new Date(fechaMinimaSeparacion.value)
+    const max = new Date(fechaMaximaSeparacion.value)
+
+    if (fecha < min || fecha > max) {
+      errors.value.fecha_limite_separacion = `Debe estar entre ${fechaMinimaSeparacion.value} y ${fechaMaximaSeparacion.value}`
+    } else {
+      errors.value.fecha_limite_separacion = null
+    }
+  }
+)
+
+// Identificar estados por nombre
+const estadoVendidoId = props.estadosInmueble.find(
+  (e) => e.nombre.toLowerCase() === 'vendido'
+)?.id_estado_inmueble
+
+const estadoSeparadoId = props.estadosInmueble.find(
+  (e) => e.nombre.toLowerCase() === 'separado'
+)?.id_estado_inmueble
+
+// Cuando cambia tipo de operación → cambiar estado automáticamente
+watch(
+  () => form.tipo_operacion,
+  (tipo) => {
+    if (tipo === 'venta') {
+      form.id_estado_inmueble = estadoVendidoId
+    } else if (tipo === 'separacion') {
+      form.id_estado_inmueble = estadoSeparadoId
+    } else {
+      form.id_estado_inmueble = null
+    }
+  }
+)
+
+onMounted(() => {
+  if (form.tipo_operacion === 'venta') {
+    form.id_estado_inmueble = estadoVendidoId
+  } else if (form.tipo_operacion === 'separacion') {
+    form.id_estado_inmueble = estadoSeparadoId
+  }
+})
 
 // Cuando cambia proyecto, cargar inmuebles disponibles
 watch(
@@ -132,6 +283,29 @@ watch(
   }
 )
 
+const cuotaInicialDisplay = computed(() =>
+  form.cuota_inicial
+    ? form.cuota_inicial.toLocaleString('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0,
+      })
+    : ''
+)
+
+function onCuotaInicialInput(value) {
+  // Eliminar puntos, comas, símbolos, espacios
+  const clean = value.replace(/[^\d]/g, '')
+
+  form.cuota_inicial = clean ? Number(clean) : 0
+
+  // recalcular valor restante
+  if (form.tipo_operacion === 'venta') {
+    const total = Number(form.valor_total) || 0
+    form.valor_restante = total - form.cuota_inicial
+  }
+}
+
 // Si cambia tipo_operacion, recalcular campos
 watch(
   () => form.tipo_operacion,
@@ -174,9 +348,9 @@ const camposCompletos = computed(() =>
 )
 
 function submit() {
-  form.post(route('ventas.store'), {
-    onError: (errors) => {
-      console.error(errors)
+  router.post('/ventas', form, {
+    onError: (err) => {
+      errors.value = err
     },
   })
 }
@@ -200,6 +374,7 @@ function submit() {
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Operación</label>
           <select v-model="form.tipo_operacion" class="w-full border-gray-300 rounded-lg shadow-sm">
+            <option value="">Seleccione...</option>
             <option value="venta">Venta</option>
             <option value="separacion">Separación</option>
           </select>
@@ -274,23 +449,22 @@ function submit() {
           </select>
         </div>
 
-        <!-- Estado del Inmueble -->
+        <!-- Estado del Inmueble (automático) -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Estado del Inmueble *</label>
-          <select
-            v-model="form.id_estado_inmueble"
-            required
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
-          >
-            <option value="" disabled>Seleccione un estado...</option>
-            <option
-              v-for="estado in estadosInmueble"
-              :key="estado.id_estado_inmueble"
-              :value="estado.id_estado_inmueble"
-            >
-              {{ estado.nombre }}
-            </option>
-          </select>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Estado del Inmueble *
+          </label>
+
+          <!-- Input visual (no editable) -->
+          <input
+            type="text"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+            :value="estadoNombre"
+            disabled
+          />
+
+          <!-- Valor real (oculto) -->
+          <input type="hidden" v-model="form.id_estado_inmueble" />
         </div>
 
         <!-- Resumen económico (solo venta) -->
@@ -312,10 +486,20 @@ function submit() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial</label>
             <input
-              type="number"
-              v-model.number="form.cuota_inicial"
+              type="text"
+              :value="formatearMoneda(form.cuota_inicial)"
+              @input="
+                (e) => {
+                  form.cuota_inicial = parseMoneda(e.target.value)
+                }
+              "
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
+
+            <!-- ERROR DINÁMICO -->
+            <p v-if="erroresForm.cuota_inicial" class="text-red-600 text-sm mt-1">
+              {{ erroresForm.cuota_inicial }}
+            </p>
           </div>
 
           <div>
@@ -338,21 +522,37 @@ function submit() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Valor de Separación</label>
             <input
-              type="number"
-              v-model.number="form.valor_separacion"
+              type="text"
+              :value="formatearMoneda(form.valor_separacion)"
+              @input="
+                (e) => {
+                  form.valor_separacion = parseMoneda(e.target.value)
+                }
+              "
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
+            <p v-if="erroresForm.valor_separacion" class="text-red-600 text-sm mt-1">
+              {{ erroresForm.valor_separacion }}
+            </p>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Fecha Límite Separación</label
-            >
+          <!-- Fecha Límite Separación -->
+          <div v-if="form.tipo_operacion === 'separacion'">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Fecha Límite Separación
+            </label>
+
             <input
               type="date"
               v-model="form.fecha_limite_separacion"
+              :min="fechaMinimaSeparacion"
+              :max="fechaMaximaSeparacion"
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
+
+            <p v-if="erroresForm.fecha_limite_separacion" class="text-red-600 text-sm mt-1">
+              {{ erroresForm.fecha_limite_separacion }}
+            </p>
           </div>
         </template>
       </div>

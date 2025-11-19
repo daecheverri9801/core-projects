@@ -26,7 +26,7 @@ class PriceEngine
         foreach ($politicas as $p) {
             $acumulado += $p->ventas_por_escalon;
 
-            if ($ventas > $acumulado) {
+            if ($ventas >= $acumulado) {
                 $bloque++;
             } else {
                 break;
@@ -97,20 +97,22 @@ class PriceEngine
      * ============================================================ */
     public function recalcularInmueble($inmueble, $factor, $esLocal = false)
     {
-        if ($esLocal === false) {
+        if (!$esLocal) {
             $tipo = $inmueble->tipoApartamento;
-            $precioBase = $tipo->valor_base;
+            $precioBase = $tipo->valor_estimado ?? 0;  // ✔ correcto
         } else {
-            $precioBase = $inmueble->valor_m2 * $inmueble->area_total_local;
+            $precioBase = ($inmueble->valor_m2 ?? 0) * ($inmueble->area_total_local ?? 0);
         }
 
-        $prima = $inmueble->prima_altura ?? 0;
-        $politica = $inmueble->valor_politica ?? 0;
 
-        $valor = ($precioBase * $factor) + $prima + $politica;
+        $prima = $inmueble->prima_altura ?? 0;
+        $valorPolitica = ($precioBase * $factor) - $precioBase;
+
+        $valorFinal = $precioBase + $prima + $valorPolitica;
 
         $inmueble->update([
-            'valor_final' => round($valor)
+            'valor_politica' => round($valorPolitica),
+            'valor_final'    => round($valorFinal),
         ]);
     }
 

@@ -9,11 +9,15 @@ use App\Models\Proyecto;
 use App\Models\EstadoInmueble;
 use App\Models\PlanAmortizacionVenta;
 use App\Models\PlanAmortizacionCuota;
+use App\Services\ProyectoPricingService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class VentaService
 {
+    public function __construct(
+        protected ProyectoPricingService $pricingService
+    ) {}
     public function crearOperacion(array $data): Venta
     {
         return DB::transaction(function () use ($data) {
@@ -78,6 +82,19 @@ class VentaService
                 $this->generarPlanCuotaInicial($venta, $proyecto);
             }
 
+            // 9. Recalcular precios de inmuebles disponibles del proyecto según políticas
+            $this->pricingService->recalcPreciosProyecto($proyecto->id_proyecto);
+
+            session([
+                'debug_venta' => [
+                    'tipo' => $data['tipo_operacion'],
+                    'valor_total' => $data['valor_total'] ?? null,
+                    'cuota_inicial' => $data['cuota_inicial'] ?? null,
+                    'valor_final' => $inmueble->valor_final ?? null,
+                    'estado_inmueble' => $estadoDestino ?? null,
+                ]
+            ]);
+
             return $venta;
         });
     }
@@ -104,17 +121,32 @@ class VentaService
     protected function validarSeparacion(array $data, Proyecto $proyecto): void
     {
         $valorSep = (float)($data['valor_separacion'] ?? 0);
-        $plazoDias = (int)($data['plazo_separacion_dias'] ?? 0);
+        $fechaLimite = $data['fecha_limite_separacion'] ?? null;
 
-        if ($valorSep < $proyecto->valor_minimo_separacion) {
-            throw new \RuntimeException('El valor de separación es menor al mínimo permitido para el proyecto.');
+        // Validar valor
+        if ($valorSep < $proyecto->valor_min_separacion) {
+            throw new \Illuminate\Validation\ValidationException(
+                validator: validator([], []),
+                response: null,
+                errorBag: 'default',
+                errors: ['valor_separacion' => ['El valor de separación es menor al mínimo permitido.']]
+            );
         }
 
-        if (
-            $proyecto->plazo_max_separacion_dias > 0 &&
-            $plazoDias > $proyecto->plazo_max_separacion_dias
-        ) {
-            throw new \RuntimeException('El plazo de separación excede el máximo permitido para el proyecto.');
+        // Validar fecha límite
+        if ($fechaLimite) {
+            $maxDias = (int)$proyecto->plazo_max_separacion_dias;
+
+            $fechaMax = now()->addDays($maxDias)->toDateString();
+
+            if ($fechaLimite > $fechaMax) {
+                throw new \Illuminate\Validation\ValidationException(
+                    validator: validator([], []),
+                    response: null,
+                    errorBag: 'default',
+                    errors: ['fecha_limite_separacion' => ['La fecha excede el máximo permitido por el proyecto.']]
+                );
+            }
         }
     }
 

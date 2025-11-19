@@ -76,10 +76,4 @@ class Apartamento extends Model
         return $base + $prima + $politica;
     }
 
-    public function estaCongelado()
-    {
-        return $this->id_estado_inmueble &&
-            $this->estadoInmueble &&
-            strtolower($this->estadoInmueble->nombre) === 'congelado';
-    }
 }

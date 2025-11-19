@@ -11,7 +11,6 @@ use App\Models\Local;
 use App\Models\Proyecto;
 use App\Models\FormaPago;
 use App\Models\EstadoInmueble;
-use App\Models\BloqueoInmueble;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -19,63 +18,29 @@ use Illuminate\Support\Facades\DB;
 class VentaWebController extends Controller
 {
     /* ===========================================================
-     *  AUXILIARES DE BLOQUEO / LIBERACIÓN
-     * =========================================================== */
-
-    private function congelarInmueble($inmueble, $tipo, $empleadoId)
-    {
-        // Evitar doble bloqueo
-        $id = $inmueble->id_apartamento ?? $inmueble->id_local;
-
-        $existe = BloqueoInmueble::where('id_inmueble', $id)
-            ->where('inmueble_tipo', $tipo)
-            ->whereNull('released_at')
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if ($existe) return;
-
-        BloqueoInmueble::create([
-            'id_inmueble'   => $id,
-            'inmueble_tipo' => $tipo,
-            'id_empleado'   => $empleadoId,
-            'bloqueado_en'  => now(),
-            'expires_at'    => now()->addMinutes(30),
-        ]);
-
-        // Marcar estado como congelado
-        $estadoCong = EstadoInmueble::where('nombre', 'Congelado')->first();
-        if ($estadoCong) {
-            $inmueble->update([
-                'id_estado_inmueble' => $estadoCong->id_estado_inmueble
-            ]);
-        }
-    }
-
-    private function liberarInmueble($inmueble, $tipo)
-    {
-        $id = $inmueble->id_apartamento ?? $inmueble->id_local;
-
-        BloqueoInmueble::where('id_inmueble', $id)
-            ->where('inmueble_tipo', $tipo)
-            ->whereNull('released_at')
-            ->update(['released_at' => now()]);
-
-        $estadoDisp = EstadoInmueble::where('nombre', 'Disponible')->first();
-
-        if ($estadoDisp) {
-            $inmueble->update([
-                'id_estado_inmueble' => $estadoDisp->id_estado_inmueble
-            ]);
-        }
-    }
-
-    /* ===========================================================
      *  INDEX
      * =========================================================== */
 
     public function index()
     {
+        $proyecto = Proyecto::first(); // temporal para debug, escoger el proyecto real
+
+        $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
+            ->whereIn('tipo_operacion', ['venta', 'separacion'])
+            ->count();
+
+        // PriceEngine
+        $pe = new \App\Services\PriceEngine();
+        $peBloque = $pe->obtenerBloqueActual($proyecto);
+        $peFactor = $pe->calcularFactorAumento($proyecto, $peBloque);
+        $pePoliticas = $proyecto->politicasPrecio()->get()->toArray();
+
+        // ProyectoPricingService
+        $pps = new \App\Services\ProyectoPricingService();
+        $bloque = $peBloque;
+        $factor = $peFactor;
+        $politicas = $proyecto->politicasPrecio()->get();
+
         $ventas = Venta::with([
             'cliente',
             'empleado',
@@ -87,6 +52,31 @@ class VentaWebController extends Controller
 
         return Inertia::render('Ventas/Venta/Index', [
             'ventas' => $ventas,
+            // Debug ProyectoPricingService
+            'debug_proyecto' => [
+                'nombre' => $proyecto->nombre ?? null,
+                'ventas_activas' => $ventasActivas ?? null,
+                'bloque_actual' => $bloque ?? null,
+                'factor' => $factor ?? null,
+                'politicas' => $politicas->map(function ($p) {
+                    return [
+                        'id' => $p->id_politica_precio,
+                        'ventas_por_escalon' => $p->ventas_por_escalon,
+                        'porcentaje_aumento' => $p->porcentaje_aumento,
+                        'aplica_desde' => $p->aplica_desde,
+                    ];
+                }),
+            ],
+
+            // Debug PriceEngine
+            'debug_priceengine' => [
+                'bloque' => $peBloque ?? null,
+                'factor' => $peFactor ?? null,
+                'politicas' => $pePoliticas ?? null,
+            ],
+
+            // Debug VentaService (solo si hubo venta)
+            'debug_venta' => session('debug_venta', null),
         ]);
     }
 
@@ -127,24 +117,24 @@ class VentaWebController extends Controller
                     ->find($request->inmueble_id);
             }
 
-            if ($inmueblePrecargado) {
+            // if ($inmueblePrecargado) {
 
-                // Validar bloqueo previo
-                $bloqueado = BloqueoInmueble::where('id_inmueble', $request->inmueble_id)
-                    ->where('inmueble_tipo', $tipo)
-                    ->whereNull('released_at')
-                    ->where('expires_at', '>', now())
-                    ->first();
+            //     // Validar bloqueo previo
+            //     $bloqueado = BloqueoInmueble::where('id_inmueble', $request->inmueble_id)
+            //         ->where('inmueble_tipo', $tipo)
+            //         ->whereNull('released_at')
+            //         ->where('expires_at', '>', now())
+            //         ->first();
 
-                if ($bloqueado && $bloqueado->id_empleado !== auth()->user()->empleado) {
-                    return back()->withErrors([
-                        'inmueble' => 'El inmueble está siendo operado por otro asesor.'
-                    ]);
-                }
+            //     if ($bloqueado && $bloqueado->id_empleado !== auth()->user()->empleado) {
+            //         return back()->withErrors([
+            //             'inmueble' => 'El inmueble está siendo operado por otro asesor.'
+            //         ]);
+            //     }
 
-                // Congelar
-                $this->congelarInmueble($inmueblePrecargado, $tipo, auth()->user()->empleado);
-            }
+            //     // Congelar
+            //     $this->congelarInmueble($inmueblePrecargado, $tipo, auth()->user()->empleado);
+            // }
         }
 
         return Inertia::render('Ventas/Venta/Create', [
@@ -158,6 +148,8 @@ class VentaWebController extends Controller
             'inmueblePrecargado' => $inmueblePrecargado,
         ]);
     }
+
+
 
     /* ===========================================================
      *  STORE

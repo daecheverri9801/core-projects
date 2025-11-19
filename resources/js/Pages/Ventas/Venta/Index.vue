@@ -4,9 +4,29 @@ import { onMounted } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import { EyeIcon, PencilIcon, TrashIcon, PlusIcon } from '@heroicons/vue/24/outline'
 
+const debugEnabled = true // poner false para ocultar
+
 const props = defineProps({
   ventas: Array,
+  // DEBUG
+  debug_proyecto: Object,
+  debug_priceengine: Object,
+  debug_venta: Object,
 })
+
+const debug = {
+  proyecto: props.debug_proyecto,
+  pe: props.debug_priceengine,
+  venta: props.debug_venta,
+}
+
+function format(v) {
+  return Number(v || 0).toLocaleString('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  })
+}
 
 function eliminar(id) {
   if (confirm('¿Desea eliminar esta venta?')) {
@@ -26,6 +46,65 @@ function formatDate(date) {
 
 <template>
   <VentasLayout>
+    <!-- ================================
+     DEBUG TARGETS DINÁMICOS
+================================ -->
+    <div v-if="debugEnabled" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- TARGET 1: ProyectoPricingService -->
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+        <h3 class="text-blue-900 font-semibold mb-2">ProyectoPricingService</h3>
+
+        <p><strong>Proyecto:</strong> {{ debug.proyecto?.nombre ?? '—' }}</p>
+        <p><strong>Ventas activas:</strong> {{ debug.proyecto?.ventas_activas ?? '—' }}</p>
+        <p><strong>Bloque actual:</strong> {{ debug.proyecto?.bloque_actual ?? '—' }}</p>
+        <p><strong>Factor:</strong> {{ debug.proyecto?.factor ?? '—' }}</p>
+
+        <hr class="my-2" />
+
+        <div>
+          <p class="font-semibold">Políticas</p>
+          <ul class="text-sm pl-3 list-disc">
+            <li v-for="p in debug.proyecto?.politicas ?? []" :key="p.id">
+              {{ p.aplica_desde }} → {{ p.porcentaje_aumento }}%
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- TARGET 2: PriceEngine -->
+      <div class="p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+        <h3 class="text-green-900 font-semibold mb-2">PriceEngine</h3>
+
+        <p><strong>Bloque:</strong> {{ debug.pe?.bloque ?? '—' }}</p>
+        <p><strong>Factor acumulado:</strong> {{ debug.pe?.factor ?? '—' }}</p>
+
+        <hr class="my-2" />
+
+        <p class="font-semibold">Políticas detectadas</p>
+        <ul class="text-sm pl-3 list-disc">
+          <li v-for="p in debug.pe?.politicas ?? []" :key="p.id">
+            {{ p.ventas_por_escalon }} → {{ p.porcentaje_aumento }}%
+          </li>
+        </ul>
+      </div>
+
+      <!-- TARGET 3: VentaService -->
+      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+        <h3 class="text-yellow-900 font-semibold mb-2">VentaService</h3>
+
+        <p><strong>Operación:</strong> {{ debug.venta?.tipo ?? '—' }}</p>
+        <p><strong>Valor total:</strong> {{ format(debug.venta?.valor_total) }}</p>
+        <p><strong>Cuota inicial:</strong> {{ format(debug.venta?.cuota_inicial) }}</p>
+        <p><strong>Valor final aplicado:</strong> {{ format(debug.venta?.valor_final) }}</p>
+
+        <hr class="my-2" />
+
+        <p>
+          <strong>Estado asignado:</strong>
+          {{ debug.venta?.estado_inmueble ?? '—' }}
+        </p>
+      </div>
+    </div>
     <Head title="Ventas" />
 
     <div class="flex justify-between items-center mb-6">

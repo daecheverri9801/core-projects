@@ -383,4 +383,18 @@ class ApartamentoWebController extends Controller
             'valor_final' => round($valorFinal, 2)
         ];
     }
+
+    public function scopeDisponiblesPorProyecto($query, int $idProyecto)
+    {
+        return $query
+            ->where('id_estado_inmueble', function ($q) {
+                $q->select('id_estado_inmueble')
+                    ->from('estados_inmueble')
+                    ->where('nombre', 'Disponible')
+                    ->limit(1);
+            })
+            ->whereHas('torre', function ($q) use ($idProyecto) {
+                $q->where('id_proyecto', $idProyecto);
+            });
+    }
 }

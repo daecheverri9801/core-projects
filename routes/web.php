@@ -158,6 +158,7 @@ Route::middleware(['auth', 'check.cargo:Administrador'])->group(function () {
         Route::get('/{id}', [PoliticaPrecioProyectoWebController::class, 'show'])->name('politicas-precio-proyecto.show');
         Route::get('/{id}/editar', [PoliticaPrecioProyectoWebController::class, 'edit'])->name('politicas-precio-proyecto.edit');
         Route::put('/{id}', [PoliticaPrecioProyectoWebController::class, 'update'])->name('politicas-precio-proyecto.update');
+        Route::delete('/{id}', [PoliticaPrecioProyectoWebController::class, 'destroy'])->name('politicas-precio-proyecto.destroy');
     });
 });
 
