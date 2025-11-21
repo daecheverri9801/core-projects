@@ -103,6 +103,10 @@ const esSeparacion = () => props.venta.tipo_operacion === 'separacion'
                 <span>Cuota Inicial:</span>
                 <span>{{ formatCurrency(venta.cuota_inicial) }}</span>
               </li>
+              <li class="flex justify-between text-gray-700">
+                <span>Meses Cuota Inicial:</span>
+                <span>{{ venta.plazo_cuota_inicial_meses }}</span>
+              </li>
               <li
                 class="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-2"
               >
@@ -115,7 +119,11 @@ const esSeparacion = () => props.venta.tipo_operacion === 'separacion'
           <template v-else>
             <ul class="space-y-2">
               <li class="flex justify-between text-gray-700">
-                <span>Valor de Separación:</span>
+                <span>Valor Inmueble:</span>
+                <span>{{ formatCurrency(venta.valor_total) }}</span>
+              </li>
+              <li class="flex justify-between text-gray-700">
+                <span>Cuota de Separación:</span>
                 <span>{{ formatCurrency(venta.valor_separacion) }}</span>
               </li>
               <li class="flex justify-between text-gray-700">

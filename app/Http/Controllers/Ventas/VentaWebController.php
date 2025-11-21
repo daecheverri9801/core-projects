@@ -137,6 +137,14 @@ class VentaWebController extends Controller
             // }
         }
 
+
+        $plazos = [];
+
+        if ($inmueblePrecargado) {
+            $proyecto = $inmueblePrecargado->torre->proyecto;
+            $plazos = $this->calcularPlazosDisponibles($proyecto);
+        }
+
         return Inertia::render('Ventas/Venta/Create', [
             'clientes' => $clientes,
             'empleados' => $empleados,
@@ -146,8 +154,36 @@ class VentaWebController extends Controller
             'formasPago' => $formasPago,
             'estadosInmueble' => $estadosInmueble,
             'inmueblePrecargado' => $inmueblePrecargado,
+            'plazos_disponibles' => $plazos,
+
+            // DEBUG directo para Vue
+            'debug_plazos' => [
+                'proyectos' => $proyectos->map(fn($p) => [
+                    'id' => $p->id_proyecto,
+                    'nombre' => $p->nombre,
+                    'fecha_inicio' => $p->fecha_inicio,
+                    'plazo' => $p->plazo_cuota_inicial_meses,
+                ]),
+            ],
         ]);
     }
+
+    private function calcularPlazosDisponibles(Proyecto $proyecto)
+    {
+
+        if (!$proyecto->fecha_inicio || !$proyecto->plazo_cuota_inicial_meses) {
+            return [];
+        }
+
+        $inicio = \Carbon\Carbon::parse($proyecto->fecha_inicio);
+        $mesesTranscurridos = $inicio->diffInMonths(now());
+
+        $max = $proyecto->plazo_cuota_inicial_meses;
+        $restantes = max($max - $mesesTranscurridos, 0);
+
+        return range(1, $restantes);
+    }
+
 
 
 
@@ -171,8 +207,10 @@ class VentaWebController extends Controller
                 'id_proyecto'       => 'nullable',
                 'cuota_inicial'     => 'nullable|numeric|min:0',
                 'valor_separacion'  => 'nullable|numeric|min:0',
+                'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
                 'valor_total'       => 'nullable|numeric|min:0',
-                'descripcion'       => 'nullable|max:300'
+                'valor_restante'    => 'nullable|numeric|min:0',
+                'descripcion'       => 'nullable|max:300',
             ]);
 
             /* --------------------
@@ -231,11 +269,19 @@ class VentaWebController extends Controller
                     ]);
                 }
 
+                // ✅ Validar fecha límite para separación
+                if (empty($validated['fecha_limite_separacion'])) {
+                    return back()->withErrors([
+                        'fecha_limite_separacion' => 'La fecha límite es obligatoria para separaciones'
+                    ]);
+                }
+
                 $validated['cuota_inicial'] = null;
             }
 
             unset($validated['inmueble_tipo'], $validated['inmueble_id']);
 
+            $validated['plazo_cuota_inicial_meses'] = $request->plazo_cuota_inicial_meses;
             // Crear venta
             $venta = Venta::create($validated);
 
@@ -284,6 +330,9 @@ class VentaWebController extends Controller
         $venta = Venta::with(['apartamento', 'local', 'proyecto'])
             ->findOrFail($id);
 
+        $proyecto = $venta->proyecto;
+        $plazos = $this->calcularPlazosDisponibles($proyecto);
+
         return Inertia::render('Ventas/Venta/Edit', [
             'venta' => $venta,
             'clientes' => Cliente::all(),
@@ -293,6 +342,7 @@ class VentaWebController extends Controller
             'proyectos' => Proyecto::all(),
             'formasPago' => FormaPago::all(),
             'estadosInmueble' => EstadoInmueble::all(),
+            'plazos_disponibles' => $plazos,
         ]);
     }
 
@@ -302,18 +352,23 @@ class VentaWebController extends Controller
 
             $venta = Venta::findOrFail($id);
 
+            /* --------------------
+         *  VALIDACIÓN
+         * -------------------- */
             $validated = $request->validate([
-                'tipo_operacion'    => 'required',
+                'tipo_operacion'    => 'required|in:venta,separacion',
                 'id_empleado'       => 'required',
                 'documento_cliente' => 'required',
-                'fecha_venta'       => 'required',
-                'inmueble_tipo'     => 'required',
-                'inmueble_id'       => 'required'
+                'fecha_venta'       => 'required|date',
+                'id_proyecto'       => 'required|exists:proyectos,id_proyecto',
+                'inmueble_tipo'     => 'required|in:apartamento,local',
+                'inmueble_id'       => 'required',
+                'plazo_cuota_inicial_meses' => 'required|integer|min:1'
             ]);
 
             /* --------------------
-             *  Inmueble nuevo
-             * -------------------- */
+         *  RESOLVER INMUEBLE NUEVO
+         * -------------------- */
             $tipo = $validated['inmueble_tipo'];
 
             if ($tipo === 'apartamento') {
@@ -328,14 +383,34 @@ class VentaWebController extends Controller
 
             unset($validated['inmueble_tipo'], $validated['inmueble_id']);
 
+            /* --------------------
+         *  DEFINIR ESTADO SEGÚN TIPO DE OPERACIÓN
+         * -------------------- */
+            $estadoDestino = $validated['tipo_operacion'] === 'venta'
+                ? 'Vendido'
+                : 'Separado';
+
+            $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)
+                ->value('id_estado_inmueble');
+
+            /* --------------------
+         *  ACTUALIZAR VENTA
+         * -------------------- */
             $venta->update($validated);
 
-            // Actualizar estado del INMUEBLE NUEVO
+            $validated['plazo_cuota_inicial_meses'] = $request->plazo_cuota_inicial_meses;
+
+
+            /* --------------------
+         *  ACTUALIZAR EL INMUEBLE
+         * -------------------- */
             $nuevo->update([
-                'id_estado_inmueble' => $validated['id_estado_inmueble']
+                'id_estado_inmueble' => $idEstadoDestino
             ]);
 
-            // Recalcular precios (bloques)
+            /* --------------------
+         *  RECALCULAR PRECIOS DE BLOQUES
+         * -------------------- */
             app(\App\Services\PriceEngine::class)
                 ->recalcularProyectoPorVenta($venta);
 
@@ -344,6 +419,7 @@ class VentaWebController extends Controller
                 ->with('success', 'Operación actualizada correctamente.');
         });
     }
+
 
     /* ===========================================================
      *  DESTROY
@@ -447,5 +523,20 @@ class VentaWebController extends Controller
         return redirect()
             ->route('ventas.show', $venta->id_venta)
             ->with('success', 'La separación ahora es una venta.');
+    }
+
+    public function getPlazosDisponibles(Proyecto $proyecto)
+    {
+        if (!$proyecto->fecha_inicio || !$proyecto->plazo_cuota_inicial_meses) {
+            return [];
+        }
+
+        $inicio = \Carbon\Carbon::parse($proyecto->fecha_inicio);
+        $mesesTranscurridos = $inicio->diffInMonths(now());
+
+        $maxPlazo = $proyecto->plazo_cuota_inicial_meses;
+        $plazoRestante = max($maxPlazo - $mesesTranscurridos, 0);
+
+        return range(1, $plazoRestante);
     }
 }

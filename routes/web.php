@@ -285,15 +285,26 @@ Route::get('/ventas/inmuebles-disponibles', [VentaWebController::class, 'getInmu
     ->name('ventas.inmuebles');
 
 // 9. Planes de Amortización de Venta
-Route::resource('planes-amortizacion-venta', PlanAmortizacionVentaWebController::class)->names([
-    'index' => 'planes-amortizacion-venta.index',
-    'create' => 'planes-amortizacion-venta.create',
-    'store' => 'planes-amortizacion-venta.store',
-    'show' => 'planes-amortizacion-venta.show',
-    'edit' => 'planes-amortizacion-venta.edit',
-    'update' => 'planes-amortizacion-venta.update',
-    'destroy' => 'planes-amortizacion-venta.destroy',
-]);
+Route::get(
+    '/plan-amortizacion-venta',
+    [PlanAmortizacionVentaWebController::class, 'index']
+)->name('plan-amortizacion-venta.index');
+
+Route::get(
+    '/plan-amortizacion-venta/ventas-por-cliente',
+    [PlanAmortizacionVentaWebController::class, 'ventasPorCliente']
+)->name('plan-amortizacion-venta.ventasPorCliente');
+
+Route::post(
+    '/plan-amortizacion-venta/generar',
+    [PlanAmortizacionVentaWebController::class, 'generarPlan']
+)->name('plan-amortizacion-venta.generar');
+
+Route::post(
+    '/plan-amortizacion-venta/exportar',
+    [PlanAmortizacionVentaWebController::class, 'exportPdf']
+)->name('plan-amortizacion-venta.exportPdf');
+
 
 // 10. Pagos
 Route::resource('pagos', PagoWebController::class)->names([

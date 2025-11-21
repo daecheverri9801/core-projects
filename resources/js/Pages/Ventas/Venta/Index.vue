@@ -127,6 +127,7 @@ function formatDate(date) {
             <th class="px-4 py-3 text-left">Proyecto</th>
             <th class="px-4 py-3 text-left">Fecha</th>
             <th class="px-4 py-3 text-left">Valor Total</th>
+            <th class="px-4 py-3 text-left">Cuotas (CI)</th>
             <th class="px-4 py-3 text-center">Estado</th>
             <th class="px-4 py-3 text-center">Acciones</th>
           </tr>
@@ -151,6 +152,7 @@ function formatDate(date) {
                 }).format(venta.valor_total ?? 0)
               }}
             </td>
+            <td class="px-4 py-3">{{ venta.plazo_cuota_inicial_meses ?? '—' }}</td>
             <td class="px-4 py-3 font-semibold text-[#1e3a5f]">
               <span>{{
                 venta.apartamento?.estado_inmueble?.nombre || venta.local?.estado_inmueble?.nombre

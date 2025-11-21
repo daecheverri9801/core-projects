@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3'
-import { computed, ref, watch, onMounted, reactive } from 'vue'
+import { computed, ref, watch, onMounted, reactive, nextTick } from 'vue'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid'
 import VentasLayout from '@/Components/VentasLayout.vue'
 
@@ -17,8 +17,10 @@ const props = defineProps({
   estadosInmueble: Array,
   empleadoProp: Object,
   inmueblePrecargado: Object,
+  plazos_disponibles: Array,
 })
 
+const plazosDisponibles = ref([])
 const inmueblesDisponibles = ref([])
 
 const form = useForm({
@@ -280,6 +282,9 @@ watch(
       form.cuota_inicial = 0
       form.valor_restante = 0
     }
+    if (form.plazo_cuota_inicial_meses) {
+      // por ahora nada más, pero quedará para amortización después
+    }
   }
 )
 
@@ -345,6 +350,101 @@ const camposCompletos = computed(() =>
       form.id_forma_pago &&
       form.id_estado_inmueble
   )
+)
+
+// Método mejorado para precargar valor de separación
+function precargarValorSeparacion() {
+  if (form.tipo_operacion === 'separacion' && proyectoSeleccionado.value) {
+    const valorMinimo = proyectoSeleccionado.value.valor_min_separacion || 0
+
+    // Solo precargar si el campo está vacío o es 0
+    // Esto evita sobreescribir si el usuario ya ingresó un valor
+    if (!form.valor_separacion || form.valor_separacion === 0) {
+      form.valor_separacion = valorMinimo
+    }
+
+    console.log('Valor de separación precargado:', valorMinimo)
+  }
+}
+
+// Watch mejorado para tipo_operacion
+watch(
+  () => form.tipo_operacion,
+  (nuevoTipo, tipoAnterior) => {
+    if (nuevoTipo === 'separacion') {
+      // Precargar inmediatamente si hay proyecto seleccionado
+      if (proyectoSeleccionado.value) {
+        precargarValorSeparacion()
+      }
+
+      // Configurar estado automáticamente
+      form.id_estado_inmueble = estadoSeparadoId
+    } else if (nuevoTipo === 'venta') {
+      // Limpiar valor de separación al cambiar a venta
+      form.valor_separacion = 0
+      form.id_estado_inmueble = estadoVendidoId
+    }
+  },
+  { immediate: true } // Ejecutar inmediatamente al cargar el componente
+)
+
+// Watch mejorado para proyecto
+watch(proyectoSeleccionado, (nuevoProyecto) => {
+  if (nuevoProyecto && form.tipo_operacion === 'separacion') {
+    // Usar nextTick para asegurar que el DOM esté actualizado
+    nextTick(() => {
+      precargarValorSeparacion()
+    })
+  }
+})
+
+// También puedes agregar un botón para "Usar valor mínimo"
+function usarValorMinimo() {
+  if (proyectoSeleccionado.value) {
+    const valorMinimo = proyectoSeleccionado.value.valor_min_separacion || 0
+    form.valor_separacion = valorMinimo
+  }
+}
+
+watch(
+  () => form.id_proyecto,
+  (nuevoProyecto) => {
+    console.group('%cCALCULO DE PLAZOS', 'color:#c33; font-weight: bold')
+    console.log('ID Proyecto:', nuevoProyecto)
+
+    const p = proyectoSeleccionado.value
+    console.log('Proyecto seleccionado:', p)
+
+    if (p) {
+      const inicio = p.fecha_inicio
+      const plazoTotal = p.plazo_cuota_inicial_meses
+      console.log('Fecha inicio:', inicio)
+      console.log('Plazo total:', plazoTotal)
+
+      if (inicio && plazoTotal > 0) {
+        const start = new Date(inicio)
+        const now = new Date()
+
+        const diffMonths =
+          (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+
+        console.log('Meses transcurridos:', diffMonths)
+
+        const plazosRestantes = Math.max(plazoTotal - diffMonths, 0)
+        console.log('Plazos restantes calculados:', plazosRestantes)
+
+        // ✔ GENERAR OPCIONES PARA EL SELECT
+        plazosDisponibles.value = Array.from({ length: plazosRestantes }, (_, i) => i + 1)
+      } else {
+        plazosDisponibles.value = []
+      }
+    } else {
+      plazosDisponibles.value = []
+    }
+
+    console.groupEnd()
+  },
+  { immediate: true }
 )
 
 function submit() {
@@ -500,6 +600,21 @@ function submit() {
             <p v-if="erroresForm.cuota_inicial" class="text-red-600 text-sm mt-1">
               {{ erroresForm.cuota_inicial }}
             </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Plazo cuota inicial (meses)</label
+            >
+            <select
+              v-model="form.plazo_cuota_inicial_meses"
+              class="w-full border-gray-300 rounded-lg shadow-sm"
+            >
+              <option value="">Seleccione...</option>
+              <option v-for="p in plazosDisponibles" :key="p" :value="p">
+                {{ p }} mes{{ p === 1 ? '' : 'es' }}
+              </option>
+            </select>
           </div>
 
           <div>
