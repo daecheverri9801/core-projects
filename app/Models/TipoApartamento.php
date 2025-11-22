@@ -21,6 +21,7 @@ class TipoApartamento extends Model
         'cantidad_banos',
         'valor_m2',
         'valor_estimado',
+        'imagen',
     ];
 
     public function proyecto()

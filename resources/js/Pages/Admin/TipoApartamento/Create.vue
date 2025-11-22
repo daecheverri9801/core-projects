@@ -77,7 +77,7 @@
             <p v-if="errors.cantidad_banos" class="form-error">{{ errors.cantidad_banos }}</p>
           </div>
 
-          <div class="md:col-span-2">
+          <div>
             <label class="form-label">Valor m² (COP)</label>
             <input
               v-model.number="form.valor_m2"
@@ -87,6 +87,15 @@
               class="form-input"
             />
             <p v-if="errors.valor_m2" class="form-error">{{ errors.valor_m2 }}</p>
+          </div>
+
+          <div>
+            <label class="form-label">Imagen del Tipo</label>
+            <input type="file" @change="form.imagen = $event.target.files[0]" class="form-input" />
+          </div>
+
+          <div v-if="tipo?.imagen">
+            <img :src="`/storage/${tipo.imagen}`" class="w-48 rounded shadow" />
           </div>
         </div>
 

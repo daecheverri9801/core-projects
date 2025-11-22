@@ -70,7 +70,7 @@
             <p v-if="errors.cantidad_banos" class="form-error">{{ errors.cantidad_banos }}</p>
           </div>
 
-          <div class="md:col-span-2">
+          <div>
             <label class="form-label">Valor m² (COP)</label>
             <input
               v-model.number="form.valor_m2"
@@ -81,10 +81,37 @@
             />
             <p v-if="errors.valor_m2" class="form-error">{{ errors.valor_m2 }}</p>
           </div>
+
+          <div>
+            <label class="form-label">Imagen del Tipo</label>
+            <input
+              type="file"
+              @change="handleImageChange"
+              class="form-input"
+              accept="image/jpeg,image/png,image/webp"
+            />
+            <p class="text-sm text-gray-500 mt-1">
+              Formatos permitidos: JPG, PNG, WEBP. Tamaño máximo: 2MB
+            </p>
+            <p v-if="errors.imagen" class="form-error">{{ errors.imagen }}</p>
+          </div>
+
+          <div v-if="tipo.imagen">
+            <label class="form-label">Imagen Actual</label>
+            <div class="mt-2">
+              <img :src="`/storage/${tipo.imagen}`" class="w-48 h-48 object-cover rounded shadow" />
+              <p class="text-sm text-gray-500 mt-1">
+                Esta es la imagen actual. Selecciona una nueva solo si deseas cambiarla.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div class="mt-6 flex items-center gap-3">
-          <button type="submit" class="btn-primary">Actualizar</button>
+          <button type="submit" class="btn-primary" :disabled="form.processing">
+            <span v-if="form.processing">Actualizando...</span>
+            <span v-else>Actualizar</span>
+          </button>
           <Link href="/tipos-apartamento" class="btn-secondary">Cancelar</Link>
         </div>
       </form>
@@ -96,7 +123,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, useForm } from '@inertiajs/vue3'
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
@@ -106,7 +133,8 @@ const props = defineProps({
   empleado: { type: Object, default: null },
 })
 
-const form = reactive({
+// ✅ USAR useForm de Inertia (maneja archivos automáticamente)
+const form = useForm({
   id_proyecto: props.tipo.id_proyecto || '',
   nombre: props.tipo.nombre || '',
   area_construida: props.tipo.area_construida ?? '',
@@ -114,21 +142,32 @@ const form = reactive({
   cantidad_habitaciones: props.tipo.cantidad_habitaciones ?? '',
   cantidad_banos: props.tipo.cantidad_banos ?? '',
   valor_m2: props.tipo.valor_m2 ?? '',
+  imagen: null,
 })
+
+// ✅ CORREGIDO: Manejar cambio de imagen
+function handleImageChange(event) {
+  form.imagen = event.target.files[0] || null
+}
 
 const errors = ref({})
 
 function submit() {
-  errors.value = {}
-  router.put(
-    `/tipos-apartamento/${props.tipo.id_tipo_apartamento}`,
-    { ...form },
-    {
+  // Cambiamos a post y agregamos el _method en los datos del formulario
+  form
+    .transform((data) => ({
+      ...data,
+      _method: 'PUT',
+    }))
+    .post(`/tipos-apartamento/${props.tipo.id_tipo_apartamento}`, {
       onError: (e) => {
         errors.value = e || {}
+        console.log('Errores del servidor:', e)
       },
-    }
-  )
+      onSuccess: () => {
+        console.log('Actualización exitosa')
+      },
+    })
 }
 </script>
 

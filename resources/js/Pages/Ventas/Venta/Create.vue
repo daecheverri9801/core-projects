@@ -38,6 +38,7 @@ const form = useForm({
   iva: 0,
   valor_total: 0,
   cuota_inicial: 0,
+  cuota_inicial_raw: 0,
   valor_restante: 0,
   descripcion: '',
   valor_separacion: 0,
@@ -74,19 +75,17 @@ function parseMoneda(valorStr) {
 }
 
 watch(
-  () => form.cuota_inicial,
+  () => form.cuota_inicial_raw,
   (valor) => {
     if (form.tipo_operacion !== 'venta') {
       erroresForm.cuota_inicial = ''
       return
     }
 
-    const min = Math.ceil(
-      form.valor_total * (proyectoSeleccionado.value.porcentaje_cuota_inicial_min / 100)
-    )
+    const min = form.valor_total * (proyectoSeleccionado.value.porcentaje_cuota_inicial_min / 100)
 
     if (valor < min) {
-      erroresForm.cuota_inicial = `La cuota inicial mínima es $${min.toLocaleString('es-CO')}`
+      erroresForm.cuota_inicial = `La cuota inicial mínima es ${formatearMoneda(min)}`
     } else {
       erroresForm.cuota_inicial = ''
     }
@@ -205,6 +204,7 @@ watch(
   (nuevoProyecto) => {
     form.inmueble_id = ''
     form.valor_total = 0
+    form.cuota_inicial_raw = 0
     form.cuota_inicial = 0
     form.valor_restante = 0
 
@@ -265,25 +265,26 @@ onMounted(() => {
 // Cuando cambia inmueble, setear tipo y valor_total
 watch(
   () => form.inmueble_id,
-  (nuevoInmueble) => {
-    if (!nuevoInmueble) return
+  (newId) => {
+    if (!newId) return
 
-    const inmueble = inmueblesDisponibles.value.find((i) => i.id === parseInt(nuevoInmueble))
-    if (!inmueble || !proyectoSeleccionado.value) return
+    const inm = inmueblesDisponibles.value.find((i) => i.id === Number(newId))
+    if (!inm || !proyectoSeleccionado.value) return
 
-    form.inmueble_tipo = inmueble.tipo
-    form.valor_total = parseFloat(inmueble.valor) || 0
+    form.inmueble_tipo = inm.tipo
+    form.valor_total = Number(inm.valor)
 
     if (form.tipo_operacion === 'venta') {
-      const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-      form.cuota_inicial = porcentaje ? inmueble.valor * (porcentaje / 100) : 0
-      form.valor_restante = form.valor_total - form.cuota_inicial
+      const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
+      const raw = form.valor_total * (porcentaje / 100)
+
+      form.cuota_inicial_raw = raw
+      form.cuota_inicial = Math.round(raw)
+      form.valor_restante = form.valor_total - Math.round(raw)
     } else {
+      form.cuota_inicial_raw = 0
       form.cuota_inicial = 0
       form.valor_restante = 0
-    }
-    if (form.plazo_cuota_inicial_meses) {
-      // por ahora nada más, pero quedará para amortización después
     }
   }
 )
@@ -299,15 +300,16 @@ const cuotaInicialDisplay = computed(() =>
 )
 
 function onCuotaInicialInput(value) {
-  // Eliminar puntos, comas, símbolos, espacios
   const clean = value.replace(/[^\d]/g, '')
 
-  form.cuota_inicial = clean ? Number(clean) : 0
+  const raw = clean ? Number(clean) : 0
 
-  // recalcular valor restante
+  form.cuota_inicial_raw = raw // valor matemático real
+  form.cuota_inicial = raw // valor visual formateado
+
   if (form.tipo_operacion === 'venta') {
     const total = Number(form.valor_total) || 0
-    form.valor_restante = total - form.cuota_inicial
+    form.valor_restante = total - raw
   }
 }
 
@@ -318,11 +320,14 @@ watch(
     if (tipo === 'venta') {
       if (proyectoSeleccionado.value) {
         const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-        form.cuota_inicial = porcentaje ? form.valor_total * (porcentaje / 100) : 0
-        form.valor_restante = form.valor_total - form.cuota_inicial
+        const raw = form.valor_total * (porcentaje / 100)
+
+        form.cuota_inicial_raw = raw
+        form.cuota_inicial = raw
+        form.valor_restante = form.valor_total - raw
       }
     } else {
-      // separación
+      form.cuota_inicial_raw = 0
       form.cuota_inicial = 0
       form.valor_restante = 0
     }
@@ -331,11 +336,11 @@ watch(
 
 // Valor restante para venta
 watch(
-  () => form.cuota_inicial,
+  () => form.cuota_inicial_raw,
   () => {
     if (form.tipo_operacion === 'venta') {
-      const total = parseFloat(form.valor_total) || 0
-      const inicial = parseFloat(form.cuota_inicial) || 0
+      const total = Number(form.valor_total) || 0
+      const inicial = Number(form.cuota_inicial_raw) || 0
       form.valor_restante = total - inicial
     }
   }
@@ -448,6 +453,10 @@ watch(
 )
 
 function submit() {
+  form.transform((data) => ({
+    ...data,
+    cuota_inicial: data.cuota_inicial_raw,
+  }))
   router.post('/ventas', form, {
     onError: (err) => {
       errors.value = err
@@ -587,12 +596,8 @@ function submit() {
             <label class="block text-sm font-medium text-gray-700 mb-1">Cuota Inicial</label>
             <input
               type="text"
-              :value="formatearMoneda(form.cuota_inicial)"
-              @input="
-                (e) => {
-                  form.cuota_inicial = parseMoneda(e.target.value)
-                }
-              "
+              :value="formatearMoneda(form.cuota_inicial_raw)"
+              @input="onCuotaInicialInput($event.target.value)"
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
 

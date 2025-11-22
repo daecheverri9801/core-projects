@@ -70,21 +70,25 @@ function generarAmortizacion() {
     const fechaVenta = new Date(v.fecha_venta)
 
     const cuotaMensual = Math.round(monto / plazo)
+    const residuo = monto - cuotaMensual * plazo
     let saldo = monto
 
     for (let i = 1; i <= plazo; i++) {
       const fechaCuota = new Date(fechaVenta)
       fechaCuota.setMonth(fechaCuota.getMonth() + (i - 1))
 
+      let valor = cuotaMensual
+      if (i === plazo) valor += residuo
+
+      saldo -= valor
+
       amortizacion.value.push({
         numero: i,
         fecha: formatDate(fechaCuota),
         saldo_inicial: saldo,
-        valor_cuota: cuotaMensual,
-        saldo_final: Math.max(saldo - cuotaMensual, 0),
+        valor_cuota: valor,
+        saldo_final: Math.max(saldo, 0),
       })
-
-      saldo -= cuotaMensual
     }
 
     mostrarResumen.value = true
@@ -103,7 +107,7 @@ function exportPDF() {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'letter'
+    format: 'letter',
   })
 
   /* ============================
@@ -142,7 +146,7 @@ function exportPDF() {
     `Cuota inicial: ${formatMoney(v.cuota_inicial)}`,
     `Plazo: ${v.plazo} meses`,
     `Fecha de venta: ${fechaFormateada}`,
-    `Asesor: ${asesor}`
+    `Asesor: ${asesor}`,
   ]
 
   let y = 48
@@ -162,14 +166,14 @@ function exportPDF() {
       fillColor: [30, 58, 95],
       textColor: [255, 255, 255],
       halign: 'center',
-      fontSize: 11
+      fontSize: 11,
     },
     styles: {
       halign: 'center',
-      fontSize: 10
+      fontSize: 10,
     },
     alternateRowStyles: {
-      fillColor: [245, 247, 250]
+      fillColor: [245, 247, 250],
     },
     head: [['#', 'Fecha', 'Saldo Inicial', 'Valor Cuota', 'Saldo Final']],
     body: amortizacion.value.map((c) => [
@@ -177,7 +181,7 @@ function exportPDF() {
       c.fecha,
       formatMoney(c.saldo_inicial),
       formatMoney(c.valor_cuota),
-      formatMoney(c.saldo_final)
+      formatMoney(c.saldo_final),
     ]),
     didDrawPage: function (data) {
       /* ============================
@@ -209,7 +213,7 @@ function exportPDF() {
 
       // Nombre corporativo a la derecha
       doc.text('Constructora A&C', 200 - 15, 277, { align: 'right' })
-    }
+    },
   })
 
   /* ============================
@@ -346,7 +350,7 @@ function exportPDF() {
               <th class="p-2 border text-center">Fecha</th>
               <th class="p-2 border text-center">Saldo Inicial</th>
               <th class="p-2 border text-center">Valor Cuota</th>
-              <th class="p-2 border text-center">Saldo Final</th>
+              <th class="p-2 border text-center">Saldo Pendiente</th>
             </tr>
           </thead>
 

@@ -328,12 +328,9 @@ Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController:
     'destroy' => 'planes-amortizacion-cuota.destroy',
 ]);
 
-Route::prefix('cotizador')->middleware(['auth'])->group(function () {
-    Route::get('/', [CotizadorWebController::class, 'index'])->name('cotizador.index');
-    Route::get('/create', [CotizadorWebController::class, 'create'])->name('cotizador.create');
-    Route::post('/', [CotizadorWebController::class, 'store'])->name('cotizador.store');
-    Route::get('/show', [CotizadorWebController::class, 'show'])->name('cotizador.show');
-});
+Route::get('cotizador', [CotizadorWebController::class, 'index'])
+    ->name('cotizador.index');
+
 
 Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
     ->name('simulador.index');

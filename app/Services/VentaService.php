@@ -170,15 +170,26 @@ class VentaService
             'observacion' => 'Plan de amortización de cuota inicial',
         ]);
 
-        $cuotaMensual = round($monto / $plazo, 2);
+        $cuotaBase = floor($monto / $plazo);
+        $residuo = $monto - ($cuotaBase * $plazo);
 
         for ($i = 1; $i <= $plazo; $i++) {
+            $valorCuota = $cuotaBase;
+
+            // La última cuota absorbe diferencia residual
+            if ($i === $plazo) {
+                $valorCuota += $residuo;
+            }
+
+            $saldo = $monto - ($cuotaBase * ($i - 1)) - $valorCuota;
+            $saldo = max($saldo, 0);
+
             PlanAmortizacionCuota::create([
                 'id_plan' => $plan->id_plan,
                 'numero_cuota' => $i,
                 'fecha_cuota' => Carbon::parse($fechaInicio)->addMonths($i - 1),
-                'valor_cuota' => $cuotaMensual,
-                'saldo' => max($monto - $cuotaMensual * $i, 0),
+                'valor_cuota' => $valorCuota,
+                'saldo' => $saldo,
                 'estado' => 'Pendiente',
             ]);
         }
