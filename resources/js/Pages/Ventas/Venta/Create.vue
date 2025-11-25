@@ -43,6 +43,7 @@ const form = useForm({
   descripcion: '',
   valor_separacion: 0,
   fecha_limite_separacion: '',
+  plazo_cuota_inicial_meses: '',
 })
 
 const proyectoSeleccionado = computed(() =>
@@ -453,13 +454,15 @@ watch(
 )
 
 function submit() {
-  form.transform((data) => ({
-    ...data,
-    cuota_inicial: data.cuota_inicial_raw,
-  }))
-  router.post('/ventas', form, {
+  // ✅ SOLUCIÓN ALTERNATIVA: Asignar directamente antes de enviar
+  form.cuota_inicial = form.cuota_inicial_raw
+
+  form.post('/ventas', {
     onError: (err) => {
       errors.value = err
+    },
+    onSuccess: () => {
+      console.log('Venta creada exitosamente')
     },
   })
 }

@@ -211,6 +211,7 @@ class VentaWebController extends Controller
                 'valor_total'       => 'nullable|numeric|min:0',
                 'valor_restante'    => 'nullable|numeric|min:0',
                 'descripcion'       => 'nullable|max:300',
+                'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
             ]);
 
             /* --------------------
@@ -282,6 +283,8 @@ class VentaWebController extends Controller
             unset($validated['inmueble_tipo'], $validated['inmueble_id']);
 
             $validated['plazo_cuota_inicial_meses'] = $request->plazo_cuota_inicial_meses;
+
+            $validated['estado_operacion'] = 'vigente';
             // Crear venta
             $venta = Venta::create($validated);
 
@@ -353,17 +356,31 @@ class VentaWebController extends Controller
             $venta = Venta::findOrFail($id);
 
             /* --------------------
-         *  VALIDACIÓN
+         *  VALIDACIÓN COMPLETA
          * -------------------- */
             $validated = $request->validate([
                 'tipo_operacion'    => 'required|in:venta,separacion',
-                'id_empleado'       => 'required',
-                'documento_cliente' => 'required',
+                'id_empleado'       => 'required|exists:empleados,id_empleado',
+                'documento_cliente' => 'required|exists:clientes,documento',
                 'fecha_venta'       => 'required|date',
                 'id_proyecto'       => 'required|exists:proyectos,id_proyecto',
                 'inmueble_tipo'     => 'required|in:apartamento,local',
-                'inmueble_id'       => 'required',
-                'plazo_cuota_inicial_meses' => 'required|integer|min:1'
+                'inmueble_id'       => 'required|integer',
+                'id_forma_pago'     => 'required|exists:formas_pago,id_forma_pago',
+                'id_estado_inmueble' => 'required|exists:estados_inmueble,id_estado_inmueble',
+                'valor_total'       => 'nullable|numeric|min:0',
+                'cuota_inicial'     => 'nullable|numeric|min:0',
+                'valor_restante'    => 'nullable|numeric|min:0',
+                'descripcion'       => 'nullable|string|max:300',
+                'valor_separacion'  => 'nullable|numeric|min:0',
+                'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
+                'plazo_cuota_inicial_meses' => 'nullable|integer|min:0', // ✅ CAMBIAR a nullable
+            ]);
+
+            // ✅ DEBUG: Verificar qué datos llegan
+            \Log::info('Actualizando venta ID: ' . $id, [
+                'plazo_cuota_inicial_meses' => $request->plazo_cuota_inicial_meses,
+                'todos_los_datos' => $request->all()
             ]);
 
             /* --------------------
@@ -393,13 +410,14 @@ class VentaWebController extends Controller
             $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)
                 ->value('id_estado_inmueble');
 
+            // ✅ Asegurar que el estado del inmueble sea el correcto
+            $validated['id_estado_inmueble'] = $idEstadoDestino;
+
             /* --------------------
          *  ACTUALIZAR VENTA
          * -------------------- */
+            // ✅ El plazo ya viene en $validated por la validación
             $venta->update($validated);
-
-            $validated['plazo_cuota_inicial_meses'] = $request->plazo_cuota_inicial_meses;
-
 
             /* --------------------
          *  ACTUALIZAR EL INMUEBLE

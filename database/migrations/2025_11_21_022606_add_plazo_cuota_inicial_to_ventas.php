@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ventas', function (Blueprint $table) {
-            $table->integer('plazo_cuota_inicial_meses')
-                ->after('cuota_inicial')->default(0);
+            $table->integer('plazo_cuota_inicial_meses')->nullable()
+                ->after('cuota_inicial');
         });
     }
 

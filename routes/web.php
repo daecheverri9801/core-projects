@@ -35,6 +35,8 @@ use App\Http\Controllers\Ventas\PlanAmortizacionCuotaWebController;
 use App\Http\Controllers\Ventas\CatalogoWebController;
 use App\Http\Controllers\Ventas\CotizadorWebController;
 use App\Http\Controllers\Ventas\SimuladorWebController;
+use App\Http\Controllers\Gerencia\GerenciaDashboardWebController;
+use App\Http\Controllers\Gerencia\MetasController;
 
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
@@ -334,6 +336,26 @@ Route::get('cotizador', [CotizadorWebController::class, 'index'])
 
 Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
     ->name('simulador.index');
+
+Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
+    Route::get('/gerencia/dashboard', [GerenciaDashboardWebController::class, 'index'])
+        ->name('dashboard');
+
+    Route::get('/gerencia/metas', [MetasController::class, 'index'])
+        ->name('gerencia.metas.index');
+
+    Route::post('/gerencia/metas', [MetasController::class, 'store'])
+        ->name('gerencia.metas.store');
+
+    Route::get('/gerencia/metas/{id}/edit', [MetasController::class, 'edit'])
+        ->name('gerencia.metas.edit');
+
+    Route::put('/gerencia/metas/{id}', [MetasController::class, 'update'])
+        ->name('gerencia.metas.update');
+
+    Route::delete('/gerencia/metas/{id}', [MetasController::class, 'destroy'])
+        ->name('gerencia.metas.destroy');
+});
 
 
 // Ruta para cualquier empleado autenticado

@@ -83,6 +83,11 @@ class Proyecto extends Model
         return $this->hasMany(PoliticaComision::class, 'id_proyecto', 'id_proyecto');
     }
 
+    public function metasComerciales()
+    {
+        return $this->hasMany(ProyectoMetaComercial::class, 'id_proyecto', 'id_proyecto');
+    }
+    
     public function politicaVigente()
     {
         return $this->hasOne(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto')

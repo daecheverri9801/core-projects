@@ -364,11 +364,27 @@ function onCuotaInicialInput(value) {
 }
 
 function submit() {
-  form.transform((data) => ({
-    ...data,
-    cuota_inicial: data.cuota_inicial_raw, // enviar valor exacto
-  }))
-  form.put(`/ventas/${props.venta.id_venta}`)
+  console.log('🔍 DEBUG - Datos antes de enviar:')
+  console.log('Plazo cuota inicial meses:', form.plazo_cuota_inicial_meses)
+  console.log('Cuota inicial raw:', form.cuota_inicial_raw)
+  console.log('Todos los datos:', { ...form })
+
+  // ✅ SOLUCIÓN: Asignar directamente y usar put
+  form.cuota_inicial = form.cuota_inicial_raw
+
+  form.put(`/ventas/${props.venta.id_venta}`, {
+    onError: (errors) => {
+      console.log('❌ Errores del servidor:', errors)
+      // Mostrar errores al usuario
+      if (errors.plazo_cuota_inicial_meses) {
+        alert('Error en plazo: ' + errors.plazo_cuota_inicial_meses)
+      }
+    },
+    onSuccess: () => {
+      console.log('✅ Venta actualizada exitosamente')
+      console.log('Plazo guardado:', form.plazo_cuota_inicial_meses)
+    },
+  })
 }
 </script>
 
