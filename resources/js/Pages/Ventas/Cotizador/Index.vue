@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable'
 const props = defineProps({
   proyectos: Array,
   clientes: Array,
+  empleado: Object, // empleado que genera la cotización
   inmuebles: Object, // { apartamentos: [], locales: [] }
 })
 
@@ -23,7 +24,7 @@ const cargando = ref(false)
  *  COMPUTED SELECTIONS
  * ------------------------------------------------------ */
 const proyecto = computed(() => props.proyectos.find((p) => p.id_proyecto == proyectoId.value))
-
+const empleado = computed(() => props.empleado)
 const cliente = computed(() => props.clientes.find((c) => c.documento == clienteId.value))
 
 /* ------------------------------------------------------
@@ -201,19 +202,27 @@ async function generarPDF() {
   doc.text(`Tabla de Amortización`, 82, 190)
   doc.setFontSize(10)
 
-  let tabla = []
+  const tabla = []
   let saldo = saldoCuotaInicial
 
+  // Fecha base = fecha de generación de la cotización
+  const fechaBase = new Date() // hoy
+  const yearBase = fechaBase.getFullYear()
+  const monthBase = fechaBase.getMonth() // 0 = Enero
+
   for (let i = 1; i <= plazo.value; i++) {
-    let valorCuota = valorMensual
+    // Calcular año y mes real
+    const fechaCuota = new Date(yearBase, monthBase + (i - 1), 1)
+    const yyyy = fechaCuota.getFullYear()
+    const mm = String(fechaCuota.getMonth() + 1).padStart(2, '0')
 
-    if (i === plazo.value) {
-      valorCuota += residuo
-    }
+    const labelMes = `${yyyy}-${mm}`
 
-    const saldoFinal = Math.max(saldo - valorCuota, 0)
-    tabla.push([i, `Mes ${i}`, formatMoney(valorCuota), formatMoney(saldoFinal)])
-    saldo = saldoFinal
+    // Cálculo financiero
+    const saldoInicial = saldo
+    saldo -= valorMensual
+
+    tabla.push([i, labelMes, formatMoney(valorMensual), formatMoney(Math.max(saldo, 0))])
   }
 
   autoTable(doc, {
@@ -222,6 +231,59 @@ async function generarPDF() {
     body: tabla,
     headStyles: { fillColor: [30, 58, 95], textColor: [255, 255, 255] },
     styles: { halign: 'center', fontSize: 10 },
+  })
+
+  /* ============================================================
+   *    SECCIÓN: DATOS DEL ASESOR
+   * ============================================================ */
+  let yAsesor = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 260
+
+  doc.setFontSize(14)
+  doc.setFont('Helvetica', 'bold')
+  doc.text('Datos del Asesor', 15, yAsesor)
+
+  yAsesor += 8
+  doc.setFontSize(10)
+  doc.setFont('Helvetica', 'normal')
+
+  doc.text(`Nombre: ${empleado.value.nombre} ${empleado.value.apellido}`, 15, yAsesor)
+  yAsesor += 6
+
+  doc.text(`Teléfono: ${empleado.value.telefono ?? '-'}`, 15, yAsesor)
+  yAsesor += 6
+
+  doc.text(`Correo: ${empleado.value.email ?? '-'}`, 15, yAsesor)
+  yAsesor += 12
+
+  /* ============================================================
+   *    SECCIÓN: ACLARACIONES / NOTAS LEGALES
+   * ============================================================ */
+  doc.setFontSize(12)
+  doc.setFont('Helvetica', 'bold')
+  doc.setTextColor(30, 30, 30)
+  doc.text('Aclaraciones Importantes', 15, yAsesor)
+
+  doc.setDrawColor(150, 150, 150)
+  doc.line(15, yAsesor + 2, 195, yAsesor + 2)
+
+  yAsesor += 10
+
+  doc.setFontSize(8)
+  doc.setFont('Helvetica', 'normal')
+  doc.setTextColor(70, 70, 70)
+
+  const aclaraciones = [
+    '1. Los valores presentados en esta cotización son referenciales al momento de su generación. Antes de cualquier trámite, confirme el valor actualizado con la asesora comercial.',
+    '2. LOS RENDER USADOS EN LA PUBLICIDAD SON UNA APROXIMACIÓN A LA REALIDAD. Las áreas, animaciones y diseños pueden variar en el desarrollo arquitectónico y constructivo. Solo es válido lo acordado en la promesa de compraventa.',
+    '3. Todo material publicitario (brochures, web, redes, prensa), renders e imágenes tiene carácter ilustrativo e informativo. No modifica lo pactado contractualmente salvo que se incorpore expresamente.',
+    '4. Salvo indicación expresa, no se incluyen muebles, electrodomésticos, decoración ni equipamiento mostrado en piezas publicitarias. La entrega se realiza conforme a la ficha técnica y el inventario de entrega.',
+    '5. Las áreas, distribuciones y especificaciones pueden registrar ajustes razonables debido a tolerancias constructivas, instalaciones u obligaciones técnicas. Dichos ajustes no afectarán la funcionalidad esencial del inmueble.',
+  ]
+
+  aclaraciones.forEach((texto) => {
+    const lineas = doc.splitTextToSize(texto, 180)
+    doc.text(lineas, 15, yAsesor)
+    yAsesor += lineas.length * 4.5 + 3
   })
 
   /* ------------------------------------------------------

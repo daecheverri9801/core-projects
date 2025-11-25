@@ -65,17 +65,28 @@ function generarAmortizacion() {
   setTimeout(() => {
     const v = ventaSeleccionada.value
 
-    const monto = v.cuota_inicial
+    const cuotaInicial = v.cuota_inicial
+    const valorSeparacion = v.valor_separacion ?? v.valor_min_separacion ?? 0
+    const saldoCuotaInicial = cuotaInicial - valorSeparacion
     const plazo = v.plazo
-    const fechaVenta = new Date(v.fecha_venta)
 
-    const cuotaMensual = Math.round(monto / plazo)
-    const residuo = monto - cuotaMensual * plazo
-    let saldo = monto
+    const hoy = new Date()
+    const yearBase = hoy.getFullYear()
+    const monthBase = hoy.getMonth()
+
+    const cuotaMensual = Math.round(saldoCuotaInicial / plazo)
+    const residuo = saldoCuotaInicial - cuotaMensual * plazo
+
+    let saldo = saldoCuotaInicial
+
+    amortizacion.value = []
 
     for (let i = 1; i <= plazo; i++) {
-      const fechaCuota = new Date(fechaVenta)
-      fechaCuota.setMonth(fechaCuota.getMonth() + (i - 1))
+      const fechaCuota = new Date(yearBase, monthBase + (i - 1), 1)
+      const fechaStr = `${fechaCuota.getFullYear()}-${String(fechaCuota.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`
 
       let valor = cuotaMensual
       if (i === plazo) valor += residuo
@@ -84,16 +95,19 @@ function generarAmortizacion() {
 
       amortizacion.value.push({
         numero: i,
-        fecha: formatDate(fechaCuota),
-        saldo_inicial: saldo,
+        fecha: fechaStr, // ahora solo YYYY-MM
         valor_cuota: valor,
         saldo_final: Math.max(saldo, 0),
       })
     }
 
+    // ✔ Ahora mostramos el resumen
+    ventaSeleccionada.value.saldo_cuota_inicial = saldoCuotaInicial
+    ventaSeleccionada.value.valor_separacion = valorSeparacion
+
     mostrarResumen.value = true
     cargando.value = false
-  }, 500)
+  }, 400)
 }
 
 /* --------------------------
@@ -137,6 +151,9 @@ function exportPDF() {
   const asesor = v.empleado ?? '—'
   const fechaFormateada = v.fecha_venta.split('T')[0]
 
+  const saldoCuotaInicial = v.cuota_inicial - v.valor_separacion
+  const valorRestante = v.valor_total - v.cuota_inicial
+
   const info = [
     `Proyecto: ${v.proyecto}`,
     `Cliente: ${v.cliente}`,
@@ -144,17 +161,58 @@ function exportPDF() {
     `Precio del inmueble: ${formatMoney(v.valor_total)}`,
     `Tipo de pago: ${v.forma_pago ?? '—'}`,
     `Cuota inicial: ${formatMoney(v.cuota_inicial)}`,
+    `Valor separación: ${formatMoney(v.valor_separacion)}`,
+    `Saldo cuota inicial: ${formatMoney(saldoCuotaInicial)}`,
+    `Valor restante: ${formatMoney(valorRestante)}`,
     `Plazo: ${v.plazo} meses`,
     `Fecha de venta: ${fechaFormateada}`,
     `Asesor: ${asesor}`,
   ]
 
-  let y = 48
-  info.forEach((linea, i) => {
-    const colX = i < 4 ? 20 : 110
-    doc.text(linea, colX, y)
-    if (i === 3) y = 48
-    y += 6
+  // const mitad = Math.ceil(info.length / 2) // 6 y 5
+  // const col1 = info.slice(0, mitad)
+  // const col2 = info.slice(mitad)
+
+  // let y1 = 48
+  // let y2 = 48
+
+  // col1.forEach((linea) => {
+  //   doc.text(linea, 20, y1)
+  //   y1 += 6
+  // })
+
+  // col2.forEach((linea) => {
+  //   doc.text(linea, 110, y2)
+  //   y2 += 6
+  // })
+
+  // Separar en 2 columnas equilibradas
+  const mitad = Math.ceil(info.length / 2) // 6 y 5
+  const col1 = info.slice(0, mitad)
+  const col2 = info.slice(mitad)
+
+  // Coordenadas de inicio
+  const col1X = 22
+  const col2X = 112
+  const startY = 48
+  const lineHeight = 6
+
+  // Ajuste tipográfico fino
+  doc.setFontSize(10)
+  doc.setTextColor(40, 40, 40)
+
+  // Columna izquierda
+  let y = startY
+  col1.forEach((linea) => {
+    doc.text(linea, col1X, y, { align: 'left' })
+    y += lineHeight
+  })
+
+  // Columna derecha
+  y = startY
+  col2.forEach((linea) => {
+    doc.text(linea, col2X, y, { align: 'left' })
+    y += lineHeight
   })
 
   /* ============================
@@ -175,18 +233,17 @@ function exportPDF() {
     alternateRowStyles: {
       fillColor: [245, 247, 250],
     },
-    head: [['#', 'Fecha', 'Saldo Inicial', 'Valor Cuota', 'Saldo Final']],
+
+    head: [['#', 'Mes', 'Valor Cuota', 'Saldo Pendiente']],
+
     body: amortizacion.value.map((c) => [
       c.numero,
       c.fecha,
-      formatMoney(c.saldo_inicial),
       formatMoney(c.valor_cuota),
       formatMoney(c.saldo_final),
     ]),
+
     didDrawPage: function (data) {
-      /* ============================
-         PIE DE PÁGINA AUTOMÁTICO
-         ============================ */
       const pageCount = doc.internal.getNumberOfPages()
       const currentPage = doc.internal.getCurrentPageInfo().pageNumber
 
@@ -205,13 +262,8 @@ function exportPDF() {
       doc.setFontSize(9)
       doc.setTextColor(120, 120, 120)
 
-      // Fecha
       doc.text(`Generado el: ${formattedDate}`, 15, 277)
-
-      // Numeración centrada
       doc.text(`Página ${currentPage} de ${pageCount}`, 105, 277, { align: 'center' })
-
-      // Nombre corporativo a la derecha
       doc.text('Constructora A&C', 200 - 15, 277, { align: 'right' })
     },
   })
@@ -320,7 +372,21 @@ function exportPDF() {
             {{ formatMoney(ventaSeleccionada.cuota_inicial) }}
           </div>
         </div>
+        <!-- Valor Separación -->
+        <div>
+          <div class="text-sm text-gray-500">Valor Separación</div>
+          <div class="font-semibold text-brand-900">
+            {{ formatMoney(ventaSeleccionada.valor_separacion) }}
+          </div>
+        </div>
 
+        <!-- Saldo Cuota Inicial -->
+        <div>
+          <div class="text-sm text-gray-500">Saldo Cuota Inicial</div>
+          <div class="font-semibold text-brand-900">
+            {{ formatMoney(ventaSeleccionada.saldo_cuota_inicial) }}
+          </div>
+        </div>
         <div>
           <div class="text-sm text-gray-500">Plazo</div>
           <div class="font-semibold text-brand-900">{{ ventaSeleccionada.plazo }} meses</div>
@@ -347,8 +413,7 @@ function exportPDF() {
           <thead class="bg-brand-100 text-brand-900">
             <tr>
               <th class="p-2 border text-center">#</th>
-              <th class="p-2 border text-center">Fecha</th>
-              <th class="p-2 border text-center">Saldo Inicial</th>
+              <th class="p-2 border text-center">Mes</th>
               <th class="p-2 border text-center">Valor Cuota</th>
               <th class="p-2 border text-center">Saldo Pendiente</th>
             </tr>
@@ -362,7 +427,6 @@ function exportPDF() {
             >
               <td class="p-2 border">{{ c.numero }}</td>
               <td class="p-2 border">{{ c.fecha }}</td>
-              <td class="p-2 border">{{ formatMoney(c.saldo_inicial) }}</td>
               <td class="p-2 border">{{ formatMoney(c.valor_cuota) }}</td>
               <td class="p-2 border">{{ formatMoney(c.saldo_final) }}</td>
             </tr>

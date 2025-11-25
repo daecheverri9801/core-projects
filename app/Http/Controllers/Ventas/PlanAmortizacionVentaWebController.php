@@ -37,6 +37,7 @@ class PlanAmortizacionVentaWebController extends Controller
                         : ('Local ' . $v->local->numero),
                     'valor_total' => $v->valor_total,
                     'cuota_inicial' => $v->cuota_inicial,
+                    'valor_separacion' => $v->valor_separacion ?? $v->proyecto->valor_min_separacion,
                     'plazo' => $v->plazo_cuota_inicial_meses,
                     'fecha_venta' => $v->fecha_venta,
                     'forma_pago' => $v->formaPago->forma_pago ?? '',

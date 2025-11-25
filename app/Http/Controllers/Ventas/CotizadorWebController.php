@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Proyecto;
 use App\Models\Cliente;
 use App\Models\Apartamento;
+use App\Models\Empleado;
 use App\Models\Local;
 use Inertia\Inertia;
 
@@ -48,6 +49,10 @@ class CotizadorWebController extends Controller
         return Inertia::render('Ventas/Cotizador/Index', [
             'proyectos' => Proyecto::select('id_proyecto', 'nombre', 'plazo_cuota_inicial_meses', 'porcentaje_cuota_inicial_min', 'valor_min_separacion')->get(),
             'clientes'  => Cliente::select('documento', 'nombre', 'direccion', 'telefono', 'correo')->get(),
+            // 👍 EMPLEADO LOGUEADO (el que genera la cotización)
+            'empleado' => auth()->user()
+                ? auth()->user()->load('cargo')
+                : null,
             'inmuebles' => $apartamentos->values(),
         ]);
     }

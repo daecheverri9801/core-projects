@@ -181,24 +181,24 @@ const modulos = [
     icon: ShoppingCartIcon,
   },
   {
-    name: 'Pagos',
-    href: '/pagos',
-    icon: CreditCardIcon,
+    name: 'Cotizador',
+    href: '/cotizador',
+    icon: CalculatorIcon,
   },
   {
     name: 'Plan Amortización Venta',
     href: '/plan-amortizacion-venta',
     icon: DocumentTextIcon,
   },
+  // {
+  //   name: 'Plan Amortización Cuota',
+  //   href: '/plan-amortizacion-cuota',
+  //   icon: ClipboardDocumentListIcon,
+  // },   
   {
-    name: 'Plan Amortización Cuota',
-    href: '/plan-amortizacion-cuota',
-    icon: ClipboardDocumentListIcon,
-  },
-  {
-    name: 'Cotizador',
-    href: '/cotizador',
-    icon: CalculatorIcon,
+    name: 'Pagos',
+    href: '/pagos',
+    icon: CreditCardIcon,
   },
 ]
 
