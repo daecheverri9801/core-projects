@@ -51,7 +51,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Ruta solo para Administradores
-Route::middleware(['auth', 'check.cargo:Administrador'])->group(function () {
+Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::prefix('proyectos')->group(function () {
         Route::get('/', [ProyectoController::class, 'index'])->name('proyectos.index');
@@ -355,6 +355,12 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
 
     Route::delete('/gerencia/metas/{id}', [MetasController::class, 'destroy'])
         ->name('gerencia.metas.destroy');
+
+    // Endpoint AJAX para datos filtrados del dashboard
+    Route::get(
+        '/gerencia/dashboard/datos',
+        [GerenciaDashboardWebController::class, 'datos']
+    )->name('gerencia.dashboard.datos');
 });
 
 

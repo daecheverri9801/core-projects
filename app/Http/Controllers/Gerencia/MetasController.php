@@ -179,7 +179,7 @@ class MetasController extends Controller
             'ano' => 'required|integer|min:2020|max:2050',
             'meta_valor' => 'nullable|numeric|min:0',
             'meta_unidades' => 'nullable|integer|min:0',
-            'id_proyecto' => 'nullable|exists:proyectos,id_proyecto',
+            'id_proyecto' => 'nullable',
             'id_empleado' => 'nullable|exists:empleados,id_empleado',
         ]);
 

@@ -1,29 +1,66 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
 import GerenciaLayout from '@/Components/GerenciaLayout.vue'
 
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js'
-import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Bar, Doughnut, Line } from 'vue-chartjs'
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend)
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+)
 
 const props = defineProps({
   resumenGlobal: Object,
   ventasPorProyecto: Array,
   proyeccionVsReal: Array,
-  velocidadVentas: Array,
-  separacionesEfectiv: Array,
   inventarioProyectos: Array,
-  ventasAsesoresProyecto: {
-    type: Array,
-    default: () => [],
-  },
+  ventasAsesoresProyecto: Array,
+  estadoInventario: Array,
+  rankingAsesores: Array,
+  absorcionMensual: Array,
+  proyectos: Array,
+  empleados: Array,
+  estadosInmueble: Array,
+  filtros: Object,
 })
 
 const activeTab = ref('resumen')
 
 /* ==============================
-   FORMATOS
+   FILTROS SUPERIORES
+============================== */
+const filtros = ref({
+  desde: props.filtros?.desde || '',
+  hasta: props.filtros?.hasta || '',
+  proyecto_id: props.filtros?.proyecto_id || '',
+  asesor_id: props.filtros?.asesor_id || '',
+  estado_inmueble: props.filtros?.estado_inmueble || '',
+})
+
+function aplicarFiltros() {
+  router.get('/gerencia/dashboard', { ...filtros.value }, { preserveState: true, replace: true })
+}
+
+/* ==============================
+   HELPERS
 ============================== */
 function formatMoney(v) {
   return Number(v || 0).toLocaleString('es-CO', {
@@ -39,11 +76,11 @@ function formatPercent(num, den) {
 }
 
 /* ==============================
-   GRÁFICA: Ventas por proyecto
+   GRÁFICA 1: Ventas por proyecto (Bar)
 ============================== */
 const ventasProyectoData = computed(() => {
-  const labels = props.ventasPorProyecto.map((p) => p.nombre)
-  const data = props.ventasPorProyecto.map((p) => p.total_valor)
+  const labels = (props.ventasPorProyecto || []).map((p) => p.nombre)
+  const data = (props.ventasPorProyecto || []).map((p) => p.total_valor)
 
   return {
     labels,
@@ -51,77 +88,283 @@ const ventasProyectoData = computed(() => {
       {
         label: 'Ventas por proyecto',
         data,
-        backgroundColor: '#38bdf8', // cyan
-        borderColor: '#0ea5e9',
+        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+        borderColor: 'rgba(56, 189, 248, 1)',
         borderWidth: 1.5,
       },
     ],
   }
 })
 
-/* ==============================
-   GRÁFICA: Proyección vs Real
-============================== */
-const proyeccionData = computed(() => {
-  const labels = props.proyeccionVsReal.map((p) => p.nombre)
-
-  return {
-    labels,
-    datasets: [
-      {
-        label: 'Meta (valor)',
-        data: props.proyeccionVsReal.map((p) => p.meta_valor),
-        backgroundColor: '#f97316', // naranja
-        borderColor: '#ea580c',
-        borderWidth: 1.5,
-      },
-      {
-        label: 'Real (valor)',
-        data: props.proyeccionVsReal.map((p) => p.real_valor),
-        backgroundColor: '#22c55e', // verde
-        borderColor: '#16a34a',
-        borderWidth: 1.5,
-      },
-    ],
-  }
-})
-
-const chartOptions = {
+const barChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
       labels: {
-        color: '#e5e7eb', // text-gray-200
-        font: {
-          size: 11,
+        color: '#e5e7eb',
+        font: { size: 11 },
+      },
+    },
+    tooltip: {
+      callbacks: {
+        label(ctx) {
+          const v = ctx.parsed.y ?? ctx.parsed.x
+          return formatMoney(v)
         },
       },
     },
   },
   scales: {
     x: {
-      ticks: {
-        color: '#9ca3af', // gray-400
-      },
-      grid: {
-        color: 'rgba(55, 65, 81, 0.4)', // gray-700
-      },
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(55, 65, 81, 0.4)' },
     },
     y: {
-      ticks: {
-        color: '#9ca3af',
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    },
+  },
+}
+
+/* ==============================
+   GRÁFICA 2: Estado del inventario (Doughnut)
+============================== */
+const proyectoInventarioSeleccionado = ref('')
+
+const inventarioOptions = computed(() => {
+  const base = [{ value: '', label: 'Todos los proyectos' }]
+  ;(props.estadoInventario || []).forEach((p) => {
+    base.push({ value: p.proyecto, label: p.proyecto })
+  })
+  return base
+})
+
+const inventarioDoughnutData = computed(() => {
+  const labels = ['Disponible', 'Vendido', 'Separado', 'No Disponible', 'Congelado']
+  const counts = {
+    Disponible: 0,
+    Vendido: 0,
+    Separado: 0,
+    'No Disponible': 0,
+    Congelado: 0,
+  }
+
+  const dataSrc = props.estadoInventario || []
+
+  if (!dataSrc.length) {
+    return {
+      labels,
+      datasets: [
+        {
+          data: labels.map(() => 0),
+          backgroundColor: [],
+        },
+      ],
+    }
+  }
+
+  if (!proyectoInventarioSeleccionado.value) {
+    // Consolidado global
+    dataSrc.forEach((proj) => {
+      labels.forEach((estado) => {
+        const v = proj.estados?.[estado] ?? 0
+        counts[estado] += Number(v)
+      })
+    })
+  } else {
+    // Solo un proyecto
+    const proj = dataSrc.find((p) => p.proyecto === proyectoInventarioSeleccionado.value)
+    if (proj) {
+      labels.forEach((estado) => {
+        counts[estado] = Number(proj.estados?.[estado] ?? 0)
+      })
+    }
+  }
+
+  const palette = [
+    'rgba(16, 185, 129, 0.8)', // disponible
+    'rgba(56, 189, 248, 0.8)', // vendido
+    'rgba(245, 158, 11, 0.8)', // separado
+    'rgba(148, 163, 184, 0.8)', // no disponible
+    'rgba(244, 63, 94, 0.8)', // congelado
+  ]
+
+  const borderPalette = [
+    'rgba(16, 185, 129, 1)',
+    'rgba(56, 189, 248, 1)',
+    'rgba(245, 158, 11, 1)',
+    'rgba(148, 163, 184, 1)',
+    'rgba(244, 63, 94, 1)',
+  ]
+
+  return {
+    labels,
+    datasets: [
+      {
+        data: labels.map((estado) => counts[estado]),
+        backgroundColor: palette,
+        borderColor: borderPalette,
+        borderWidth: 1.5,
       },
-      grid: {
-        color: 'rgba(55, 65, 81, 0.4)',
+    ],
+  }
+})
+
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        color: '#e5e7eb',
+        font: { size: 10 },
       },
     },
   },
+}
+
+/* ==============================
+   GRÁFICA 3: Ranking de asesores (Bar horizontal)
+============================== */
+const rankingAsesoresData = computed(() => {
+  const rows = props.rankingAsesores || []
+  const labels = rows.map((r) => r.asesor)
+  const data = rows.map((r) => Number(r.total_ventas || 0))
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Total ventas',
+        data,
+        backgroundColor: 'rgba(244, 114, 182, 0.8)',
+        borderColor: 'rgba(236, 72, 153, 1)',
+        borderWidth: 1.5,
+      },
+    ],
+  }
+})
+
+const rankingOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  indexAxis: 'y',
+  plugins: {
+    legend: {
+      labels: {
+        color: '#e5e7eb',
+        font: { size: 11 },
+      },
+    },
+    tooltip: {
+      callbacks: {
+        label(ctx) {
+          const v = ctx.parsed.x
+          return formatMoney(v)
+        },
+      },
+    },
+  },
+  scales: {
+    x: {
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    },
+    y: {
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(31, 41, 55, 0.8)' },
+    },
+  },
+}
+
+/* ==============================
+   GRÁFICA 4: Absorción mensual (Line)
+============================== */
+const absorcionLineData = computed(() => {
+  const rows = props.absorcionMensual || []
+
+  const mesesSet = new Set()
+  const proyectosSet = new Set()
+  rows.forEach((r) => {
+    mesesSet.add(r.mes)
+    proyectosSet.add(r.proyecto)
+  })
+
+  const labels = Array.from(mesesSet).sort()
+  const proyectos = Array.from(proyectosSet)
+
+  const palette = [
+    [56, 189, 248],
+    [34, 197, 94],
+    [251, 146, 60],
+    [244, 114, 182],
+    [129, 140, 248],
+    [248, 250, 252],
+  ]
+
+  const datasets = proyectos.map((nombre, idx) => {
+    const rgb = palette[idx % palette.length]
+    const border = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
+    const bg = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.25)`
+
+    const data = labels.map((m) => {
+      const row = rows.find((r) => r.proyecto === nombre && r.mes === m)
+      return row ? Number(row.unidades) : 0
+    })
+
+    return {
+      label: nombre,
+      data,
+      borderColor: border,
+      backgroundColor: bg,
+      fill: false,
+      tension: 0.25,
+      pointRadius: 3,
+      pointHoverRadius: 4,
+    }
+  })
+
+  return { labels, datasets }
+})
+
+const lineOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: {
+        color: '#e5e7eb',
+        font: { size: 10 },
+      },
+    },
+  },
+  scales: {
+    x: {
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    },
+    y: {
+      ticks: { color: '#9ca3af' },
+      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    },
+  },
+}
+
+/* ==============================
+   PROYECTOS / INVENTARIO TAB
+============================== */
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toISOString().split('T')[0]
 }
 </script>
 
 <template>
   <GerenciaLayout>
+    <Head title="Panel de Gerencia" />
+
     <!-- Encabezado -->
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -165,7 +408,85 @@ const chartOptions = {
       </div>
     </div>
 
-    <!-- Pestañas -->
+    <!-- Filtros -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 mb-5">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wide">
+          Filtros de análisis
+        </h2>
+        <button
+          @click="aplicarFiltros"
+          class="px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-500"
+        >
+          Aplicar filtros
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+        <div>
+          <label class="text-slate-400 text-xs mb-1 block">Desde</label>
+          <input
+            type="date"
+            v-model="filtros.desde"
+            class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
+          />
+        </div>
+
+        <div>
+          <label class="text-slate-400 text-xs mb-1 block">Hasta</label>
+          <input
+            type="date"
+            v-model="filtros.hasta"
+            class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
+          />
+        </div>
+
+        <div>
+          <label class="text-slate-400 text-xs mb-1 block">Proyecto</label>
+          <select
+            v-model="filtros.proyecto_id"
+            class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
+          >
+            <option value="">Todos</option>
+            <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
+              {{ p.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-slate-400 text-xs mb-1 block">Asesor</label>
+          <select
+            v-model="filtros.asesor_id"
+            class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
+          >
+            <option value="">Todos</option>
+            <option v-for="e in empleados" :key="e.id_empleado" :value="e.id_empleado">
+              {{ e.nombre }} {{ e.apellido }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-slate-400 text-xs mb-1 block">Estado inmueble</label>
+          <select
+            v-model="filtros.estado_inmueble"
+            class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
+          >
+            <option value="">Todos</option>
+            <option
+              v-for="e in estadosInmueble"
+              :key="e.id_estado_inmueble"
+              :value="e.id_estado_inmueble"
+            >
+              {{ e.nombre }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
     <div class="mb-4 border-b border-slate-800">
       <nav class="-mb-px flex space-x-4 text-sm">
         <button
@@ -222,111 +543,75 @@ const chartOptions = {
       </nav>
     </div>
 
-    <!-- TAB: RESUMEN -->
+    <!-- TAB: RESUMEN / GRÁFICAS -->
     <div v-if="activeTab === 'resumen'" class="space-y-6">
-      <!-- Gráficas -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Fila de 4 tarjetas con hover -->
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-4">
         <!-- Ventas por proyecto -->
         <div
-          class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-          style="height: 320px; overflow: hidden"
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-sky-500/60 hover:shadow-[0_0_25px_rgba(56,189,248,0.25)]"
+          style="height: 260px"
         >
           <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-semibold text-slate-100">Ventas por proyecto</h2>
-            <span class="text-xs text-slate-500">Consolidado actual</span>
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Ventas por proyecto
+            </h2>
+            <span class="text-[10px] text-slate-500">Valor total</span>
           </div>
-          <Bar :data="ventasProyectoData" :options="chartOptions" />
+          <Bar :data="ventasProyectoData" :options="barChartOptions" />
         </div>
 
-        <!-- Proyección vs real -->
+        <!-- Estado inventario (doughnut) -->
         <div
-          class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-          style="height: 320px; overflow: hidden"
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]"
+          style="height: 260px"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Estado del inventario
+            </h2>
+          </div>
+
+          <div class="mb-2">
+            <select
+              v-model="proyectoInventarioSeleccionado"
+              class="w-full bg-slate-900 text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs"
+            >
+              <option v-for="opt in inventarioOptions" :key="opt.value || 'all'" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+
+          <Doughnut :data="inventarioDoughnutData" :options="doughnutOptions" />
+        </div>
+
+        <!-- Ranking de asesores -->
+        <div
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-pink-500/60 hover:shadow-[0_0_25px_rgba(236,72,153,0.25)]"
+          style="height: 260px"
         >
           <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-semibold text-slate-100">Proyección vs ventas reales</h2>
-            <span class="text-xs text-slate-500">Mes actual</span>
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Ranking asesores
+            </h2>
+            <span class="text-[10px] text-slate-500">Top por valor vendido</span>
           </div>
-          <Bar :data="proyeccionData" :options="chartOptions" />
-        </div>
-      </div>
-
-      <!-- Velocidad de ventas + separaciones -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Velocidad de ventas -->
-        <div
-          class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-          style="height: 320px; overflow: hidden"
-        >
-          <h2 class="text-sm font-semibold text-slate-100 mb-3">
-            Velocidad de ventas por proyecto
-          </h2>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-slate-400 border-b border-slate-800">
-                <th class="py-2 text-left">Proyecto</th>
-                <th class="py-2 text-right">Días promedio</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="item in velocidadVentas"
-                :key="item.proyecto"
-                class="border-b border-slate-800/60"
-              >
-                <td class="py-2 text-slate-200">{{ item.proyecto }}</td>
-                <td class="py-2 text-right text-slate-100">{{ item.dias_promedio_venta }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <Bar :data="rankingAsesoresData" :options="rankingOptions" />
         </div>
 
-        <!-- Separaciones / efectividad -->
+        <!-- Absorción mensual -->
         <div
-          class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-          style="height: 320px; overflow: hidden"
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-[0_0_25px_rgba(129,140,248,0.25)]"
+          style="height: 260px"
         >
-
-          <h2 class="text-sm font-semibold text-slate-100 mb-3">
-            Separaciones, caducidades y efectividad
-          </h2>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-slate-400 border-b border-slate-800">
-                <th class="py-2 text-left">Asesor</th>
-                <th class="py-2 text-right">Separaciones</th>
-                <th class="py-2 text-right">Ejecutadas</th>
-                <th class="py-2 text-right">Caducadas</th>
-                <th class="py-2 text-right">% Efectividad</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="s in separacionesEfectiv"
-                :key="s.id_empleado"
-                class="border-b border-slate-800/60"
-              >
-                <td class="py-2 text-slate-200">
-                  {{ s.empleado }}
-                </td>
-                <td class="py-2 text-right text-slate-100">{{ s.total_separaciones }}</td>
-                <td class="py-2 text-right text-emerald-300">
-                  {{ s.separaciones_ejecutadas }}
-                </td>
-                <td class="py-2 text-right text-rose-300">
-                  {{ s.separaciones_caducadas }}
-                </td>
-                <td class="py-2 text-right text-slate-100">
-                  {{
-                    formatPercent(
-                      s.separaciones_ejecutadas,
-                      s.separaciones_ejecutadas + s.separaciones_caducadas
-                    )
-                  }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Absorción mensual
+            </h2>
+            <span class="text-[10px] text-slate-500">Unidades vendidas / mes</span>
+          </div>
+          <Line :data="absorcionLineData" :options="lineOptions" />
         </div>
       </div>
     </div>
@@ -358,6 +643,8 @@ const chartOptions = {
                 <th class="py-2 pr-2 text-right">Precio base</th>
                 <th class="py-2 pr-2 text-right">Precio vigente</th>
                 <th class="py-2 pr-2">Estado</th>
+                <th class="py-2 pr-2">Asesor</th>
+                <th class="py-2 pr-2">Fecha venta/sep.</th>
               </tr>
             </thead>
             <tbody>
@@ -371,17 +658,8 @@ const chartOptions = {
                 <td class="py-2 pr-2 text-right text-slate-200">
                   {{ formatMoney(i.precio_base) }}
                 </td>
-                <td class="py-2 pr-2 text-right">
-                  <span
-                    :class="[
-                      'px-2 py-1 rounded-full text-xs',
-                      i.disponible
-                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-slate-800 text-slate-200 border border-slate-700',
-                    ]"
-                  >
-                    {{ formatMoney(i.precio_vigente) }}
-                  </span>
+                <td class="py-2 pr-2 text-right text-slate-100">
+                  {{ formatMoney(i.precio_vigente) }}
                 </td>
                 <td class="py-2 pr-2">
                   <span
@@ -399,6 +677,12 @@ const chartOptions = {
                     {{ i.estado }}
                   </span>
                 </td>
+                <td class="py-2 pr-2 text-slate-200">
+                  {{ i.asesor || '—' }}
+                </td>
+                <td class="py-2 pr-2 text-slate-300">
+                  {{ formatDate(i.fecha_operacion) }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -414,7 +698,7 @@ const chartOptions = {
 
       <div
         class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-        style="height: 320px; overflow: hidden"
+        style="max-height: 360px; overflow: auto"
       >
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -470,7 +754,7 @@ const chartOptions = {
 
       <div
         class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-        style="height: 320px; overflow: hidden"
+        style="max-height: 360px; overflow: auto"
       >
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -487,7 +771,7 @@ const chartOptions = {
             </thead>
             <tbody>
               <tr
-                v-for="row in props.ventasAsesoresProyecto"
+                v-for="row in ventasAsesoresProyecto"
                 :key="`${row.id_proyecto}-${row.id_empleado}`"
                 class="border-b border-slate-800/60"
               >
@@ -518,7 +802,7 @@ const chartOptions = {
                   }}
                 </td>
               </tr>
-              <tr v-if="!props.ventasAsesoresProyecto.length">
+              <tr v-if="!ventasAsesoresProyecto.length">
                 <td colspan="7" class="py-4 text-center text-slate-400">
                   Aún no hay datos de ventas / separaciones agrupados por asesor.
                 </td>
