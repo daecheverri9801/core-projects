@@ -40,9 +40,16 @@ const props = defineProps({
   empleados: Array,
   estadosInmueble: Array,
   filtros: Object,
+  planPagosCI: Object,
 })
 
+const filtrosValue = props.filtros || {}
+
 const activeTab = ref('resumen')
+
+function qs(obj) {
+  return new URLSearchParams(obj).toString()
+}
 
 /* ==============================
    FILTROS SUPERIORES
@@ -366,14 +373,14 @@ function formatDate(dateStr) {
     <Head title="Panel de Gerencia" />
 
     <!-- Encabezado -->
-    <div class="flex items-center justify-between mb-6">
+    <!-- <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-3xl font-semibold text-slate-50">Tablero de Gerencia</h1>
         <p class="text-slate-400 text-sm">
           Visión consolidada de proyectos, ventas, inventario y desempeño comercial.
         </p>
       </div>
-    </div>
+    </div> -->
 
     <!-- KPIs -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -501,6 +508,18 @@ function formatDate(dateStr) {
         >
           Resumen / Gráficas
         </button>
+        <button
+          type="button"
+          :class="[
+            'px-4 py-2 border-b-2',
+            activeTab === 'plan_ci'
+              ? 'border-indigo-400 text-indigo-200'
+              : 'border-transparent text-slate-400 hover:text-slate-200',
+          ]"
+          @click="activeTab = 'plan_ci'"
+        >
+          Plan Pagos Cuota Inicial
+        </button>
 
         <button
           type="button"
@@ -612,6 +631,77 @@ function formatDate(dateStr) {
             <span class="text-[10px] text-slate-500">Unidades vendidas / mes</span>
           </div>
           <Line :data="absorcionLineData" :options="lineOptions" />
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: PLAN DE PAGOS DE CUOTA INICIAL -->
+    <div v-else-if="activeTab === 'plan_ci'" class="space-y-4">
+      <!-- <h2 class="text-sm font-semibold text-slate-100">
+        Plan de pagos de cuota inicial por ventas
+      </h2> -->
+
+      <div class="flex justify-end mb-3">
+        <a
+          class="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-500 text-sm"
+          :href="`/gerencia/plan-pagos-ci/export?${qs(filtros)}`"
+        >
+          Exportar Excel
+        </a>
+      </div>
+
+      <div class="overflow-x-auto bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
+        <table
+          class="min-w-full text-sm text-slate-200"
+          v-if="planPagosCI && planPagosCI.filas && planPagosCI.filas.length"
+        >
+          <thead>
+            <tr class="bg-slate-800">
+              <th class="p-2 border border-slate-700">Proyecto</th>
+              <th class="p-2 border border-slate-700">Inmueble</th>
+              <th class="p-2 border border-slate-700">Cliente</th>
+
+              <!-- Meses dinámicos -->
+              <th
+                v-for="m in planPagosCI.encabezados"
+                :key="m"
+                class="p-2 border border-slate-700 text-center"
+              >
+                {{ m }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="(f, i) in planPagosCI.filas" :key="i" class="odd:bg-slate-900/50">
+              <td class="p-2 border border-slate-800">{{ f.proyecto }}</td>
+              <td class="p-2 border border-slate-800">{{ f.inmueble }}</td>
+              <td class="p-2 border border-slate-800">{{ f.cliente }}</td>
+
+              <td
+                v-for="m in planPagosCI.encabezados"
+                :key="m"
+                class="p-2 border border-slate-800 text-right"
+              >
+                {{ formatMoney(f.meses[m] || 0) }}
+              </td>
+            </tr>
+
+            <tr class="bg-slate-800 font-semibold">
+              <td class="p-2 border border-slate-700" colspan="3">TOTAL</td>
+              <td
+                v-for="m in planPagosCI.encabezados"
+                :key="'tot-' + m"
+                class="p-2 border border-slate-700 text-right"
+              >
+                {{ formatMoney(planPagosCI.totales[m]) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-else class="text-center text-slate-400 text-sm py-6">
+          No hay ventas con cuota inicial en el rango seleccionado.
         </div>
       </div>
     </div>

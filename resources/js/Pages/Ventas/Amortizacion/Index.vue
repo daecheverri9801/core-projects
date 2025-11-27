@@ -70,10 +70,18 @@ function generarAmortizacion() {
     const saldoCuotaInicial = cuotaInicial - valorSeparacion
     const plazo = v.plazo
 
-    const hoy = new Date()
-    const yearBase = hoy.getFullYear()
-    const monthBase = hoy.getMonth()
+    if (!v.fecha_venta) {
+      alert('La venta no tiene fecha de venta definida.')
+      cargando.value = false
+      return
+    }
 
+    // AHORA: el calendario inicia en el mes de la venta
+    const fechaVenta = new Date(v.fecha_venta)
+    const yearBase = fechaVenta.getFullYear()
+    const monthBase = fechaVenta.getMonth() // 0 = enero
+
+    // Misma lógica de cuotas que queremos replicar en el dashboard
     const cuotaMensual = Math.round(saldoCuotaInicial / plazo)
     const residuo = saldoCuotaInicial - cuotaMensual * plazo
 
@@ -95,13 +103,13 @@ function generarAmortizacion() {
 
       amortizacion.value.push({
         numero: i,
-        fecha: fechaStr, // ahora solo YYYY-MM
+        fecha: fechaStr, // YYYY-MM
         valor_cuota: valor,
         saldo_final: Math.max(saldo, 0),
       })
     }
 
-    // ✔ Ahora mostramos el resumen
+    // Resumen
     ventaSeleccionada.value.saldo_cuota_inicial = saldoCuotaInicial
     ventaSeleccionada.value.valor_separacion = valorSeparacion
 

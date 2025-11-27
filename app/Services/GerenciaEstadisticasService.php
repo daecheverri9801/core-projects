@@ -261,8 +261,8 @@ class GerenciaEstadisticasService
         foreach ($rows as $idEmpleado => $seps) {
             $emp = $empleados[$idEmpleado] ?? null;
 
-            $total     = $seps->count();
-            $caducadas = $seps->where('fecha_limite_separacion', '<', $hoy)->count();
+            $total      = $seps->count();
+            $caducadas  = $seps->where('fecha_limite_separacion', '<', $hoy)->count();
             $ejecutadas = $total - $caducadas;
 
             $resultado[] = [
@@ -284,6 +284,7 @@ class GerenciaEstadisticasService
     {
         $proyectosQuery = Proyecto::query()->with([
             'torres.apartamentos.estadoInmueble',
+            'torres.apartamentos.tipoApartamento',
             'torres.apartamentos.ventas' => function ($q) {
                 $q->orderBy('fecha_venta', 'desc');
             },
@@ -314,14 +315,18 @@ class GerenciaEstadisticasService
                         continue;
                     }
 
-                    $ultimaVenta = $apto->ventas->first();
-                    $asesor = $ultimaVenta?->empleado;
+                    $ultimaVenta  = $apto->ventas->first();
+                    $asesor       = $ultimaVenta?->empleado;
                     $estadoNombre = $apto->estadoInmueble?->nombre ?? '—';
+
+                    // NUEVO: obtener precio base desde tipo de apartamento
+                    $precioBase = $apto->tipoApartamento->valor_estimado
+                        ?? 0;
 
                     $items[] = [
                         'tipo'            => 'Apartamento',
                         'etiqueta'        => 'Apto ' . $apto->numero,
-                        'precio_base'     => (float) $apto->valor_estimado,
+                        'precio_base'     => (float) $precioBase,
                         'precio_vigente'  => (float) ($apto->valor_final ?? $apto->valor_total ?? 0),
                         'estado'          => $estadoNombre,
                         'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
@@ -334,14 +339,14 @@ class GerenciaEstadisticasService
                         continue;
                     }
 
-                    $ultimaVenta = $loc->ventas->first();
-                    $asesor = $ultimaVenta?->empleado;
+                    $ultimaVenta  = $loc->ventas->first();
+                    $asesor       = $ultimaVenta?->empleado;
                     $estadoNombre = $loc->estadoInmueble?->nombre ?? '—';
 
                     $items[] = [
                         'tipo'            => 'Local',
                         'etiqueta'        => 'Local ' . $loc->numero,
-                        'precio_base'     => (float) $loc->valor_estimado,
+                        'precio_base'     => (float) $loc->valor_total,
                         'precio_vigente'  => (float) ($loc->valor_total ?? 0),
                         'estado'          => $estadoNombre,
                         'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
@@ -413,7 +418,7 @@ class GerenciaEstadisticasService
     }
 
     /* ============================================================
-     * 1. ESTADO DEL INVENTARIO POR PROYECTO (para doughnut)
+     * 1. ESTADO DEL INVENTARIO POR PROYECTO (doughnut)
      * =========================================================== */
     public function estadoInventario()
     {
@@ -425,15 +430,14 @@ class GerenciaEstadisticasService
             ->map(function ($p) {
 
                 $estados = [
-                    'Disponible' => 0,
-                    'Vendido' => 0,
-                    'Separado' => 0,
+                    'Disponible'    => 0,
+                    'Vendido'       => 0,
+                    'Separado'      => 0,
                     'No Disponible' => 0,
-                    'Congelado' => 0,
+                    'Congelado'     => 0,
                 ];
 
                 foreach ($p->torres as $torre) {
-
                     foreach ($torre->apartamentos as $a) {
                         $nombre = $a->estadoInmueble->nombre ?? null;
                         if ($nombre && isset($estados[$nombre])) {
@@ -457,7 +461,7 @@ class GerenciaEstadisticasService
     }
 
     /* ============================================================
-     * 2. RANKING DE ASESORES POR VENTAS (para barras horizontales)
+     * 2. RANKING DE ASESORES POR VENTAS
      * =========================================================== */
     public function rankingAsesores()
     {
@@ -475,7 +479,7 @@ class GerenciaEstadisticasService
     }
 
     /* ============================================================
-     * 3. ABSORCIÓN MENSUAL (para line chart)
+     * 3. ABSORCIÓN MENSUAL
      * =========================================================== */
     public function absorcionMensual()
     {
@@ -490,5 +494,162 @@ class GerenciaEstadisticasService
             ->groupBy('proyectos.nombre', DB::raw("TO_CHAR(fecha_venta, 'YYYY-MM')"))
             ->orderBy('mes')
             ->get();
+    }
+
+    /* ===========================================================
+     * PLAN DE PAGOS DE CUOTA INICIAL (tabla horizontal)
+     * =========================================================== */
+    public function planPagosCI(array $filtros, Carbon $desde, Carbon $hasta): array
+    {
+        $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
+            ->where('tipo_operacion', 'venta')
+            ->whereBetween('fecha_venta', [$desde, $hasta]);
+
+        if (!empty($filtros['proyecto_id'])) {
+            $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
+        }
+
+        if (!empty($filtros['asesor_id'])) {
+            $ventasQuery->where('id_empleado', $filtros['asesor_id']);
+        }
+
+        $ventas = $ventasQuery->get();
+
+        if ($ventas->isEmpty()) {
+            return [
+                'encabezados' => [],
+                'filas'       => [],
+                'totales'     => [],
+            ];
+        }
+
+        /* ============================================================
+       1. DEFINIR RANGO GLOBAL DE MESES
+       ============================================================ */
+        $minMes = null;
+        $maxMes = null;
+
+        foreach ($ventas as $v) {
+            if (!$v->fecha_venta) continue;
+
+            $plazo = max(1, (int)$v->plazo_cuota_inicial_meses);
+
+            $inicio = Carbon::parse($v->fecha_venta)->startOfMonth();
+            $fin    = (clone $inicio)->addMonths($plazo);
+
+            if ($minMes === null || $inicio->lt($minMes)) {
+                $minMes = $inicio->copy();
+            }
+            if ($maxMes === null || $fin->gt($maxMes)) {
+                $maxMes = $fin->copy();
+            }
+        }
+
+        if (!$minMes || !$maxMes) {
+            return [
+                'encabezados' => [],
+                'filas'       => [],
+                'totales'     => [],
+            ];
+        }
+
+        /* ============================================================
+       2. ENCABEZADOS (MESES DINÁMICOS)
+       ============================================================ */
+        $encabezados = [];
+        $cursor = $minMes->copy();
+        while ($cursor <= $maxMes) {
+            $encabezados[] = $cursor->format('Y-m');
+            $cursor->addMonth();
+        }
+
+        $filas   = [];
+        $totales = array_fill_keys($encabezados, 0);
+
+        /* ============================================================
+       3. RECORRER VENTAS Y ARMAR FILAS
+       ============================================================ */
+        foreach ($ventas as $v) {
+
+            $proyecto = $v->proyecto->nombre ?? ('Proyecto ' . $v->id_proyecto);
+            $cliente  = $v->cliente->nombre ?? '—';
+
+            $inmueble = $v->apartamento?->numero
+                ? 'Apto ' . $v->apartamento->numero
+                : ($v->local?->numero
+                    ? 'Local ' . $v->local->numero
+                    : '—');
+
+            // ===== Datos de la venta =====
+            $cuotaInicial   = (float)($v->cuota_inicial ?? 0);
+            $separacion     = (float)($v->valor_separacion ?? $v->proyecto->valor_min_separacion ?? 0);
+            $valorRestante  = max(0, (float)$v->valor_total - $cuotaInicial);
+            $saldoAmortizar = max(0, $cuotaInicial - $separacion);
+            $plazo          = max(1, (int)$v->plazo_cuota_inicial_meses);
+
+            // Fechas
+            $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
+
+            // Cuotas CI
+            $cuotaMensual = (int) floor($saldoAmortizar / $plazo);
+            $residuo      = $saldoAmortizar - ($cuotaMensual * $plazo);
+
+            // Meses por venta
+            $mesesRow = [];
+
+            /* ============================================================
+           3.1. MESES DE LA CUOTA INICIAL (Plazo CI)
+           ============================================================ */
+            for ($i = 1; $i <= $plazo; $i++) {
+
+                $mes = $fechaBase->format('Y-m');
+
+                // Cuota base
+                $valorCuota = $cuotaMensual;
+
+                // Última cuota → sumamos residuo
+                if ($i === $plazo) {
+                    $valorCuota += $residuo;
+                }
+
+                // Mes 1 → sumamos separación
+                if ($i === 1) {
+                    $valorCuota += $separacion;
+                }
+
+                // Guardar
+                $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
+                $totales[$mes]  += $valorCuota;
+
+                // Avanzar al siguiente mes
+                $fechaBase->addMonth();
+            }
+
+            /* ============================================================
+           3.2. MES SIGUIENTE AL PLAZO → VALOR RESTANTE
+           ============================================================ */
+            $mesRestante = $fechaBase->format('Y-m');
+
+            if (isset($totales[$mesRestante])) {
+                $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
+                $totales[$mesRestante]  += $valorRestante;
+            }
+
+            /* ============================================================
+           3.3. AGREGAR FILA
+           ============================================================ */
+            $filas[] = [
+                'proyecto' => $proyecto,
+                'inmueble' => $inmueble,
+                'cliente'  => $cliente,
+                'meses'    => $mesesRow,
+            ];
+        }
+
+        return [
+            'encabezados' => $encabezados,
+            'filas'       => $filas,
+            'totales'     => $totales,
+        ];
     }
 }

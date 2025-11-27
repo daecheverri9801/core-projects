@@ -63,7 +63,7 @@ class MetasController extends Controller
 
         $resultadosIndex = [];
         foreach ($ventasAgg as $v) {
-            $key = ($v->id_proyecto ?: 0) . '|' . ($v->id_empleado ?: 0) . '|' . $v->mes . '|' . $v->ano;
+            $key = $v->id_proyecto . '|' . $v->mes . '|' . $v->ano . '|' . ($v->id_empleado ?? 0);
             $resultadosIndex[$key] = [
                 'unidades' => (int)$v->unidades,
                 'valor_total' => (float)$v->valor_total,
@@ -71,8 +71,27 @@ class MetasController extends Controller
         }
 
         $metasEnriquecidas = $metas->map(function (Meta $m) use ($resultadosIndex) {
-            $key = ($m->id_proyecto ?: 0) . '|' . ($m->id_empleado ?: 0) . '|' . $m->mes . '|' . $m->ano;
-            $res = $resultadosIndex[$key] ?? ['unidades' => 0, 'valor_total' => 0];
+            // Claves: Proyecto | Mes | Año | Asesor opcional
+            $keyBase = $m->id_proyecto . '|' . $m->mes . '|' . $m->ano;
+
+            // Si la meta es por asesor → buscar ventas del asesor
+            if (!empty($m->id_empleado)) {
+                $key = $keyBase . '|' . $m->id_empleado;
+                $res = $resultadosIndex[$key] ?? ['unidades' => 0, 'valor_total' => 0];
+            } else {
+                // Meta de equipo → sumar todas las ventas del proyecto
+                $res = ['unidades' => 0, 'valor_total' => 0];
+
+                foreach ($resultadosIndex as $k => $v) {
+                    [$pId, $mes, $ano, $empId] = explode('|', $k);
+
+                    if ($pId == $m->id_proyecto && $mes == $m->mes && $ano == $m->ano) {
+                        $res['unidades'] += $v['unidades'];
+                        $res['valor_total'] += $v['valor_total'];
+                    }
+                }
+            }
+
 
             $metaValor = (float)($m->meta_valor ?? 0);
             $metaUnidades = (int)($m->meta_unidades ?? 0);

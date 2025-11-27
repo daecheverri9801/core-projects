@@ -37,6 +37,7 @@ use App\Http\Controllers\Ventas\CotizadorWebController;
 use App\Http\Controllers\Ventas\SimuladorWebController;
 use App\Http\Controllers\Gerencia\GerenciaDashboardWebController;
 use App\Http\Controllers\Gerencia\MetasController;
+use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
 
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
@@ -361,6 +362,14 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
         '/gerencia/dashboard/datos',
         [GerenciaDashboardWebController::class, 'datos']
     )->name('gerencia.dashboard.datos');
+
+    Route::get('/gerencia/plan-ci/export', [
+        GerenciaDashboardWebController::class,
+        'exportPlanPagosCI'
+    ])->name('gerencia.plan_ci.export');
+
+    Route::get('/gerencia/plan-pagos-ci/export', [PlanPagosCIExportController::class, 'export'])
+    ->name('gerencia.plan_pagos_ci.export');
 });
 
 

@@ -9,6 +9,8 @@ use App\Models\EstadoInmueble;
 use App\Services\GerenciaEstadisticasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Exports\PlanPagosCIExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GerenciaDashboardWebController extends Controller
 {
@@ -22,25 +24,35 @@ class GerenciaDashboardWebController extends Controller
             'estado_inmueble' => $request->query('estado_inmueble'),
         ];
 
+        [$desde, $hasta] = $service->rangoFechas($filtros);
+
+        $planPagosCI = $service->planPagosCI($filtros, $desde, $hasta);
         $dashboard = $service->obtenerDashboard($filtros);
 
-        $proyectos = Proyecto::select('id_proyecto', 'nombre')
-            ->orderBy('nombre')
-            ->get();
-
-        $empleados = Empleado::select('id_empleado', 'nombre', 'apellido')
-            ->orderBy('nombre')
-            ->get();
-
-        $estados = EstadoInmueble::select('id_estado_inmueble', 'nombre')
-            ->orderBy('nombre')
-            ->get();
-
         return Inertia::render('Gerencia/Dashboard/Index', array_merge($dashboard, [
-            'proyectos'       => $proyectos,
-            'empleados'       => $empleados,
-            'estadosInmueble' => $estados,
+            'proyectos'       => Proyecto::orderBy('nombre')->get(),
+            'empleados'       => Empleado::orderBy('nombre')->get(),
+            'estadosInmueble' => EstadoInmueble::orderBy('nombre')->get(),
             'filtros'         => $filtros,
+            'planPagosCI'     => $planPagosCI
         ]));
+    }
+
+    public function exportPlanPagosCI(Request $request, GerenciaEstadisticasService $service)
+    {
+        $filtros = [
+            'desde'       => $request->query('desde'),
+            'hasta'       => $request->query('hasta'),
+            'proyecto_id' => $request->query('proyecto_id'),
+            'asesor_id'   => $request->query('asesor_id'),
+        ];
+
+        [$desde, $hasta] = $service->rangoFechas($filtros);
+        $plan = $service->planPagosCI($filtros, $desde, $hasta);
+
+        return Excel::download(
+            new PlanPagosCIExport($plan['encabezados'], $plan['filas'], $plan['totales']),
+            'plan_pagos_cuota_inicial.xlsx'
+        );
     }
 }
