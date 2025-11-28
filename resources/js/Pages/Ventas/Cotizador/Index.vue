@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -8,7 +8,7 @@ const props = defineProps({
   proyectos: Array,
   clientes: Array,
   empleado: Object, // empleado que genera la cotización
-  inmuebles: Object, // { apartamentos: [], locales: [] }
+  inmuebles: Array, // AHORA ES UN ARRAY PLANO
 })
 
 /* ------------------------------------------------------
@@ -23,42 +23,44 @@ const cargando = ref(false)
 /* ------------------------------------------------------
  *  COMPUTED SELECTIONS
  * ------------------------------------------------------ */
-const proyecto = computed(() => props.proyectos.find((p) => p.id_proyecto == proyectoId.value))
-const empleado = computed(() => props.empleado)
-const cliente = computed(() => props.clientes.find((c) => c.documento == clienteId.value))
+const proyecto = computed(
+  () => props.proyectos.find((p) => String(p.id_proyecto) === String(proyectoId.value)) || null
+)
+
+const empleado = computed(() => props.empleado || null)
+
+const cliente = computed(
+  () => props.clientes.find((c) => String(c.documento) === String(clienteId.value)) || null
+)
 
 /* ------------------------------------------------------
- *  LISTA COMBINADA DE INMUEBLES
+ *  INMUEBLES FILTRADOS (por proyecto, ya vienen "disponibles")
  * ------------------------------------------------------ */
-const listaInmuebles = computed(() => {
-  const aps = props.inmuebles.apartamentos ?? []
-  const locs = props.inmuebles.locales ?? []
+const inmueblesFiltrados = computed(() => {
+  if (!proyectoId.value) return []
 
-  return [
-    ...aps.map((a) => ({
-      tipo: 'apartamento',
-      id: a.id_apartamento,
-      numero: a.numero,
-      valor_final: a.valor_final,
-      torre: a.torre,
-      pisoTorre: a.pisoTorre,
-      tipoApartamento: a.tipo_apartamento || a.tipoApartamento || null,
-      valor_min_separacion: a.valor_min_separacion || null,
-    })),
-
-    ...locs.map((l) => ({
-      tipo: 'local',
-      id: l.id_local,
-      numero: l.numero,
-      valor_final: l.valor_final,
-      torre: l.torre,
-      pisoTorre: null,
-      tipoApartamento: null, // los locales no tienen tipoApartamento
-    })),
-  ]
+  return props.inmuebles.filter((i) => {
+    // deben pertenecer al proyecto seleccionado
+    return String(i.id_proyecto) === String(proyectoId.value)
+  })
 })
 
-const inmueble = computed(() => props.inmuebles.find((i) => i.id === Number(inmuebleId.value)))
+/* ------------------------------------------------------
+ *  INMUEBLE SELECCIONADO
+ * ------------------------------------------------------ */
+const inmueble = computed(() => {
+  if (!inmuebleId.value) return null
+
+  return inmueblesFiltrados.value.find((i) => String(i.id) === String(inmuebleId.value)) || null
+})
+
+/* ------------------------------------------------------
+ *  AL CAMBIAR PROYECTO, LIMPIAR INMUEBLE Y PLAZO
+ * ------------------------------------------------------ */
+watch(proyectoId, () => {
+  inmuebleId.value = ''
+  plazo.value = ''
+})
 
 /* ------------------------------------------------------
  *  PLAZOS DISPONIBLES
@@ -335,8 +337,10 @@ async function generarPDF() {
           <label>Inmueble Disponible</label>
           <select v-model="inmuebleId" class="w-full border rounded p-2">
             <option value="">Seleccione...</option>
-            <option v-for="i in props.inmuebles" :key="i.id" :value="i.id">
-              {{ i.tipo === 'apartamento' ? `Apto ${i.numero} ` : `Local ${i.numero} ` }}
+            <option v-for="i in inmueblesFiltrados" :key="i.id" :value="i.id">
+              {{ i.tipo === 'apartamento' ? `Apto ${i.numero}` : `Local ${i.numero}` }} -
+              {{ i.torre?.nombre_torre || 'Sin torre' }} -
+              {{ formatMoney(i.valor_final) }}
             </option>
           </select>
         </div>
