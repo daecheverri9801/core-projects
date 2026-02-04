@@ -33,7 +33,7 @@ class ProyectoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:300',
+            'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
             'presupuesto_inicial' => 'nullable|numeric|min:0|max:9999999999999999.99',
@@ -54,7 +54,7 @@ class ProyectoController extends Controller
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
-            'descripcion.max' => 'La descripción no puede exceder 300 caracteres',
+            'descripcion.max' => 'La descripción no puede exceder 500 caracteres',
             'fecha_inicio.date' => 'La fecha de inicio debe ser una fecha válida',
             'fecha_finalizacion.date' => 'La fecha de finalización debe ser una fecha válida',
             'fecha_finalizacion.after_or_equal' => 'La fecha de finalización debe ser posterior o igual a la fecha de inicio',
@@ -134,7 +134,7 @@ class ProyectoController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:300',
+            'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
             'presupuesto_inicial' => 'nullable|numeric|min:0|max:9999999999999999.99',
@@ -155,7 +155,7 @@ class ProyectoController extends Controller
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
-            'descripcion.max' => 'La descripción no puede exceder 300 caracteres',
+            'descripcion.max' => 'La descripción no puede exceder 500 caracteres',
             'fecha_inicio.date' => 'La fecha de inicio debe ser una fecha válida',
             'fecha_finalizacion.date' => 'La fecha de finalización debe ser una fecha válida',
             'fecha_finalizacion.after_or_equal' => 'La fecha de finalización debe ser posterior o igual a la fecha de inicio',

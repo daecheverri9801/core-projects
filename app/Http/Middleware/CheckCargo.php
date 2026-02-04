@@ -12,7 +12,11 @@ class CheckCargo
     {
         $empleado = Auth::guard('web')->user();
 
-        if (!$empleado || !in_array($empleado->cargo->nombre, $cargosPermitidos)) {
+        if (
+            !$empleado ||
+            !$empleado->cargo ||
+            !in_array($empleado->cargo->nombre, $cargosPermitidos)
+        ) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 

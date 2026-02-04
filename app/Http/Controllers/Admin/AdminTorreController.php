@@ -14,42 +14,88 @@ class AdminTorreController extends Controller
 {
     public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $search = $request->get('search');
 
-        $query = Torre::with(['proyecto', 'estado'])
+        /**
+         * Ahora el index pagina por PROYECTO y carga sus TORRES.
+         * Si hay búsqueda, filtra proyectos que tengan torres cuyo nombre coincida.
+         */
+        $proyectosQuery = Proyecto::query()
+            ->select('id_proyecto', 'nombre')
+            ->with([
+                'torres' => function ($q) use ($search) {
+                    $q->select('id_torre', 'nombre_torre', 'numero_pisos', 'id_proyecto', 'id_estado', 'nivel_inicio_prima')
+                      ->with(['estado:id_estado,nombre'])
+                      ->when($search, fn ($qq) => $qq->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
+                      ->orderBy('id_torre', 'desc');
+                }
+            ])
             ->when($search, function ($q) use ($search) {
-                // Para PostgreSQL puedes usar ILIKE
-                $q->where('nombre_torre', 'ILIKE', '%' . $search . '%');
+                $q->whereHas('torres', fn ($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'));
             })
-            ->orderBy('id_torre', 'desc');
+            ->orderBy('nombre');
 
-        $torres = $query->paginate(10)->withQueryString();
+        $proyectos = $proyectosQuery->paginate(10)->withQueryString();
 
         return Inertia::render('Admin/Torres/Index', [
-            'torres' => $torres,
+            'proyectos' => $proyectos,
             'filters' => ['search' => $search],
-            // En tus props globales ya viene auth.empleado, pero aquí no está de más:
-            'empleado' => auth()->user()->empleado ?? null,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
         $estados = Estado::select('id_estado', 'nombre')->orderBy('nombre')->get();
 
         return Inertia::render('Admin/Torres/Create', [
             'proyectos' => $proyectos,
             'estados' => $estados,
-            'empleado' => auth()->user()->empleado ?? null,
+            'empleado' => $empleado,
         ]);
     }
 
     public function store(Request $request)
     {
+        $isBulk = $request->has('torres') && is_array($request->input('torres'));
+
+        if ($isBulk) {
+            $validated = $request->validate([
+                'id_proyecto' => ['required', Rule::exists('proyectos', 'id_proyecto')],
+                'id_estado'   => ['required', Rule::exists('estados', 'id_estado')],
+
+                'torres' => ['required', 'array', 'min:1'],
+                'torres.*.nombre_torre'       => ['required', 'string', 'max:50'],
+                'torres.*.numero_pisos'       => ['nullable', 'integer', 'min:1', 'max:32767'],
+                'torres.*.nivel_inicio_prima' => ['required', 'integer', 'min:1'],
+            ]);
+
+            \DB::transaction(function () use ($validated) {
+                foreach ($validated['torres'] as $t) {
+                    Torre::create([
+                        'nombre_torre'       => $t['nombre_torre'],
+                        'numero_pisos'       => $t['numero_pisos'] ?? null,
+                        'nivel_inicio_prima' => $t['nivel_inicio_prima'],
+                        'id_proyecto'        => $validated['id_proyecto'],
+                        'id_estado'          => $validated['id_estado'],
+                    ]);
+                }
+            });
+
+            $count = count($validated['torres']);
+
+            return redirect()
+                ->route('admin.torres.index')
+                ->with('success', $count === 1 ? 'Torre creada exitosamente.' : "{$count} torres creadas exitosamente.");
+        }
+
         $validated = $request->validate([
             'nombre_torre' => ['required', 'string', 'max:50'],
             'numero_pisos' => ['nullable', 'integer', 'min:1', 'max:32767'],
+            'nivel_inicio_prima' => ['required', 'integer', 'min:1'],
             'id_proyecto' => ['required', Rule::exists('proyectos', 'id_proyecto')],
             'id_estado' => ['required', Rule::exists('estados', 'id_estado')],
         ]);
@@ -61,8 +107,10 @@ class AdminTorreController extends Controller
             ->with('success', 'Torre creada exitosamente');
     }
 
-    public function show($id_torre)
+    public function show(Request $request, $id_torre)
     {
+        $empleado = $request->user()->load('cargo');
+
         $torre = Torre::with([
             'proyecto.ubicacion.ciudad',
             'estado',
@@ -73,12 +121,13 @@ class AdminTorreController extends Controller
 
         return Inertia::render('Admin/Torres/Show', [
             'torre' => $torre,
-            'empleado' => auth()->user()->empleado ?? null,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($id_torre)
+    public function edit(Request $request, $id_torre)
     {
+        $empleado = $request->user()->load('cargo');
         $torre = Torre::with(['proyecto', 'estado'])->findOrFail($id_torre);
 
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
@@ -88,7 +137,7 @@ class AdminTorreController extends Controller
             'torre' => $torre,
             'proyectos' => $proyectos,
             'estados' => $estados,
-            'empleado' => auth()->user()->empleado ?? null,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -99,6 +148,7 @@ class AdminTorreController extends Controller
         $validated = $request->validate([
             'nombre_torre' => ['required', 'string', 'max:50'],
             'numero_pisos' => ['nullable', 'integer', 'min:1', 'max:32767'],
+            'nivel_inicio_prima' => ['required', 'integer', 'min:1'],
             'id_proyecto' => ['required', Rule::exists('proyectos', 'id_proyecto')],
             'id_estado' => ['required', Rule::exists('estados', 'id_estado')],
         ]);

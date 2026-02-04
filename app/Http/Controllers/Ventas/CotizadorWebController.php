@@ -9,11 +9,13 @@ use App\Models\Apartamento;
 use App\Models\Empleado;
 use App\Models\Local;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 class CotizadorWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         // Apartamentos disponibles
         $apartamentos = Apartamento::with([
             'torre.proyecto',
@@ -89,9 +91,7 @@ class CotizadorWebController extends Controller
                 'telefono',
                 'correo'
             )->get(),
-            'empleado'  => auth()->user()
-                ? auth()->user()->load('cargo')
-                : null,
+            'empleado'  => $empleado,
             // IMPORTANTE: inmuebles = ARRAY PLANO
             'inmuebles' => $inmuebles,
         ]);

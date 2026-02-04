@@ -1,8 +1,12 @@
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3'
+import { Head, Link, usePage, router } from '@inertiajs/vue3'
 
 const page = usePage()
 const user = page.props.auth?.user || null
+
+function logout() {
+  router.post('/logout')
+}
 </script>
 
 <template>
@@ -44,6 +48,13 @@ const user = page.props.auth?.user || null
             class="px-3 py-1.5 rounded-lg border border-slate-700 text-xs uppercase tracking-wide hover:bg-slate-800"
           >
             Dashboard
+          </Link>
+          <Link
+            href="#"
+            @click.prevent="logout"
+            class="px-3 py-1.5 rounded-lg border border-red-600 text-xs uppercase tracking-wide text-red-400 hover:bg-red-700"
+          >
+            Logout
           </Link>
         </div>
       </div>

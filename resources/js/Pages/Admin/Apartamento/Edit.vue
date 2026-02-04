@@ -1,131 +1,174 @@
 <template>
   <SidebarBannerLayout :empleado="empleado">
-    <template #title>Editar Apartamento</template>
+    <div class="space-y-6">
+      <!-- Header -->
+      <PageHeader
+        title="Editar apartamento"
+        kicker="Inventario del proyecto"
+        subtitle="Actualiza la información del apartamento. La prima de altura y el valor total se calculan automáticamente."
+      >
+        <template #actions>
+          <ButtonSecondary href="/apartamentos">
+            Volver
+          </ButtonSecondary>
+        </template>
+      </PageHeader>
 
-    <div class="bg-white rounded-lg border p-4 md:p-6 max-w-3xl">
-      <form @submit.prevent="submit">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="form-label">Proyecto</label>
-            <select v-model="form.id_proyecto" @change="onProyectoChange" class="form-input">
-              <option value="">Seleccione un proyecto</option>
-              <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
-                {{ p.nombre }}
-              </option>
-            </select>
-            <p v-if="errors.id_proyecto" class="form-error">{{ errors.id_proyecto }}</p>
+      <form @submit.prevent="submit" class="space-y-6">
+        <!-- Form card -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm text-gray-600">
+                ID: <span class="font-semibold text-gray-900">{{ apartamento.id_apartamento }}</span>
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                Cambios se guardan al actualizar.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label class="form-label">Torre</label>
-            <select
-              v-model="form.id_torre"
-              :disabled="torres.length === 0"
-              @change="onTorreChange"
-              class="form-input"
-            >
-              <option value="">Seleccione una torre</option>
-              <option v-for="t in torres" :key="t.id_torre" :value="t.id_torre">
-                {{ t.nombre_torre }}
-              </option>
-            </select>
-            <p v-if="errors.id_torre" class="form-error">{{ errors.id_torre }}</p>
-          </div>
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Proyecto -->
+            <div>
+              <label class="form-label">Proyecto</label>
+              <select v-model="form.id_proyecto" @change="onProyectoChange" class="form-input">
+                <option value="">Seleccione un proyecto</option>
+                <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
+                  {{ p.nombre }}
+                </option>
+              </select>
+              <p v-if="errors.id_proyecto" class="form-error">{{ errors.id_proyecto }}</p>
+            </div>
 
-          <div>
-            <label class="form-label">Piso</label>
-            <select v-model="form.id_piso_torre" :disabled="pisos.length === 0" class="form-input">
-              <option value="">Seleccione un piso</option>
-              <option v-for="p in pisos" :key="p.id_piso_torre" :value="p.id_piso_torre">
-                Nivel {{ p.nivel }}
-              </option>
-            </select>
-            <p v-if="errors.id_piso_torre" class="form-error">{{ errors.id_piso_torre }}</p>
-          </div>
-
-          <div>
-            <label class="form-label">Número</label>
-            <input v-model="form.numero" type="text" maxlength="20" class="form-input" />
-            <p v-if="errors.numero" class="form-error">{{ errors.numero }}</p>
-          </div>
-
-          <div>
-            <label class="form-label">Tipo de Apartamento</label>
-            <select v-model="form.id_tipo_apartamento" class="form-input">
-              <option value="">Seleccione</option>
-              <option
-                v-for="t in tiposFiltrados"
-                :key="t.id_tipo_apartamento"
-                :value="t.id_tipo_apartamento"
+            <!-- Torre -->
+            <div>
+              <label class="form-label">Torre</label>
+              <select
+                v-model="form.id_torre"
+                :disabled="torres.length === 0"
+                @change="onTorreChange"
+                class="form-input"
               >
-                {{ t.nombre }} — {{ formatCurrency(t.valor_estimado) }}
-              </option>
-            </select>
-            <p v-if="errors.id_tipo_apartamento" class="form-error">
-              {{ errors.id_tipo_apartamento }}
-            </p>
+                <option value="">Seleccione una torre</option>
+                <option v-for="t in torres" :key="t.id_torre" :value="t.id_torre">
+                  {{ t.nombre_torre }}
+                </option>
+              </select>
+              <p v-if="errors.id_torre" class="form-error">{{ errors.id_torre }}</p>
+            </div>
+
+            <!-- Piso -->
+            <div>
+              <label class="form-label">Piso</label>
+              <select v-model="form.id_piso_torre" :disabled="pisos.length === 0" class="form-input">
+                <option value="">Seleccione un piso</option>
+                <option v-for="p in pisos" :key="p.id_piso_torre" :value="p.id_piso_torre">
+                  Nivel {{ p.nivel }}
+                </option>
+              </select>
+              <p v-if="errors.id_piso_torre" class="form-error">{{ errors.id_piso_torre }}</p>
+            </div>
+
+            <!-- Número -->
+            <div>
+              <label class="form-label">Número</label>
+              <input v-model="form.numero" type="text" maxlength="20" class="form-input" placeholder="Ej: 302" />
+              <p v-if="errors.numero" class="form-error">{{ errors.numero }}</p>
+            </div>
+
+            <!-- Tipo -->
+            <div>
+              <label class="form-label">Tipo de apartamento</label>
+              <select v-model="form.id_tipo_apartamento" class="form-input">
+                <option value="">Seleccione</option>
+                <option
+                  v-for="t in tiposFiltrados"
+                  :key="t.id_tipo_apartamento"
+                  :value="t.id_tipo_apartamento"
+                >
+                  {{ t.nombre }} — {{ formatCurrency(t.valor_estimado) }}
+                </option>
+              </select>
+              <p v-if="errors.id_tipo_apartamento" class="form-error">{{ errors.id_tipo_apartamento }}</p>
+            </div>
+
+            <!-- Estado -->
+            <div>
+              <label class="form-label">Estado del inmueble</label>
+              <select v-model="form.id_estado_inmueble" class="form-input">
+                <option value="">Seleccione un estado</option>
+                <option v-for="e in estados" :key="e.id_estado_inmueble" :value="e.id_estado_inmueble">
+                  {{ e.nombre }}
+                </option>
+              </select>
+              <p v-if="errors.id_estado_inmueble" class="form-error">{{ errors.id_estado_inmueble }}</p>
+            </div>
+          </div>
+        </AppCard>
+
+        <!-- Calculated card -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <h3 class="text-sm font-semibold text-gray-900">Cálculos</h3>
+              <p class="text-xs text-gray-500 mt-1">
+                Valores informativos (solo lectura).
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label class="form-label">Estado del Inmueble</label>
-            <select v-model="form.id_estado_inmueble" class="form-input">
-              <option value="">Seleccione un estado</option>
-              <option
-                v-for="e in estados"
-                :key="e.id_estado_inmueble"
-                :value="e.id_estado_inmueble"
-              >
-                {{ e.nombre }}
-              </option>
-            </select>
-            <p v-if="errors.id_estado_inmueble" class="form-error">
-              {{ errors.id_estado_inmueble }}
-            </p>
-          </div>
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Prima altura -->
+            <div class="rounded-2xl border border-gray-200 p-4">
+              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Prima altura</p>
+              <p class="mt-2 text-2xl font-semibold text-gray-900">
+                {{ formatCurrency(primaAlturaCalculada) }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500">
+                Se calcula según el piso y configuración del proyecto.
+              </p>
+            </div>
 
-          <!-- Prima Altura (solo lectura, calculada) -->
-          <div>
-            <label class="form-label">Prima Altura</label>
-            <input
-              type="text"
-              class="form-input bg-gray-50"
-              :value="formatCurrency(primaAlturaCalculada)"
-              disabled
-            />
-            <p class="text-xs text-gray-500">
-              Se calcula según el piso y configuración del proyecto.
-            </p>
+            <!-- Valor total -->
+            <div class="rounded-2xl border border-gray-200 p-4">
+              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Valor total</p>
+              <p class="mt-2 text-2xl font-semibold text-gray-900">
+                {{ formatCurrency(valorTotalCalculado) }}
+              </p>
+              <p class="mt-1 text-xs text-gray-500">
+                Valor estimado del tipo + prima altura.
+              </p>
+            </div>
           </div>
+        </AppCard>
 
-          <!-- Valor Total (solo lectura) -->
-          <div>
-            <label class="form-label">Valor Total</label>
-            <input
-              type="text"
-              class="form-input bg-gray-50"
-              :value="formatCurrency(valorTotalCalculado)"
-              disabled
-            />
-            <p class="text-xs text-gray-500">Valor Estimado + Prima Altura.</p>
-          </div>
-        </div>
-
-        <div class="mt-6 flex items-center gap-3">
-          <button type="submit" class="btn-primary">Actualizar</button>
-          <Link href="/apartamentos" class="btn-secondary">Cancelar</Link>
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-2">
+          <ButtonSecondary href="/apartamentos">
+            Cancelar
+          </ButtonSecondary>
+          <ButtonPrimary type="submit">
+            Actualizar
+          </ButtonPrimary>
         </div>
       </form>
-    </div>
 
-    <FlashMessages />
+      <FlashMessages />
+    </div>
   </SidebarBannerLayout>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
+
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
+import AppCard from '@/Components/AppCard.vue'
+import PageHeader from '@/Components/PageHeader.vue'
+import ButtonPrimary from '@/Components/ButtonPrimary.vue'
+import ButtonSecondary from '@/Components/ButtonSecondary.vue'
 
 const props = defineProps({
   apartamento: { type: Object, required: true },
@@ -264,18 +307,12 @@ const tiposFiltrados = computed(() => {
 
 <style scoped>
 .form-label {
-  @apply block text-sm font-medium mb-1;
+  @apply block text-sm font-semibold text-gray-700 mb-1;
 }
 .form-input {
-  @apply w-full border rounded-md px-3 py-2 text-sm;
+  @apply w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500;
 }
 .form-error {
   @apply text-sm text-red-600 mt-1;
-}
-.btn-primary {
-  @apply inline-flex items-center gap-2 px-4 py-2 rounded-md bg-brand-600 text-white hover:bg-brand-700;
-}
-.btn-secondary {
-  @apply inline-flex items-center gap-2 px-4 py-2 rounded-md border text-brand-700 hover:bg-brand-50;
 }
 </style>

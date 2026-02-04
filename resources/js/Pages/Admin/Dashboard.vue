@@ -1,133 +1,145 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-brand-50">
-    <!-- Banner superior -->
-    <header
-      class="bg-brand-500/5 border-b border-brand-200/30 px-6 py-3 flex items-center justify-between"
-    >
-      <div class="flex items-center gap-4">
-        <Logo class="w-10 h-10" />
-        <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
-      </div>
+  <SidebarBannerLayout :empleado="empleado">
+    <template #title>Dashboard</template>
 
-      <!-- Usuario y menú -->
-      <div class="relative" id="user-menu">
-        <button @click="toggleMenu" class="flex items-center gap-2 focus:outline-none">
-          <div class="text-right max-w-[180px] truncate">
-            <div class="font-semibold text-gray-800" :title="empleadoCompleto">
-              {{ empleadoCompleto }}
-            </div>
-            <div
-              class="text-sm text-gray-500 flex items-center gap-1 truncate"
-              :title="empleado?.cargo?.nombre || 'Cargo'"
-            >
-              <UserIcon class="w-4 h-4 text-gray-400" />
-              {{ empleado?.cargo?.nombre || 'Cargo' }}
-            </div>
+    <div class="space-y-6">
+      <!-- HERO -->
+      <section
+        class="rounded-2xl border border-brand-300/60 bg-white shadow-sm overflow-hidden"
+      >
+        <div class="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-600">Panel administrativo</p>
+
+            <h3 class="text-2xl font-semibold text-gray-900">
+              Bienvenido,
+              <span class="text-brand-900">{{ empleadoNombre }}</span>
+            </h3>
+
+            <p class="text-sm text-gray-700 mt-1 max-w-2xl">
+              Accede rápidamente a los módulos del sistema y gestiona la información clave.
+            </p>
           </div>
-          <ChevronDownIcon class="w-5 h-5 text-gray-600" />
+
+          <div class="flex items-center gap-3">
+            <div
+              class="hidden sm:flex items-center gap-2 rounded-xl border border-brand-300 bg-brand-200 px-3 py-2"
+            >
+              <span class="h-2 w-2 rounded-full bg-brand-700"></span>
+              <span class="text-sm font-semibold text-brand-950">
+                {{ cargoNombre }}
+              </span>
+            </div>
+
+            <Link
+              href="/perfil"
+              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow
+                     hover:bg-brand-700 active:bg-brand-800 transition"
+            >
+              <UserIcon class="w-4 h-4" />
+              Mi perfil
+            </Link>
+          </div>
+        </div>
+
+        <div class="h-1.5 w-full bg-gradient-to-r from-brand-300 via-brand-600 to-brand-300"></div>
+      </section>
+
+      <!-- BUSCADOR -->
+      <section class="rounded-2xl border border-brand-300/60 bg-white shadow-sm">
+        <div class="p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h4 class="text-base font-semibold text-gray-900">Módulos</h4>
+            <p class="text-sm text-gray-600">Busca por nombre o categoría.</p>
+          </div>
+
+          <div class="w-full sm:w-[420px]">
+            <QuickSearch v-model="query" placeholder="Buscar módulos…" />
+          </div>
+        </div>
+      </section>
+
+      <!-- GRID -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <AdminTile
+          v-for="item in filteredItems"
+          :key="item.href"
+          :href="item.href"
+          :icon="item.icon"
+          :title="item.title"
+          :description="item.description"
+          :tag="item.tag"
+        />
+      </section>
+
+      <!-- EMPTY STATE -->
+      <section
+        v-if="filteredItems.length === 0"
+        class="rounded-2xl border border-dashed border-brand-300 bg-white p-10 text-center"
+      >
+        <MagnifyingGlassIcon class="w-8 h-8 mx-auto text-brand-700" />
+        <h4 class="mt-3 text-base font-semibold text-gray-900">Sin resultados</h4>
+        <p class="mt-1 text-sm text-gray-600">
+          No se encontraron módulos para
+          <span class="font-semibold">"{{ query }}"</span>
+        </p>
+
+        <button
+          @click="query = ''"
+          class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white
+                 hover:bg-brand-700 transition"
+        >
+          Limpiar búsqueda
         </button>
-
-        <transition name="fade">
-          <ul
-            v-if="menuOpen"
-            class="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md z-10"
-          >
-            <li>
-              <Link href="/perfil" class="block px-4 py-2 hover:bg-gray-100">Perfil</Link>
-            </li>
-            <li>
-              <button @click="logout" class="w-full text-left px-4 py-2 hover:bg-gray-100">
-                Logout
-              </button>
-            </li>
-          </ul>
-        </transition>
-      </div>
-    </header>
-
-    <!-- Contenido principal -->
-    <main class="flex-grow p-6 max-w-6xl mx-auto">
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        <AdminButton icon="FolderIcon" text="Proyectos" href="/proyectos" />
-        <AdminButton icon="UsersIcon" text="Empleados" href="/empleados" />
-        <AdminButton icon="CheckCircleIcon" text="Estados" href="/estados" />
-        <AdminButton icon="BuildingOfficeIcon" text="Dependencias y Cargos" href="/dependencias-cargos" />
-        <AdminButton icon="HomeIcon" text="Torres" href="/admin/torres" />
-        <AdminButton icon="HomeIcon" text="Pisos Torre" href="/pisos-torre" />
-        <AdminButton icon="HomeIcon" text="Apartamentos" href="/apartamentos" />
-        <AdminButton icon="HomeIcon" text="Tipos Apartamento" href="/tipos-apartamento" />
-        <AdminButton icon="HomeIcon" text="Locales" href="/locales" />
-        <AdminButton icon="HomeIcon" text="Zonas Sociales" href="/zonas-sociales" />
-        <AdminButton icon="HomeIcon" text="Parqueaderos" href="/parqueaderos" />
-        <AdminButton icon="HomeIcon" text="Politicas" href="/politicas-precio-proyecto" />
-      </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t py-4 text-center text-sm text-gray-500">
-      © {{ new Date().getFullYear() }} Constructora A&C. Todos los derechos reservados.
-    </footer>
-  </div>
+      </section>
+    </div>
+  </SidebarBannerLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
-import Logo from '@/Components/Logo.vue'
-import AdminButton from '@/Components/AdminButton.vue'
+import { computed, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
+import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import AdminTile from '@/Components/AdminTile.vue'
+import QuickSearch from '@/Components/QuickSearch.vue'
 
-import {
-  UserIcon,
-  ChevronDownIcon,
-  HomeIcon,
-} from '@heroicons/vue/24/outline'
+import { UserIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   empleado: Object,
 })
 
-const empleadoCompleto = computed(() => {
+const empleadoNombre = computed(() => {
   if (!props.empleado) return 'Usuario'
   return [props.empleado.nombre, props.empleado.apellido].filter(Boolean).join(' ')
 })
 
-const menuOpen = ref(false)
+const cargoNombre = computed(() => props.empleado?.cargo?.nombre || 'Cargo')
 
-function toggleMenu() {
-  menuOpen.value = !menuOpen.value
-}
+const query = ref('')
 
-function closeMenu() {
-  menuOpen.value = false
-}
+const items = [
+  { title: 'Proyectos', description: 'Gestión general de proyectos.', icon: 'FolderIcon', href: '/proyectos', tag: 'Core' },
+  { title: 'Empleados', description: 'Administración de personal.', icon: 'UsersIcon', href: '/empleados', tag: 'Admin' },
+  { title: 'Estados', description: 'Catálogo de estados.', icon: 'CheckCircleIcon', href: '/estados', tag: 'Config' },
+  { title: 'Dependencias y Cargos', description: 'Estructura organizacional.', icon: 'IdentificationIcon', href: '/dependencias-cargos', tag: 'Admin' },
+  { title: 'Torres', description: 'Gestión de torres.', icon: 'BuildingOfficeIcon', href: '/admin/torres', tag: 'Inmobiliario' },
+  { title: 'Pisos Torre', description: 'Configuración de pisos.', icon: 'HomeIcon', href: '/pisos-torre', tag: 'Inmobiliario' },
+  { title: 'Apartamentos', description: 'Inventario de apartamentos.', icon: 'HomeIcon', href: '/apartamentos', tag: 'Inmobiliario' },
+  { title: 'Tipos Apartamento', description: 'Tipologías de unidades.', icon: 'Squares2X2Icon', href: '/tipos-apartamento', tag: 'Config' },
+  { title: 'Locales', description: 'Locales comerciales.', icon: 'BuildingStorefrontIcon', href: '/locales', tag: 'Inmobiliario' },
+  { title: 'Zonas Sociales', description: 'Amenidades y zonas comunes.', icon: 'SparklesIcon', href: '/zonas-sociales', tag: 'Inmobiliario' },
+  { title: 'Parqueaderos', description: 'Gestión de parqueaderos.', icon: 'TruckIcon', href: '/parqueaderos', tag: 'Inmobiliario' },
+  { title: 'Políticas', description: 'Políticas de precios.', icon: 'ShieldCheckIcon', href: '/politicas-precio-proyecto', tag: 'Comercial' },
+]
 
-function handleClickOutside(event) {
-  const menu = document.getElementById('user-menu')
-  if (menu && !menu.contains(event.target)) {
-    closeMenu()
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+const filteredItems = computed(() => {
+  if (!query.value) return items
+  const q = query.value.toLowerCase()
+  return items.filter(i =>
+    i.title.toLowerCase().includes(q) ||
+    i.description.toLowerCase().includes(q) ||
+    i.tag.toLowerCase().includes(q)
+  )
 })
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
-
-function logout() {
-  router.post('/logout')
-}
 </script>
-
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-</style>

@@ -1,34 +1,60 @@
 <template>
   <SidebarBannerLayout :empleado="empleado">
-    <template #title>Detalle de Parqueadero</template>
-
     <div class="space-y-6">
-      <div class="bg-white rounded-lg border p-4 md:p-6">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-brand-900">Información</h2>
+      <!-- Header -->
+      <PageHeader
+        title="Detalle de Parqueadero"
+        kicker="Inventario del proyecto"
+        subtitle="Consulta la información general y, si aplica, su asignación."
+      />
+
+      <!-- Card -->
+      <AppCard padding="md">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900">Información</h2>
           <div class="flex items-center gap-2">
-            <Link :href="`/parqueaderos/${parqueadero.id_parqueadero}/edit`" class="btn-secondary"
-              >Editar</Link
+            <Link
+              :href="`/parqueaderos/${parqueadero.id_parqueadero}/edit`"
+              class="btn-secondary"
             >
+              Editar
+            </Link>
             <Link href="/parqueaderos" class="btn-secondary">Volver</Link>
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Info grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InfoItem label="ID" :value="parqueadero.id_parqueadero" />
           <InfoItem label="Número" :value="parqueadero.numero" />
           <InfoItem label="Tipo" :value="parqueadero.tipo" />
           <InfoItem label="Estado" :value="resumen.estado" />
 
+          <!-- Asignación -->
           <template v-if="parqueadero.apartamento">
+            <Divider label="Asignación" class="md:col-span-2" />
+
             <InfoItem label="Apartamento" :value="parqueadero.apartamento.numero" />
             <InfoItem
               label="Tipo Apto"
-              :value="parqueadero.apartamento.tipo_apartamento?.nombre ?? parqueadero.apartamento.tipoApartamento?.nombre ?? '—'
-            "
+              :value="
+                parqueadero.apartamento.tipo_apartamento?.nombre ??
+                parqueadero.apartamento.tipoApartamento?.nombre ??
+                '—'
+              "
             />
-            <InfoItem label="Torre" :value="parqueadero.apartamento.torre?.nombre_torre || '—'" />
-            <InfoItem label="Piso" :value="parqueadero.apartamento.piso_torre?.nivel ?? parqueaderoapartamento.pisoTorre?.nivel ?? '—'" />
+            <InfoItem
+              label="Torre"
+              :value="parqueadero.apartamento.torre?.nombre_torre || '—'"
+            />
+            <InfoItem
+              label="Piso"
+              :value="
+                parqueadero.apartamento.piso_torre?.nivel ??
+                parqueadero.apartamento.pisoTorre?.nivel ??
+                '—'
+              "
+            />
             <InfoItem
               label="Proyecto"
               :value="parqueadero.apartamento.torre?.proyecto?.nombre || '—'"
@@ -36,19 +62,26 @@
             <InfoItem label="Ubicación" :value="resumen.apartamento?.ubicacion || '—'" />
             <InfoItem
               label="Estado inmueble"
-              :value="parqueadero.apartamento.estado_inmueble?.nombre ?? parqueadero.apartamento.estadoInmueble?.nombre ?? '—'"
+              :value="
+                parqueadero.apartamento.estado_inmueble?.nombre ??
+                parqueadero.apartamento.estadoInmueble?.nombre ??
+                '—'
+              "
             />
           </template>
         </div>
-      </div>
-    </div>
+      </AppCard>
 
-    <FlashMessages />
+      <FlashMessages />
+    </div>
   </SidebarBannerLayout>
 </template>
 
 <script setup>
 import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
+import AppCard from '@/Components/AppCard.vue'
+import Divider from '@/Components/Divider.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { Link } from '@inertiajs/vue3'
 import InfoItem from '@/Components/InfoItem.vue'
@@ -58,12 +91,12 @@ const props = defineProps({
   resumen: { type: Object, required: true },
   empleado: { type: Object, default: null },
 })
-
-
 </script>
 
 <style scoped>
 .btn-secondary {
-  @apply inline-flex items-center gap-2 px-3 py-2 rounded-md border text-brand-700 hover:bg-brand-50;
+  @apply inline-flex items-center gap-2 px-3 py-2 rounded-xl
+         border border-gray-300 text-brand-700
+         hover:bg-brand-50 transition;
 }
 </style>

@@ -1,28 +1,28 @@
-<script setup>
-import { onMounted, ref } from 'vue';
-
-defineProps({
-    modelValue: String,
-});
-
-defineEmits(['update:modelValue']);
-
-const input = ref(null);
-
-onMounted(() => {
-    if (input.value.hasAttribute('autofocus')) {
-        input.value.focus();
-    }
-});
-
-defineExpose({ focus: () => input.value.focus() });
-</script>
-
+<!-- resources/js/Components/TextInput.vue -->
 <template>
-    <input
-        ref="input"
-        class="border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-        :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
-    >
+  <input
+    :type="type"
+    :value="modelValue"
+    :placeholder="placeholder"
+    :min="min"
+    :max="max"
+    :step="step"
+    :disabled="disabled"
+    @input="$emit('update:modelValue', $event.target.value)"
+    class="block w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-gray-100 disabled:cursor-not-allowed"
+  />
 </template>
+
+<script setup>
+defineProps({
+  modelValue: { type: [String, Number, null], default: '' },
+  type: { type: String, default: 'text' },
+  placeholder: { type: String, default: '' },
+  min: { type: [String, Number], default: undefined },
+  max: { type: [String, Number], default: undefined },
+  step: { type: [String, Number], default: undefined },
+  disabled: { type: Boolean, default: false },
+})
+
+defineEmits(['update:modelValue'])
+</script>

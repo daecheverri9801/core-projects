@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Support\CargoRedirect;
 use Inertia\Inertia;
 
 class EmpleadoAuthController extends Controller
@@ -20,23 +21,51 @@ class EmpleadoAuthController extends Controller
     /**
      * Procesar login de empleado
      */
+    // public function login(Request $request)
+    // {
+    //     // Validar datos
+    //     $credentials = $request->validate([
+    //         'email' => ['required', 'email'],
+    //         'password' => ['required'],
+    //     ]);
+
+    //     // Intentar login con guard 'web' (configurado para empleados)
+    //     if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
+    //         $request->session()->regenerate();
+
+    //         // Redirigir a la ruta deseada después del login
+    //         return redirect()->intended('/dashboard');
+    //     }
+
+    //     // Si falla, regresar con error
+    //     return back()->withErrors([
+    //         'email' => 'Las credenciales no coinciden con nuestros registros.',
+    //     ])->onlyInput('email');
+    // }
+
     public function login(Request $request)
     {
-        // Validar datos
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Intentar login con guard 'web' (configurado para empleados)
         if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            // Redirigir a la ruta deseada después del login
-            return redirect()->intended('/dashboard');
+            $empleado = Auth::guard('web')->user();
+
+            // Seguridad extra
+            if (!$empleado->cargo) {
+                Auth::logout();
+                abort(403, 'Empleado sin cargo asignado.');
+            }
+
+            return redirect()->to(
+                CargoRedirect::rutaInicial($empleado->cargo->nombre)
+            );
         }
 
-        // Si falla, regresar con error
         return back()->withErrors([
             'email' => 'Las credenciales no coinciden con nuestros registros.',
         ])->onlyInput('email');

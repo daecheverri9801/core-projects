@@ -13,8 +13,9 @@ class ZonaSocialWebController extends Controller
     /**
      * Listado general
      */
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $zonas = ZonaSocial::with('proyecto.ubicacion.ciudad')
             ->orderBy('id_zona_social', 'desc')
             ->get()
@@ -28,17 +29,20 @@ class ZonaSocialWebController extends Controller
 
         return Inertia::render('Admin/ZonaSocial/Index', [
             'zonas' => $zonas,
+            'empleado' => $empleado,
         ]);
     }
 
     /**
      * Formulario de creación
      */
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
         return Inertia::render('Admin/ZonaSocial/Create', [
             'proyectos' => $proyectos,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -76,8 +80,9 @@ class ZonaSocialWebController extends Controller
     /**
      * Mostrar detalle
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $zona = ZonaSocial::with([
             'proyecto.ubicacion.ciudad.departamento.pais',
             'proyecto.estado_proyecto'
@@ -85,20 +90,23 @@ class ZonaSocialWebController extends Controller
 
         return Inertia::render('Admin/ZonaSocial/Show', [
             'zona' => $zona,
+            'empleado' => $empleado,
         ]);
     }
 
     /**
      * Formulario de edición
      */
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $zona = ZonaSocial::findOrFail($id);
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
 
         return Inertia::render('Admin/ZonaSocial/Edit', [
             'zona' => $zona,
             'proyectos' => $proyectos,
+            'empleado' => $empleado,
         ]);
     }
 

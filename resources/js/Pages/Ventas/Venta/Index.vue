@@ -49,9 +49,9 @@ function formatDate(date) {
     <!-- ================================
      DEBUG TARGETS DINÁMICOS
 ================================ -->
-    <div v-if="debugEnabled" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <!-- TARGET 1: ProyectoPricingService -->
-      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+    <!-- <div v-if="debugEnabled" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"> -->
+    <!-- TARGET 1: ProyectoPricingService -->
+    <!-- <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
         <h3 class="text-blue-900 font-semibold mb-2">ProyectoPricingService</h3>
 
         <p><strong>Proyecto:</strong> {{ debug.proyecto?.nombre ?? '—' }}</p>
@@ -69,10 +69,10 @@ function formatDate(date) {
             </li>
           </ul>
         </div>
-      </div>
+      </div> -->
 
-      <!-- TARGET 2: PriceEngine -->
-      <div class="p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
+    <!-- TARGET 2: PriceEngine -->
+    <!-- <div class="p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm">
         <h3 class="text-green-900 font-semibold mb-2">PriceEngine</h3>
 
         <p><strong>Bloque:</strong> {{ debug.pe?.bloque ?? '—' }}</p>
@@ -86,10 +86,10 @@ function formatDate(date) {
             {{ p.ventas_por_escalon }} → {{ p.porcentaje_aumento }}%
           </li>
         </ul>
-      </div>
+      </div> -->
 
-      <!-- TARGET 3: VentaService -->
-      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+    <!-- TARGET 3: VentaService -->
+    <!-- <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
         <h3 class="text-yellow-900 font-semibold mb-2">VentaService</h3>
 
         <p><strong>Operación:</strong> {{ debug.venta?.tipo ?? '—' }}</p>
@@ -104,7 +104,7 @@ function formatDate(date) {
           {{ debug.venta?.estado_inmueble ?? '—' }}
         </p>
       </div>
-    </div>
+    </div> -->
     <Head title="Ventas" />
 
     <div class="flex justify-between items-center mb-6">

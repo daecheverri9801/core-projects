@@ -15,6 +15,7 @@ class Torre extends Model
     protected $fillable = [
         'nombre_torre',
         'numero_pisos',
+        'nivel_inicio_prima',
         'id_proyecto',
         'id_estado'
     ];

@@ -1,38 +1,19 @@
-<script setup>
-import { computed, useSlots } from 'vue';
-import SectionTitle from './SectionTitle.vue';
-
-defineEmits(['submitted']);
-
-const hasActions = computed(() => !! useSlots().actions);
-</script>
-
 <template>
-    <div class="md:grid md:grid-cols-3 md:gap-6">
-        <SectionTitle>
-            <template #title>
-                <slot name="title" />
-            </template>
-            <template #description>
-                <slot name="description" />
-            </template>
-        </SectionTitle>
+  <section class="rounded-2xl border border-brand-200/60 bg-white/80 backdrop-blur shadow-sm overflow-hidden">
+    <header class="px-5 py-4 bg-brand-50 border-b border-brand-200/60">
+      <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+      <p v-if="subtitle" class="text-sm text-gray-600 mt-1">{{ subtitle }}</p>
+    </header>
 
-        <div class="mt-5 md:mt-0 md:col-span-2">
-            <form @submit.prevent="$emit('submitted')">
-                <div
-                    class="px-4 py-5 bg-white sm:p-6 shadow"
-                    :class="hasActions ? 'sm:rounded-tl-md sm:rounded-tr-md' : 'sm:rounded-md'"
-                >
-                    <div class="grid grid-cols-6 gap-6">
-                        <slot name="form" />
-                    </div>
-                </div>
-
-                <div v-if="hasActions" class="flex items-center justify-end px-4 py-3 bg-gray-50 text-end sm:px-6 shadow sm:rounded-bl-md sm:rounded-br-md">
-                    <slot name="actions" />
-                </div>
-            </form>
-        </div>
+    <div class="p-5">
+      <slot />
     </div>
+  </section>
 </template>
+
+<script setup>
+defineProps({
+  title: { type: String, required: true },
+  subtitle: { type: String, default: '' },
+})
+</script>

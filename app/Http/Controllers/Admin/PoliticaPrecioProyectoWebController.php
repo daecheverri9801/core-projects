@@ -11,24 +11,28 @@ use Inertia\Inertia;
 
 class PoliticaPrecioProyectoWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $politicas = PoliticaPrecioProyecto::with('proyecto')
             ->orderBy('aplica_desde', 'desc')
             ->get();
 
         return Inertia::render('Admin/PoliticaPrecioProyecto/Index', [
             'politicas' => $politicas,
+            'empleado' => $empleado,
         ]);
     }
 
     public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $proyectos = Proyecto::orderBy('nombre')->get(['id_proyecto', 'nombre']);
         $proyectoSeleccionado = $request->query('proyecto');
         return Inertia::render('Admin/PoliticaPrecioProyecto/Create', [
             'proyectos' => $proyectos,
             'proyectoSeleccionado' => $proyectoSeleccionado,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -48,22 +52,26 @@ class PoliticaPrecioProyectoWebController extends Controller
             ->with('success', 'Política de precio creada exitosamente.');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $politica = PoliticaPrecioProyecto::with('proyecto')->findOrFail($id);
         return Inertia::render('Admin/PoliticaPrecioProyecto/Show', [
             'politica' => $politica,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $politica = PoliticaPrecioProyecto::findOrFail($id);
         $proyectos = Proyecto::orderBy('nombre')->get(['id_proyecto', 'nombre']);
 
         return Inertia::render('Admin/PoliticaPrecioProyecto/Edit', [
             'politica' => $politica,
             'proyectos' => $proyectos,
+            'empleado' => $empleado,
         ]);
     }
 

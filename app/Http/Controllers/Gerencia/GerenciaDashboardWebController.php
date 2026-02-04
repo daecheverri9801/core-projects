@@ -16,6 +16,7 @@ class GerenciaDashboardWebController extends Controller
 {
     public function index(Request $request, GerenciaEstadisticasService $service)
     {
+        $empleado = $request->user()->load('cargo');
         $filtros = [
             'desde'           => $request->query('desde'),
             'hasta'           => $request->query('hasta'),
@@ -34,7 +35,8 @@ class GerenciaDashboardWebController extends Controller
             'empleados'       => Empleado::orderBy('nombre')->get(),
             'estadosInmueble' => EstadoInmueble::orderBy('nombre')->get(),
             'filtros'         => $filtros,
-            'planPagosCI'     => $planPagosCI
+            'planPagosCI'     => $planPagosCI,
+            'empleado' => $empleado,
         ]));
     }
 

@@ -12,42 +12,96 @@ use Inertia\Inertia;
 
 class TipoApartamentoWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $tipos = TipoApartamento::withCount('apartamentos')
-            ->orderBy('nombre')
+        $empleado = $request->user()->load('cargo');
+        $tipos = TipoApartamento::with(['proyecto'])
+            ->withCount('apartamentos')
+            ->orderBy('id_tipo_apartamento', 'desc')
             ->get()
-            ->map(function ($t) {
-                return [
-                    'id_proyecto' => $t->proyecto->nombre,
-                    'id_tipo_apartamento' => $t->id_tipo_apartamento,
-                    'nombre' => $t->nombre,
-                    'area_construida' => $t->area_construida,
-                    'area_privada' => $t->area_privada,
-                    'cantidad_habitaciones' => $t->cantidad_habitaciones,
-                    'cantidad_banos' => $t->cantidad_banos,
-                    'valor_m2' => $t->valor_m2,
-                    'apartamentos_count' => $t->apartamentos_count,
-                    'valor_estimado' => $t->valor_estimado,
-                ];
-            });
+            ->map(fn($t) => [
+                'id_tipo_apartamento' => $t->id_tipo_apartamento,
+                'nombre' => $t->nombre,
+                'area_construida' => $t->area_construida,
+                'area_privada' => $t->area_privada,
+                'cantidad_habitaciones' => $t->cantidad_habitaciones,
+                'cantidad_banos' => $t->cantidad_banos,
+                'valor_m2' => $t->valor_m2,
+                'valor_estimado' => $t->valor_estimado,
+                'apartamentos_count' => $t->apartamentos_count,
+                'proyecto' => $t->proyecto?->nombre,
+            ]);
 
         return Inertia::render('Admin/TipoApartamento/Index', [
             'tipos' => $tipos,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $proyectos = Proyecto::orderBy('nombre')->get();
 
         return Inertia::render('Admin/TipoApartamento/Create', [
             'proyectos' => $proyectos,
+            'empleado' => $empleado,
         ]);
     }
 
     public function store(Request $request)
     {
+        // ✅ MODO LOTE
+        if ($request->has('tipos') && is_array($request->input('tipos'))) {
+
+            $validated = $request->validate([
+                'id_proyecto' => 'required|exists:proyectos,id_proyecto',
+                'tipos' => 'required|array|min:1',
+                'tipos.*.nombre' => 'required|string|max:100',
+                'tipos.*.area_construida' => 'nullable|numeric|min:0|max:99999999.99',
+                'tipos.*.area_privada' => 'nullable|numeric|min:0|max:99999999.99',
+                'tipos.*.cantidad_habitaciones' => 'nullable|integer|min:0|max:32767',
+                'tipos.*.cantidad_banos' => 'nullable|integer|min:0|max:32767',
+                'tipos.*.valor_m2' => 'nullable|numeric|min:0|max:9999999999999999.99',
+                'tipos.*.imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            ]);
+
+            // ✅ aquí vienen los archivos anidados de forma confiable
+            $tiposFiles = $request->file('tipos') ?? [];
+
+            \DB::transaction(function () use ($validated, $tiposFiles) {
+
+                foreach ($validated['tipos'] as $i => $row) {
+
+                    // Imagen (robusto)
+                    if (!empty($tiposFiles[$i]['imagen'])) {
+                        $ruta = $tiposFiles[$i]['imagen']->store('tipos-apartamento', 'public');
+                        $row['imagen'] = $ruta;
+                    }
+
+                    // Calcular valor_estimado
+                    $area = (float)($row['area_construida'] ?? 0);
+                    $valorM2 = (float)($row['valor_m2'] ?? 0);
+
+                    $row['valor_estimado'] = ($area > 0 && $valorM2 > 0)
+                        ? ceil($area * $valorM2)
+                        : null;
+
+                    $row['id_proyecto'] = $validated['id_proyecto'];
+
+                    // Limpieza opcional si llegan campos extra desde frontend
+                    unset($row['_key'], $row['_fileName']);
+
+                    TipoApartamento::create($row);
+                }
+            });
+
+            return redirect()
+                ->route('tipos-apartamento.index')
+                ->with('success', 'Tipos de apartamento creados exitosamente');
+        }
+
+        // ✅ MODO SIMPLE: mantiene tu implementación actual
         $validated = $request->validate([
             'id_proyecto' => 'required|exists:proyectos,id_proyecto',
             'nombre' => 'required|string|max:100',
@@ -80,26 +134,25 @@ class TipoApartamentoWebController extends Controller
             $validated['imagen'] = $ruta;
         }
 
-        // Calcular y persistir valor_estimado
         $area = (float)($validated['area_construida'] ?? 0);
         $valorM2 = (float)($validated['valor_m2'] ?? 0);
         if ($area > 0 && $valorM2 > 0) {
             $valorCalculado = $area * $valorM2 * 1.08;
-            // Redondear a la siguiente centena de mil (100,000) hacia arriba
             $validated['valor_estimado'] = ceil($valorCalculado);
         } else {
             $validated['valor_estimado'] = null;
         }
 
-        $validated['id_proyecto'] = $request->id_proyecto;
         $tipo = TipoApartamento::create($validated);
 
-        return redirect()->route('tipos-apartamento.show', $tipo->id_tipo_apartamento)
+        return redirect()
+            ->route('tipos-apartamento.show', $tipo->id_tipo_apartamento)
             ->with('success', 'Tipo de apartamento creado exitosamente');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $tipo = TipoApartamento::with(['apartamentos.torre', 'apartamentos.estadoInmueble'])
             ->findOrFail($id);
 
@@ -114,6 +167,7 @@ class TipoApartamentoWebController extends Controller
                 'cantidad_banos' => $tipo->cantidad_banos,
                 'valor_m2' => $tipo->valor_m2,
                 'valor_estimado' => $tipo->valor_estimado,
+                'imagen' => $tipo->imagen,
             ],
             'apartamentos' => $tipo->apartamentos->map(function ($a) {
                 return [
@@ -123,11 +177,13 @@ class TipoApartamentoWebController extends Controller
                     'estado' => $a->estadoInmueble?->nombre,
                 ];
             }),
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $t = TipoApartamento::findOrFail($id);
         $proyectos = Proyecto::orderBy('nombre')->get();
 
@@ -144,6 +200,7 @@ class TipoApartamentoWebController extends Controller
                 'imagen' => $t->imagen,
             ],
             'proyectos' => $proyectos,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -154,11 +211,11 @@ class TipoApartamentoWebController extends Controller
         $validated = $request->validate([
             'id_proyecto' => 'required|exists:proyectos,id_proyecto',
             'nombre' => [
-            'required',
-            'string',
-            'max:100',
-            Rule::unique('tipos_apartamento')->ignore($t->id_tipo_apartamento, 'id_tipo_apartamento')
-        ],
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('tipos_apartamento')->ignore($t->id_tipo_apartamento, 'id_tipo_apartamento')
+            ],
             'area_construida' => 'nullable|numeric|min:0|max:99999999.99',
             'area_privada' => 'nullable|numeric|min:0|max:99999999.99',
             'cantidad_habitaciones' => 'nullable|integer|min:0|max:32767',
@@ -195,7 +252,7 @@ class TipoApartamentoWebController extends Controller
         $area = (float)($validated['area_construida'] ?? 0);
         $valorM2 = (float)($validated['valor_m2'] ?? 0);
         if ($area > 0 && $valorM2 > 0) {
-            $valorCalculado = $area * $valorM2 * 1.08;
+            $valorCalculado = $area * $valorM2;
             $validated['valor_estimado'] = ceil($valorCalculado);
         } else {
             $validated['valor_estimado'] = null;

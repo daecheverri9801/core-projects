@@ -10,6 +10,7 @@ use App\Models\EstadoInmueble;
 use App\Models\Empleado;
 use App\Models\Meta;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class GerenciaEstadisticasService
@@ -19,6 +20,7 @@ class GerenciaEstadisticasService
      */
     public function obtenerDashboard(array $filtros): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
         [$desde, $hasta] = $this->rangoFechas($filtros);
 
         return [
@@ -30,18 +32,78 @@ class GerenciaEstadisticasService
             'inventarioProyectos'    => $this->inventarioPorProyecto($filtros),
             'ventasAsesoresProyecto' => $this->ventasPorAsesorProyecto($filtros, $desde, $hasta),
 
-            // Nuevos bloques para las 3 gráficas del resumen
             'estadoInventario'       => $this->estadoInventario(),
             'rankingAsesores'        => $this->rankingAsesores(),
             'absorcionMensual'       => $this->absorcionMensual(),
         ];
     }
 
+    /* ===========================================================
+     * NORMALIZACIÓN DE FILTROS (evita '' y castea IDs)
+     * =========================================================== */
+    private function normalizarFiltros(array $filtros): array
+    {
+        $out = $filtros;
+
+        $out['desde'] = isset($out['desde']) && is_string($out['desde']) && trim($out['desde']) !== ''
+            ? trim($out['desde'])
+            : null;
+
+        $out['hasta'] = isset($out['hasta']) && is_string($out['hasta']) && trim($out['hasta']) !== ''
+            ? trim($out['hasta'])
+            : null;
+
+        $out['proyecto_id'] = $this->toIntOrNull($out['proyecto_id'] ?? null);
+        $out['asesor_id'] = $this->toIntOrNull($out['asesor_id'] ?? null);
+        $out['estado_inmueble'] = $this->toIntOrNull($out['estado_inmueble'] ?? null);
+
+        return $out;
+    }
+
+    private function toIntOrNull($v): ?int
+    {
+        if ($v === null) return null;
+        if (is_int($v)) return $v > 0 ? $v : null;
+        if (!is_string($v)) return null;
+
+        $v = trim($v);
+        if ($v === '') return null;
+        if (!is_numeric($v)) return null;
+
+        $i = (int) $v;
+        return $i > 0 ? $i : null;
+    }
+
     /**
-     * Si no vienen fechas, tomamos año actual.
+     * Normaliza una lista/colección de IDs para whereIn:
+     * - elimina null/''
+     * - deja solo enteros > 0
+     * - unique + values
      */
+    private function normalizeIds($ids): Collection
+    {
+        return collect($ids)
+            ->filter(function ($v) {
+                if ($v === null) return false;
+                if (is_int($v)) return $v > 0;
+                if (is_string($v)) {
+                    $t = trim($v);
+                    return $t !== '' && is_numeric($t) && ((int)$t) > 0;
+                }
+                return is_numeric($v) && ((int)$v) > 0;
+            })
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values();
+    }
+
+    /* ===========================================================
+     * RANGO FECHAS
+     * =========================================================== */
     public function rangoFechas(array $filtros): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $desde = !empty($filtros['desde'])
             ? Carbon::parse($filtros['desde'])->startOfDay()
             : Carbon::now()->startOfYear();
@@ -54,10 +116,12 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  RESUMEN GLOBAL
+     * RESUMEN GLOBAL
      * =========================================================== */
     public function resumenGlobal(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $ventasQuery = Venta::query()
             ->where('tipo_operacion', 'venta')
             ->whereBetween('fecha_venta', [$desde, $hasta]);
@@ -73,12 +137,16 @@ class GerenciaEstadisticasService
         $ventasTotales = (float) $ventasQuery->sum('valor_total');
         $unidadesVendidas = (int) $ventasQuery->count();
 
-        // Inventario disponible actual
         $estadoDisponibleId = EstadoInmueble::whereRaw('LOWER(nombre) = ?', ['disponible'])
             ->value('id_estado_inmueble');
 
-        $inventarioAptos = Apartamento::where('id_estado_inmueble', $estadoDisponibleId)->count();
-        $inventarioLocs  = Local::where('id_estado_inmueble', $estadoDisponibleId)->count();
+        $inventarioAptos = $estadoDisponibleId
+            ? Apartamento::where('id_estado_inmueble', $estadoDisponibleId)->count()
+            : 0;
+
+        $inventarioLocs = $estadoDisponibleId
+            ? Local::where('id_estado_inmueble', $estadoDisponibleId)->count()
+            : 0;
 
         return [
             'ventas_totales'        => $ventasTotales,
@@ -88,10 +156,12 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  VENTAS POR PROYECTO
+     * VENTAS POR PROYECTO
      * =========================================================== */
-    public function ventasPorProyecto(array $filtros, Carbon $desde, Carbon $hasta)
+    public function ventasPorProyecto(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $q = Venta::query()
             ->select(
                 'id_proyecto',
@@ -112,15 +182,23 @@ class GerenciaEstadisticasService
 
         $rows = $q->get();
 
-        $proyectos = Proyecto::whereIn('id_proyecto', $rows->pluck('id_proyecto'))
+        $ids = $this->normalizeIds($rows->pluck('id_proyecto'));
+        if ($ids->isEmpty()) {
+            // No ventas en el rango/filtro
+            return [];
+        }
+
+        $proyectos = Proyecto::whereIn('id_proyecto', $ids->all())
             ->get()
             ->keyBy('id_proyecto');
 
         return $rows->map(function ($r) use ($proyectos) {
-            $p = $proyectos[$r->id_proyecto] ?? null;
+            $id = is_numeric($r->id_proyecto) ? (int) $r->id_proyecto : null;
+            $p = ($id && isset($proyectos[$id])) ? $proyectos[$id] : null;
+
             return [
-                'id_proyecto' => $r->id_proyecto,
-                'nombre'      => $p?->nombre ?? 'Proyecto ' . $r->id_proyecto,
+                'id_proyecto' => $id,
+                'nombre'      => $p?->nombre ?? ('Proyecto ' . ($id ?? '—')),
                 'total_valor' => (float) $r->total_valor,
                 'unidades'    => (int) $r->unidades,
             ];
@@ -128,15 +206,18 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  PROYECCIÓN VS REAL (usa Meta)
+     * PROYECCIÓN VS REAL (usa Meta)
      * =========================================================== */
-    public function proyeccionVsRealMensual(array $filtros, Carbon $desde, Carbon $hasta)
+    public function proyeccionVsRealMensual(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $ano = (int) $desde->year;
         $mes = (int) $desde->month;
 
         $metas = Meta::where('ano', $ano)
             ->where('mes', $mes)
+            ->when(!empty($filtros['proyecto_id']), fn ($qq) => $qq->where('id_proyecto', $filtros['proyecto_id']))
             ->get()
             ->keyBy('id_proyecto');
 
@@ -160,18 +241,29 @@ class GerenciaEstadisticasService
 
         $ventas = $ventasQuery->groupBy('id_proyecto')->get();
 
-        $proyectos = Proyecto::whereIn('id_proyecto', $ventas->pluck('id_proyecto')->merge($metas->keys()))
+        $ids = $this->normalizeIds(
+            $ventas->pluck('id_proyecto')->merge($metas->keys())
+        );
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $proyectos = Proyecto::whereIn('id_proyecto', $ids->all())
             ->get()
             ->keyBy('id_proyecto');
 
         $resultado = [];
 
-        foreach ($proyectos as $id => $p) {
+        foreach ($ids as $id) {
+            $p = $proyectos[$id] ?? null;
+            if (!$p) continue;
+
             $meta  = $metas[$id] ?? null;
             $venta = $ventas->firstWhere('id_proyecto', $id);
 
             $resultado[] = [
-                'id_proyecto'   => $id,
+                'id_proyecto'   => (int) $id,
                 'nombre'        => $p->nombre,
                 'meta_unidades' => (int) ($meta->meta_unidades ?? 0),
                 'meta_valor'    => (float) ($meta->meta_valor ?? 0),
@@ -184,45 +276,57 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  VELOCIDAD DE VENTAS POR PROYECTO
+     * VELOCIDAD DE VENTAS POR PROYECTO
      * =========================================================== */
-    public function velocidadVentasPorProyecto(array $filtros, Carbon $desde, Carbon $hasta)
+    public function velocidadVentasPorProyecto(array $filtros, Carbon $desde, Carbon $hasta): array
     {
-        $ventas = Venta::query()
+        $filtros = $this->normalizarFiltros($filtros);
+
+        $ventasQ = Venta::query()
             ->where('tipo_operacion', 'venta')
             ->whereBetween('fecha_venta', [$desde, $hasta]);
 
         if (!empty($filtros['proyecto_id'])) {
-            $ventas->where('id_proyecto', $filtros['proyecto_id']);
+            $ventasQ->where('id_proyecto', $filtros['proyecto_id']);
         }
 
         if (!empty($filtros['asesor_id'])) {
-            $ventas->where('id_empleado', $filtros['asesor_id']);
+            $ventasQ->where('id_empleado', $filtros['asesor_id']);
         }
 
-        $ventas = $ventas->get()->groupBy('id_proyecto');
+        $ventasGrouped = $ventasQ->get()->groupBy('id_proyecto');
 
-        $proyectos = Proyecto::whereIn('id_proyecto', $ventas->keys())
+        $ids = $this->normalizeIds($ventasGrouped->keys());
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $proyectos = Proyecto::whereIn('id_proyecto', $ids->all())
             ->get()
             ->keyBy('id_proyecto');
 
         $resultado = [];
 
-        foreach ($ventas as $idProyecto => $ventasProyecto) {
-            $proyecto = $proyectos[$idProyecto] ?? null;
+        foreach ($ventasGrouped as $idProyecto => $ventasProyecto) {
+            $id = is_numeric($idProyecto) ? (int) $idProyecto : null;
+            if (!$id) continue;
+
+            $proyecto = $proyectos[$id] ?? null;
             if (!$proyecto || !$proyecto->fecha_inicio) {
                 continue;
             }
 
             $inicio = Carbon::parse($proyecto->fecha_inicio);
+
             $dias = $ventasProyecto->map(function ($v) use ($inicio) {
+                if (!$v->fecha_venta) return null;
                 return $inicio->diffInDays(Carbon::parse($v->fecha_venta));
-            });
+            })->filter(fn ($x) => $x !== null);
 
             $promedio = $dias->count() ? round($dias->avg(), 1) : null;
 
             $resultado[] = [
-                'id_proyecto'         => $idProyecto,
+                'id_proyecto'         => $id,
                 'proyecto'            => $proyecto->nombre,
                 'dias_promedio_venta' => $promedio,
             ];
@@ -232,10 +336,12 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  SEPARACIONES / EFECTIVIDAD POR ASESOR
+     * SEPARACIONES / EFECTIVIDAD POR ASESOR
      * =========================================================== */
-    public function separacionesYEfectividad(array $filtros, Carbon $desde, Carbon $hasta)
+    public function separacionesYEfectividad(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $q = Venta::query()
             ->where('tipo_operacion', 'separacion')
             ->whereBetween('fecha_venta', [$desde, $hasta]);
@@ -250,23 +356,31 @@ class GerenciaEstadisticasService
 
         $rows = $q->get()->groupBy('id_empleado');
 
-        $empleados = Empleado::whereIn('id_empleado', $rows->keys())
-            ->get()
-            ->keyBy('id_empleado');
+        $idsEmps = $this->normalizeIds($rows->keys());
+        $empleados = $idsEmps->isEmpty()
+            ? collect()
+            : Empleado::whereIn('id_empleado', $idsEmps->all())->get()->keyBy('id_empleado');
 
         $hoy = Carbon::today();
-
         $resultado = [];
 
         foreach ($rows as $idEmpleado => $seps) {
-            $emp = $empleados[$idEmpleado] ?? null;
+            $id = is_numeric($idEmpleado) ? (int) $idEmpleado : null;
+            if (!$id) continue;
+
+            $emp = $empleados[$id] ?? null;
 
             $total      = $seps->count();
-            $caducadas  = $seps->where('fecha_limite_separacion', '<', $hoy)->count();
+            $caducadas  = $seps->filter(function ($v) use ($hoy) {
+                return $v->fecha_limite_separacion
+                    ? Carbon::parse($v->fecha_limite_separacion)->lt($hoy)
+                    : false;
+            })->count();
+
             $ejecutadas = $total - $caducadas;
 
             $resultado[] = [
-                'id_empleado'             => $idEmpleado,
+                'id_empleado'             => $id,
                 'empleado'                => $emp ? ($emp->nombre . ' ' . $emp->apellido) : 'Sin nombre',
                 'total_separaciones'      => $total,
                 'separaciones_caducadas'  => $caducadas,
@@ -278,10 +392,12 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  INVENTARIO POR PROYECTO (detallado)
+     * INVENTARIO POR PROYECTO (detallado)
      * =========================================================== */
-    public function inventarioPorProyecto(array $filtros)
+    public function inventarioPorProyecto(array $filtros): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $proyectosQuery = Proyecto::query()->with([
             'torres.apartamentos.estadoInmueble',
             'torres.apartamentos.tipoApartamento',
@@ -311,22 +427,20 @@ class GerenciaEstadisticasService
 
             foreach ($proyecto->torres as $torre) {
                 foreach ($torre->apartamentos as $apto) {
-                    if ($estadoFiltroId && $apto->id_estado_inmueble != $estadoFiltroId) {
+                    if ($estadoFiltroId && (int)$apto->id_estado_inmueble !== (int)$estadoFiltroId) {
                         continue;
                     }
 
                     $ultimaVenta  = $apto->ventas->first();
-                    $asesor       = $ultimaVenta?->empleado;
+                    $asesor       = $ultimaVenta?->empleado; // si existe relación
                     $estadoNombre = $apto->estadoInmueble?->nombre ?? '—';
 
-                    // NUEVO: obtener precio base desde tipo de apartamento
-                    $precioBase = $apto->tipoApartamento->valor_estimado
-                        ?? 0;
+                    $precioBase = (float) ($apto->tipoApartamento?->valor_estimado ?? 0);
 
                     $items[] = [
                         'tipo'            => 'Apartamento',
                         'etiqueta'        => 'Apto ' . $apto->numero,
-                        'precio_base'     => (float) $precioBase,
+                        'precio_base'     => $precioBase,
                         'precio_vigente'  => (float) ($apto->valor_final ?? $apto->valor_total ?? 0),
                         'estado'          => $estadoNombre,
                         'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
@@ -335,18 +449,18 @@ class GerenciaEstadisticasService
                 }
 
                 foreach ($torre->locales as $loc) {
-                    if ($estadoFiltroId && $loc->id_estado_inmueble != $estadoFiltroId) {
+                    if ($estadoFiltroId && (int)$loc->id_estado_inmueble !== (int)$estadoFiltroId) {
                         continue;
                     }
 
                     $ultimaVenta  = $loc->ventas->first();
-                    $asesor       = $ultimaVenta?->empleado;
+                    $asesor       = $ultimaVenta?->empleado; // si existe relación
                     $estadoNombre = $loc->estadoInmueble?->nombre ?? '—';
 
                     $items[] = [
                         'tipo'            => 'Local',
                         'etiqueta'        => 'Local ' . $loc->numero,
-                        'precio_base'     => (float) $loc->valor_total,
+                        'precio_base'     => (float) ($loc->valor_total ?? 0),
                         'precio_vigente'  => (float) ($loc->valor_total ?? 0),
                         'estado'          => $estadoNombre,
                         'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
@@ -366,10 +480,12 @@ class GerenciaEstadisticasService
     }
 
     /* ===========================================================
-     *  VENTAS / SEPARACIONES POR ASESOR Y PROYECTO
+     * VENTAS / SEPARACIONES POR ASESOR Y PROYECTO
      * =========================================================== */
-    public function ventasPorAsesorProyecto(array $filtros, Carbon $desde, Carbon $hasta)
+    public function ventasPorAsesorProyecto(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $q = Venta::query()
             ->select(
                 'id_proyecto',
@@ -392,22 +508,28 @@ class GerenciaEstadisticasService
 
         $rows = $q->get();
 
-        $proyectos = Proyecto::whereIn('id_proyecto', $rows->pluck('id_proyecto'))
-            ->get()
-            ->keyBy('id_proyecto');
+        $idsProyectos = $this->normalizeIds($rows->pluck('id_proyecto'));
+        $idsEmpleados = $this->normalizeIds($rows->pluck('id_empleado'));
 
-        $empleados = Empleado::whereIn('id_empleado', $rows->pluck('id_empleado'))
-            ->get()
-            ->keyBy('id_empleado');
+        $proyectos = $idsProyectos->isEmpty()
+            ? collect()
+            : Proyecto::whereIn('id_proyecto', $idsProyectos->all())->get()->keyBy('id_proyecto');
+
+        $empleados = $idsEmpleados->isEmpty()
+            ? collect()
+            : Empleado::whereIn('id_empleado', $idsEmpleados->all())->get()->keyBy('id_empleado');
 
         return $rows->map(function ($r) use ($proyectos, $empleados) {
-            $p   = $proyectos[$r->id_proyecto] ?? null;
-            $emp = $empleados[$r->id_empleado] ?? null;
+            $idP = is_numeric($r->id_proyecto) ? (int) $r->id_proyecto : null;
+            $idE = is_numeric($r->id_empleado) ? (int) $r->id_empleado : null;
+
+            $p   = ($idP && isset($proyectos[$idP])) ? $proyectos[$idP] : null;
+            $emp = ($idE && isset($empleados[$idE])) ? $empleados[$idE] : null;
 
             return [
-                'id_proyecto'             => $r->id_proyecto,
-                'proyecto'                => $p?->nombre ?? 'Proyecto ' . $r->id_proyecto,
-                'id_empleado'             => $r->id_empleado,
+                'id_proyecto'             => $idP,
+                'proyecto'                => $p?->nombre ?? ('Proyecto ' . ($idP ?? '—')),
+                'id_empleado'             => $idE,
                 'empleado'                => $emp ? ($emp->nombre . ' ' . $emp->apellido) : 'Sin nombre',
                 'ventas'                  => (int) $r->ventas,
                 'separaciones'            => (int) $r->separaciones,
@@ -424,11 +546,10 @@ class GerenciaEstadisticasService
     {
         return Proyecto::with([
             'torres.apartamentos.estadoInmueble',
-            'torres.locales.estadoInmueble'
+            'torres.locales.estadoInmueble',
         ])
             ->get()
             ->map(function ($p) {
-
                 $estados = [
                     'Disponible'    => 0,
                     'Vendido'       => 0,
@@ -439,15 +560,15 @@ class GerenciaEstadisticasService
 
                 foreach ($p->torres as $torre) {
                     foreach ($torre->apartamentos as $a) {
-                        $nombre = $a->estadoInmueble->nombre ?? null;
-                        if ($nombre && isset($estados[$nombre])) {
+                        $nombre = $a->estadoInmueble?->nombre;
+                        if ($nombre && array_key_exists($nombre, $estados)) {
                             $estados[$nombre]++;
                         }
                     }
 
                     foreach ($torre->locales as $l) {
-                        $nombre = $l->estadoInmueble->nombre ?? null;
-                        if ($nombre && isset($estados[$nombre])) {
+                        $nombre = $l->estadoInmueble?->nombre;
+                        if ($nombre && array_key_exists($nombre, $estados)) {
                             $estados[$nombre]++;
                         }
                     }
@@ -501,6 +622,8 @@ class GerenciaEstadisticasService
      * =========================================================== */
     public function planPagosCI(array $filtros, Carbon $desde, Carbon $hasta): array
     {
+        $filtros = $this->normalizarFiltros($filtros);
+
         $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
             ->where('tipo_operacion', 'venta')
             ->whereBetween('fecha_venta', [$desde, $hasta]);
@@ -523,26 +646,19 @@ class GerenciaEstadisticasService
             ];
         }
 
-        /* ============================================================
-       1. DEFINIR RANGO GLOBAL DE MESES
-       ============================================================ */
         $minMes = null;
         $maxMes = null;
 
         foreach ($ventas as $v) {
             if (!$v->fecha_venta) continue;
 
-            $plazo = max(1, (int)$v->plazo_cuota_inicial_meses);
+            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
             $inicio = Carbon::parse($v->fecha_venta)->startOfMonth();
             $fin    = (clone $inicio)->addMonths($plazo);
 
-            if ($minMes === null || $inicio->lt($minMes)) {
-                $minMes = $inicio->copy();
-            }
-            if ($maxMes === null || $fin->gt($maxMes)) {
-                $maxMes = $fin->copy();
-            }
+            if ($minMes === null || $inicio->lt($minMes)) $minMes = $inicio->copy();
+            if ($maxMes === null || $fin->gt($maxMes))    $maxMes = $fin->copy();
         }
 
         if (!$minMes || !$maxMes) {
@@ -553,9 +669,6 @@ class GerenciaEstadisticasService
             ];
         }
 
-        /* ============================================================
-       2. ENCABEZADOS (MESES DINÁMICOS)
-       ============================================================ */
         $encabezados = [];
         $cursor = $minMes->copy();
         while ($cursor <= $maxMes) {
@@ -566,13 +679,9 @@ class GerenciaEstadisticasService
         $filas   = [];
         $totales = array_fill_keys($encabezados, 0);
 
-        /* ============================================================
-       3. RECORRER VENTAS Y ARMAR FILAS
-       ============================================================ */
         foreach ($ventas as $v) {
-
-            $proyecto = $v->proyecto->nombre ?? ('Proyecto ' . $v->id_proyecto);
-            $cliente  = $v->cliente->nombre ?? '—';
+            $proyectoNombre = $v->proyecto?->nombre ?? ('Proyecto ' . ($v->id_proyecto ?? '—'));
+            $clienteNombre  = $v->cliente?->nombre ?? '—';
 
             $inmueble = $v->apartamento?->numero
                 ? 'Apto ' . $v->apartamento->numero
@@ -580,68 +689,46 @@ class GerenciaEstadisticasService
                     ? 'Local ' . $v->local->numero
                     : '—');
 
-            // ===== Datos de la venta =====
-            $cuotaInicial   = (float)($v->cuota_inicial ?? 0);
-            $separacion     = (float)($v->valor_separacion ?? $v->proyecto->valor_min_separacion ?? 0);
-            $valorRestante  = max(0, (float)$v->valor_total - $cuotaInicial);
+            $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
+            $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
+            $separacion     = (float) ($v->valor_separacion ?? $valorMinSep);
+            $valorRestante  = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
             $saldoAmortizar = max(0, $cuotaInicial - $separacion);
-            $plazo          = max(1, (int)$v->plazo_cuota_inicial_meses);
+            $plazo          = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
-            // Fechas
             $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
 
-            // Cuotas CI
             $cuotaMensual = (int) floor($saldoAmortizar / $plazo);
             $residuo      = $saldoAmortizar - ($cuotaMensual * $plazo);
 
-            // Meses por venta
             $mesesRow = [];
 
-            /* ============================================================
-           3.1. MESES DE LA CUOTA INICIAL (Plazo CI)
-           ============================================================ */
             for ($i = 1; $i <= $plazo; $i++) {
-
                 $mes = $fechaBase->format('Y-m');
 
-                // Cuota base
                 $valorCuota = $cuotaMensual;
 
-                // Última cuota → sumamos residuo
-                if ($i === $plazo) {
-                    $valorCuota += $residuo;
-                }
+                if ($i === $plazo) $valorCuota += $residuo;
+                if ($i === 1)      $valorCuota += $separacion;
 
-                // Mes 1 → sumamos separación
-                if ($i === 1) {
-                    $valorCuota += $separacion;
-                }
-
-                // Guardar
                 $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
-                $totales[$mes]  += $valorCuota;
+                if (isset($totales[$mes])) {
+                    $totales[$mes] += $valorCuota;
+                }
 
-                // Avanzar al siguiente mes
                 $fechaBase->addMonth();
             }
 
-            /* ============================================================
-           3.2. MES SIGUIENTE AL PLAZO → VALOR RESTANTE
-           ============================================================ */
             $mesRestante = $fechaBase->format('Y-m');
-
             if (isset($totales[$mesRestante])) {
                 $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
                 $totales[$mesRestante]  += $valorRestante;
             }
 
-            /* ============================================================
-           3.3. AGREGAR FILA
-           ============================================================ */
             $filas[] = [
-                'proyecto' => $proyecto,
+                'proyecto' => $proyectoNombre,
                 'inmueble' => $inmueble,
-                'cliente'  => $cliente,
+                'cliente'  => $clienteNombre,
                 'meses'    => $mesesRow,
             ];
         }

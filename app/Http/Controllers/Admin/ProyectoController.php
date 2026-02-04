@@ -11,8 +11,6 @@ use App\Models\Estado;
 use App\Models\Ubicacion;
 use App\Models\Torre;
 
-
-
 class ProyectoController extends Controller
 {
     public function index(Request $request)
@@ -46,7 +44,7 @@ class ProyectoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:300',
+            'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
             'presupuesto_inicial' => 'nullable|numeric|min:0|max:9999999999999999.99',
@@ -68,7 +66,7 @@ class ProyectoController extends Controller
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
-            'descripcion.max' => 'La descripción no puede exceder 300 caracteres',
+            'descripcion.max' => 'La descripción no puede exceder 500 caracteres',
             'fecha_inicio.date' => 'La fecha de inicio debe ser una fecha válida',
             'fecha_finalizacion.date' => 'La fecha de finalización debe ser una fecha válida',
             'fecha_finalizacion.after_or_equal' => 'La fecha de finalización debe ser posterior o igual a la fecha de inicio',
@@ -95,15 +93,15 @@ class ProyectoController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-
         $proyecto = Proyecto::create($request->all());
         $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
         return redirect()->route('proyectos.index')->with('success', 'Proyecto creado exitosamente');
     }
 
-    public function show($id_proyecto)
+    public function show(Request $request, $id_proyecto)
     {
+        $empleado = $request->user()->load('cargo');
         $tab = request()->get('tab', 'detalle');
         $search = request()->get('search');
 
@@ -125,7 +123,7 @@ class ProyectoController extends Controller
             'filters' => [
                 'search' => $search,
             ],
-            'empleado' => auth()->empleado ?? null,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -142,7 +140,7 @@ class ProyectoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
-            'descripcion' => 'nullable|string|max:300',
+            'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
             'presupuesto_inicial' => 'nullable|numeric|min:0|max:9999999999999999.99',
@@ -164,7 +162,7 @@ class ProyectoController extends Controller
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
-            'descripcion.max' => 'La descripción no puede exceder 300 caracteres',
+            'descripcion.max' => 'La descripción no puede exceder 500 caracteres',
             'fecha_inicio.date' => 'La fecha de inicio debe ser una fecha válida',
             'fecha_finalizacion.date' => 'La fecha de finalización debe ser una fecha válida',
             'fecha_finalizacion.after_or_equal' => 'La fecha de finalización debe ser posterior o igual a la fecha de inicio',

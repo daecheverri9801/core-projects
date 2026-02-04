@@ -1,15 +1,13 @@
 <template>
-  <img src="/images/logo-ayc.png" alt="Logo Constructora A&C" class="w-500 h-500" />
+  <img
+    src="/images/logo-ayc.png"
+    alt="Logo Constructora A&C"
+    class="h-10 w-10 object-contain"
+    loading="eager"
+    decoding="async"
+  />
 </template>
 
 <script setup>
-/* Simple wrapper para el logo */
+/* Logo */
 </script>
-
-<style scoped>
-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-</style>

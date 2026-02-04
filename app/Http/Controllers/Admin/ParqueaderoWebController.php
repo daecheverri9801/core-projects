@@ -11,34 +11,41 @@ use Inertia\Inertia;
 
 class ParqueaderoWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $parqueaderos = Parqueadero::with([
             'apartamento.torre.proyecto',
             'apartamento.pisoTorre'
         ])
-        ->orderBy('id_parqueadero', 'desc')
-        ->get()
-        ->map(function ($p) {
-            return [
-                'id_parqueadero' => $p->id_parqueadero,
-                'numero' => $p->numero,
-                'tipo' => $p->tipo,
-                'estado' => $p->id_apartamento ? 'Asignado' : 'Disponible',
-                'apartamento' => $p->apartamento?->numero,
-                'torre' => $p->apartamento?->torre?->nombre_torre,
-                'piso' => $p->apartamento?->pisoTorre?->nivel,
-                'proyecto' => $p->apartamento?->torre?->proyecto?->nombre,
-            ];
-        });
+            ->orderBy('id_parqueadero', 'desc')
+            ->get()
+            ->map(function ($p) {
+                $proyecto = $p->apartamento?->torre?->proyecto;
+
+                return [
+                    'id_parqueadero' => $p->id_parqueadero,
+                    'numero' => $p->numero,
+                    'tipo' => $p->tipo,
+                    'estado' => $p->id_apartamento ? 'Asignado' : 'Disponible',
+                    'apartamento' => $p->apartamento?->numero,
+                    'torre' => $p->apartamento?->torre?->nombre_torre,
+                    'piso' => $p->apartamento?->pisoTorre?->nivel,
+                    'id_proyecto' => $proyecto?->id_proyecto,      // ✅ clave para agrupar
+                    'proyecto' => $proyecto?->nombre,              // ✅ nombre para mostrar
+                ];
+            });
 
         return Inertia::render('Admin/Parqueadero/Index', [
             'parqueaderos' => $parqueaderos,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         // Para el select de Apartamento (opcional), cargamos todos o puedes filtrar por proyecto si deseas
         $apartamentos = Apartamento::with('torre.proyecto')
             ->select('id_apartamento', 'numero', 'id_torre', 'id_piso_torre')
@@ -56,6 +63,7 @@ class ParqueaderoWebController extends Controller
         return Inertia::render('Admin/Parqueadero/Create', [
             'apartamentos' => $apartamentos,
             'tipos' => ['Vehiculo', 'Moto'],
+            'empleado' => $empleado,
         ]);
     }
 
@@ -81,8 +89,9 @@ class ParqueaderoWebController extends Controller
         return redirect()->route('parqueaderos.index')->with('success', 'Parqueadero creado exitosamente');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $p = Parqueadero::with([
             'apartamento.torre.proyecto.ubicacion.ciudad',
             'apartamento.pisoTorre',
@@ -116,11 +125,13 @@ class ParqueaderoWebController extends Controller
         return Inertia::render('Admin/Parqueadero/Show', [
             'parqueadero' => $p,
             'resumen' => $resumen,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $p = Parqueadero::with('apartamento.torre.proyecto')->findOrFail($id);
 
         $apartamentos = Apartamento::with('torre.proyecto')
@@ -145,6 +156,7 @@ class ParqueaderoWebController extends Controller
             ],
             'apartamentos' => $apartamentos,
             'tipos' => ['Vehiculo', 'Moto'],
+            'empleado' => $empleado,
         ]);
     }
 

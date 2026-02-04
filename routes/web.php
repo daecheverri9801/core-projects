@@ -52,7 +52,7 @@ Route::middleware('guest')->group(function () {
 });
 
 // Ruta solo para Administradores
-Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
+Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::prefix('proyectos')->group(function () {
         Route::get('/', [ProyectoController::class, 'index'])->name('proyectos.index');
@@ -94,6 +94,25 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
         Route::put('/{id_torre}', [AdminTorreController::class, 'update'])->name('update');
         Route::delete('/{id_torre}', [AdminTorreController::class, 'destroy'])->name('destroy');
     });
+
+    // Route::prefix('admin')->name('admin.')->group(function () {
+    //     Route::get('/torres', [\App\Http\Controllers\Admin\AdminTorreController::class, 'index'])->name('torres.index');
+    //     Route::get('/torres/create', [\App\Http\Controllers\Admin\AdminTorreController::class, 'create'])->name('torres.create');
+    //     Route::post('/torres', [\App\Http\Controllers\Admin\AdminTorreController::class, 'store'])->name('torres.store');
+
+    //     // SHOW ahora por PROYECTO
+    //     Route::get('/torres/proyecto/{id_proyecto}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'show'])
+    //         ->name('torres.show');
+
+    //     // Detalle por TORRE (nuevo)
+    //     Route::get('/torres/{id_torre}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'torreShow'])
+    //         ->name('torres.torreShow');
+
+    //     Route::get('/torres/{id_torre}/edit', [\App\Http\Controllers\Admin\AdminTorreController::class, 'edit'])->name('torres.edit');
+    //     Route::put('/torres/{id_torre}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'update'])->name('torres.update');
+    //     Route::delete('/torres/{id_torre}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'destroy'])->name('torres.destroy');
+    // });
+
 
     Route::get('/pisos-torre', [PisoTorreWebController::class, 'index'])->name('pisostorre.index');
     Route::get('/pisos-torre/create', [PisoTorreWebController::class, 'create'])->name('pisostorre.create');
@@ -169,178 +188,172 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
 // RUTAS WEB - MÓDULO DE VENTAS
 // ============================================
 
-// Catálogo (Módulo de Ventas)
-Route::get('/catalogo', [CatalogoWebController::class, 'index'])->name('catalogo.index');
-Route::get('/catalogo/{tipo}/{id}', [CatalogoWebController::class, 'show'])->name('catalogo.show');
+Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Gerente,Administrador'])->group(function () {
+    // Catálogo (Módulo de Ventas)
+    Route::get('/catalogo', [CatalogoWebController::class, 'index'])->name('catalogo.index');
+    Route::get('/catalogo/{tipo}/{id}', [CatalogoWebController::class, 'show'])->name('catalogo.show');
 
+    // 1. Tipos de Cliente
+    Route::resource('tipos-cliente', TipoClienteWebController::class)->names([
+        'index' => 'tipos-cliente.index',
+        'create' => 'tipos-cliente.create',
+        'store' => 'tipos-cliente.store',
+        'show' => 'tipos-cliente.show',
+        'edit' => 'tipos-cliente.edit',
+        'update' => 'tipos-cliente.update',
+        'destroy' => 'tipos-cliente.destroy',
+    ]);
 
-// 1. Tipos de Cliente
-Route::resource('tipos-cliente', TipoClienteWebController::class)->names([
-    'index' => 'tipos-cliente.index',
-    'create' => 'tipos-cliente.create',
-    'store' => 'tipos-cliente.store',
-    'show' => 'tipos-cliente.show',
-    'edit' => 'tipos-cliente.edit',
-    'update' => 'tipos-cliente.update',
-    'destroy' => 'tipos-cliente.destroy',
-]);
+    // 2. Tipos de Documento
+    Route::resource('tipos-documento', TipoDocumentoWebController::class)->names([
+        'index' => 'tipos-documento.index',
+        'create' => 'tipos-documento.create',
+        'store' => 'tipos-documento.store',
+        'show' => 'tipos-documento.show',
+        'edit' => 'tipos-documento.edit',
+        'update' => 'tipos-documento.update',
+        'destroy' => 'tipos-documento.destroy',
+    ]);
 
-// 2. Tipos de Documento
-Route::resource('tipos-documento', TipoDocumentoWebController::class)->names([
-    'index' => 'tipos-documento.index',
-    'create' => 'tipos-documento.create',
-    'store' => 'tipos-documento.store',
-    'show' => 'tipos-documento.show',
-    'edit' => 'tipos-documento.edit',
-    'update' => 'tipos-documento.update',
-    'destroy' => 'tipos-documento.destroy',
-]);
+    // 3. Clientes (usando documento como parámetro)
+    Route::get('clientes', [ClienteWebController::class, 'index'])->name('clientes.index');
+    Route::get('clientes/create', [ClienteWebController::class, 'create'])->name('clientes.create');
+    Route::post('clientes', [ClienteWebController::class, 'store'])->name('clientes.store');
+    Route::get('clientes/{documento}', [ClienteWebController::class, 'show'])->name('clientes.show');
+    Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
+    Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
+    Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
 
-// 3. Clientes (usando documento como parámetro)
-Route::get('clientes', [ClienteWebController::class, 'index'])->name('clientes.index');
-Route::get('clientes/create', [ClienteWebController::class, 'create'])->name('clientes.create');
-Route::post('clientes', [ClienteWebController::class, 'store'])->name('clientes.store');
-Route::get('clientes/{documento}', [ClienteWebController::class, 'show'])->name('clientes.show');
-Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
-Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
-Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
+    // 4. Formas de Pago
+    Route::resource('formas-pago', FormaPagoWebController::class)->names([
+        'index' => 'formas-pago.index',
+        'create' => 'formas-pago.create',
+        'store' => 'formas-pago.store',
+        'show' => 'formas-pago.show',
+        'edit' => 'formas-pago.edit',
+        'update' => 'formas-pago.update',
+        'destroy' => 'formas-pago.destroy',
+    ]);
 
-// 4. Formas de Pago
-Route::resource('formas-pago', FormaPagoWebController::class)->names([
-    'index' => 'formas-pago.index',
-    'create' => 'formas-pago.create',
-    'store' => 'formas-pago.store',
-    'show' => 'formas-pago.show',
-    'edit' => 'formas-pago.edit',
-    'update' => 'formas-pago.update',
-    'destroy' => 'formas-pago.destroy',
-]);
+    // 5. Estados de Venta
+    Route::resource('estados-venta', EstadoVentaWebController::class)->names([
+        'index' => 'estados-venta.index',
+        'create' => 'estados-venta.create',
+        'store' => 'estados-venta.store',
+        'show' => 'estados-venta.show',
+        'edit' => 'estados-venta.edit',
+        'update' => 'estados-venta.update',
+        'destroy' => 'estados-venta.destroy',
+    ]);
 
-// 5. Estados de Venta
-Route::resource('estados-venta', EstadoVentaWebController::class)->names([
-    'index' => 'estados-venta.index',
-    'create' => 'estados-venta.create',
-    'store' => 'estados-venta.store',
-    'show' => 'estados-venta.show',
-    'edit' => 'estados-venta.edit',
-    'update' => 'estados-venta.update',
-    'destroy' => 'estados-venta.destroy',
-]);
+    // 6. Conceptos de Pago
+    Route::resource('conceptos-pago', ConceptoPagoWebController::class)->names([
+        'index' => 'conceptos-pago.index',
+        'create' => 'conceptos-pago.create',
+        'store' => 'conceptos-pago.store',
+        'show' => 'conceptos-pago.show',
+        'edit' => 'conceptos-pago.edit',
+        'update' => 'conceptos-pago.update',
+        'destroy' => 'conceptos-pago.destroy',
+    ]);
 
-// 6. Conceptos de Pago
-Route::resource('conceptos-pago', ConceptoPagoWebController::class)->names([
-    'index' => 'conceptos-pago.index',
-    'create' => 'conceptos-pago.create',
-    'store' => 'conceptos-pago.store',
-    'show' => 'conceptos-pago.show',
-    'edit' => 'conceptos-pago.edit',
-    'update' => 'conceptos-pago.update',
-    'destroy' => 'conceptos-pago.destroy',
-]);
+    // 7. Medios de Pago
+    Route::resource('medios-pago', MedioPagoWebController::class)->names([
+        'index' => 'medios-pago.index',
+        'create' => 'medios-pago.create',
+        'store' => 'medios-pago.store',
+        'show' => 'medios-pago.show',
+        'edit' => 'medios-pago.edit',
+        'update' => 'medios-pago.update',
+        'destroy' => 'medios-pago.destroy',
+    ]);
 
-// 7. Medios de Pago
-Route::resource('medios-pago', MedioPagoWebController::class)->names([
-    'index' => 'medios-pago.index',
-    'create' => 'medios-pago.create',
-    'store' => 'medios-pago.store',
-    'show' => 'medios-pago.show',
-    'edit' => 'medios-pago.edit',
-    'update' => 'medios-pago.update',
-    'destroy' => 'medios-pago.destroy',
-]);
+    // 8. Ventas
+    Route::resource('ventas', VentaWebController::class)->names([
+        'index' => 'ventas.index',
+        'create' => 'ventas.create',
+        'store' => 'ventas.store',
+        'show' => 'ventas.show',
+        'edit' => 'ventas.edit',
+        'update' => 'ventas.update',
+        'destroy' => 'ventas.destroy',
+    ]);
 
-// 8. Ventas
-Route::resource('ventas', VentaWebController::class)->names([
-    'index' => 'ventas.index',
-    'create' => 'ventas.create',
-    'store' => 'ventas.store',
-    'show' => 'ventas.show',
-    'edit' => 'ventas.edit',
-    'update' => 'ventas.update',
-    'destroy' => 'ventas.destroy',
-]);
+    Route::prefix('ventas')->group(function () {
 
-Route::prefix('ventas')->group(function () {
+        Route::post(
+            '/separaciones/{id}/cancelar',
+            [VentaWebController::class, 'cancelarSeparacion']
+        )
+            ->name('ventas.separaciones.cancelar');
 
-    Route::post(
-        '/separaciones/{id}/cancelar',
-        [VentaWebController::class, 'cancelarSeparacion']
-    )
-        ->name('ventas.separaciones.cancelar');
+        Route::post(
+            '/separaciones/{id}/convertir-venta',
+            [VentaWebController::class, 'convertirEnVenta']
+        )
+            ->name('ventas.separaciones.convertir');
 
-    Route::post(
-        '/separaciones/{id}/convertir-venta',
-        [VentaWebController::class, 'convertirEnVenta']
-    )
-        ->name('ventas.separaciones.convertir');
+        Route::get(
+            '/cron/vencer-separaciones',
+            [VentaWebController::class, 'vencerSeparaciones']
+        );
+    });
+
+    Route::get('/ventas/inmuebles-disponibles', [VentaWebController::class, 'getInmueblesDisponibles'])
+        ->name('ventas.inmuebles');
+
+    // 9. Planes de Amortización de Venta
+    Route::get(
+        '/plan-amortizacion-venta',
+        [PlanAmortizacionVentaWebController::class, 'index']
+    )->name('plan-amortizacion-venta.index');
 
     Route::get(
-        '/cron/vencer-separaciones',
-        [VentaWebController::class, 'vencerSeparaciones']
-    );
+        '/plan-amortizacion-venta/ventas-por-cliente',
+        [PlanAmortizacionVentaWebController::class, 'ventasPorCliente']
+    )->name('plan-amortizacion-venta.ventasPorCliente');
+
+    Route::post(
+        '/plan-amortizacion-venta/generar',
+        [PlanAmortizacionVentaWebController::class, 'generarPlan']
+    )->name('plan-amortizacion-venta.generar');
+
+    Route::post(
+        '/plan-amortizacion-venta/exportar',
+        [PlanAmortizacionVentaWebController::class, 'exportPdf']
+    )->name('plan-amortizacion-venta.exportPdf');
+
+    // 10. Pagos
+    Route::resource('pagos', PagoWebController::class)->names([
+        'index' => 'pagos.index',
+        'create' => 'pagos.create',
+        'store' => 'pagos.store',
+        'show' => 'pagos.show',
+        'edit' => 'pagos.edit',
+        'update' => 'pagos.update',
+        'destroy' => 'pagos.destroy',
+    ]);
+
+    // 11. Planes de Amortización - Cuotas
+    Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController::class)->names([
+        'index' => 'planes-amortizacion-cuota.index',
+        'create' => 'planes-amortizacion-cuota.create',
+        'store' => 'planes-amortizacion-cuota.store',
+        'show' => 'planes-amortizacion-cuota.show',
+        'edit' => 'planes-amortizacion-cuota.edit',
+        'update' => 'planes-amortizacion-cuota.update',
+        'destroy' => 'planes-amortizacion-cuota.destroy',
+    ]);
+
+    Route::get('cotizador', [CotizadorWebController::class, 'index'])
+        ->name('cotizador.index');
+    Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
+        ->name('simulador.index');
 });
-
-
-
-
-
-Route::get('/ventas/inmuebles-disponibles', [VentaWebController::class, 'getInmueblesDisponibles'])
-    ->name('ventas.inmuebles');
-
-// 9. Planes de Amortización de Venta
-Route::get(
-    '/plan-amortizacion-venta',
-    [PlanAmortizacionVentaWebController::class, 'index']
-)->name('plan-amortizacion-venta.index');
-
-Route::get(
-    '/plan-amortizacion-venta/ventas-por-cliente',
-    [PlanAmortizacionVentaWebController::class, 'ventasPorCliente']
-)->name('plan-amortizacion-venta.ventasPorCliente');
-
-Route::post(
-    '/plan-amortizacion-venta/generar',
-    [PlanAmortizacionVentaWebController::class, 'generarPlan']
-)->name('plan-amortizacion-venta.generar');
-
-Route::post(
-    '/plan-amortizacion-venta/exportar',
-    [PlanAmortizacionVentaWebController::class, 'exportPdf']
-)->name('plan-amortizacion-venta.exportPdf');
-
-
-// 10. Pagos
-Route::resource('pagos', PagoWebController::class)->names([
-    'index' => 'pagos.index',
-    'create' => 'pagos.create',
-    'store' => 'pagos.store',
-    'show' => 'pagos.show',
-    'edit' => 'pagos.edit',
-    'update' => 'pagos.update',
-    'destroy' => 'pagos.destroy',
-]);
-
-// 11. Planes de Amortización - Cuotas
-Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController::class)->names([
-    'index' => 'planes-amortizacion-cuota.index',
-    'create' => 'planes-amortizacion-cuota.create',
-    'store' => 'planes-amortizacion-cuota.store',
-    'show' => 'planes-amortizacion-cuota.show',
-    'edit' => 'planes-amortizacion-cuota.edit',
-    'update' => 'planes-amortizacion-cuota.update',
-    'destroy' => 'planes-amortizacion-cuota.destroy',
-]);
-
-Route::get('cotizador', [CotizadorWebController::class, 'index'])
-    ->name('cotizador.index');
-
-
-Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
-    ->name('simulador.index');
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
     Route::get('/gerencia/dashboard', [GerenciaDashboardWebController::class, 'index'])
-        ->name('dashboard');
+        ->name('gerencia.dashboard');
 
     Route::get('/gerencia/metas', [MetasController::class, 'index'])
         ->name('gerencia.metas.index');
@@ -369,7 +382,7 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
     ])->name('gerencia.plan_ci.export');
 
     Route::get('/gerencia/plan-pagos-ci/export', [PlanPagosCIExportController::class, 'export'])
-    ->name('gerencia.plan_pagos_ci.export');
+        ->name('gerencia.plan_pagos_ci.export');
 });
 
 

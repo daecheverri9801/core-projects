@@ -114,8 +114,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Link, usePage, router } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
+import { ref, computed, onMounted, onBeforeUnmount,  } from 'vue'
+import { Link, usePage, router,  } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
 import Logo from '@/Components/Logo.vue'
 import {
   UserGroupIcon,
@@ -232,7 +232,7 @@ function getInitials(name) {
 
 function logout() {
   if (confirm('¿Está seguro que desea cerrar sesión?')) {
-    Inertia.post('/logout') // ✅ Usar Inertia directamente
+    router.post('/logout') // ✅ Usar Inertia directamente
   }
 }
 

@@ -13,35 +13,110 @@ use Inertia\Inertia;
 
 class LocalWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $locales = Local::with(['estadoInmueble', 'torre.proyecto', 'pisoTorre'])
-            ->orderBy('id_local', 'desc')
-            ->get()
-            ->map(function ($l) {
-                return [
-                    'id_local' => $l->id_local,
-                    'numero' => $l->numero,
-                    'estado' => $l->estadoInmueble?->nombre,
-                    'proyecto' => $l->torre?->proyecto?->nombre,
-                    'torre' => $l->torre?->nombre_torre,
-                    'piso' => $l->pisoTorre?->nivel,
-                    'area_total_local' => $l->area_total_local,
-                    'valor_m2' => $l->valor_m2,
-                    'valor_total' => $l->valor_total,
-                ];
-            });
+        $empleado = $request->user()->load('cargo');
+        $search = trim((string) $request->get('search'));
+
+        // Ajusta los nombres de relaciones/modelos según tu proyecto:
+        // Proyecto -> torres -> locales
+        $proyectos = Proyecto::query()
+            ->select('id_proyecto', 'nombre')
+            ->when($search, function ($q) use ($search) {
+                $q->whereHas('torres.locales', function ($lq) use ($search) {
+                    // Campos de Local (ajusta a tu tabla real)
+                    $lq->where(function ($w) use ($search) {
+                        $w->where('numero', 'ILIKE', "%{$search}%")
+                            ->orWhere('valor_total', '::text', 'ILIKE', "%{$search}%"); // si aplica
+                    });
+
+                    // Si quieres que también busque por estado/piso/torre:
+                    $lq->orWhereHas('torre', fn($tq) => $tq->where('nombre_torre', 'ILIKE', "%{$search}%"));
+                    $lq->orWhereHas('pisoTorre', fn($pq) => $pq->whereRaw('CAST(nivel AS TEXT) ILIKE ?', ["%{$search}%"]));
+                    $lq->orWhereHas('estadoInmueble', fn($eq) => $eq->where('nombre', 'ILIKE', "%{$search}%"));
+                });
+            })
+            ->with([
+                'torres:id_torre,nombre_torre,id_proyecto',
+                'torres.locales' => function ($lq) use ($search) {
+                    // Ajusta columnas reales de Local
+                    $lq->select(
+                        'id_local',
+                        'numero',
+                        'id_torre',
+                        'id_piso_torre',
+                        'id_estado_inmueble',
+                        'area_total_local',
+                        'valor_m2',
+                        'valor_total'
+                    )
+                        ->with([
+                            'torre:id_torre,nombre_torre',
+                            'pisoTorre:id_piso_torre,nivel',
+                            'estadoInmueble:id_estado_inmueble,nombre',
+                        ])
+                        ->when($search, function ($q) use ($search) {
+                            $q->where(function ($w) use ($search) {
+                                $w->where('numero', 'ILIKE', "%{$search}%")
+                                    ->orWhereRaw('CAST(area_total_local AS TEXT) ILIKE ?', ["%{$search}%"])
+                                    ->orWhereRaw('CAST(valor_m2 AS TEXT) ILIKE ?', ["%{$search}%"])
+                                    ->orWhereRaw('CAST(valor_total AS TEXT) ILIKE ?', ["%{$search}%"]);
+                            });
+                        })
+                        ->orderBy('id_local', 'desc');
+                },
+            ])
+            ->withCount(['torres as locales_count' => function ($q) {
+                // cuenta total de locales del proyecto (ajusta si tu relación difiere)
+                $q->join('locales', 'locales.id_torre', '=', 'torres.id_torre');
+            }])
+            ->orderBy('id_proyecto', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Aplanar locales por proyecto para que el front no haga lógica extra
+        $proyectos->getCollection()->transform(function ($p) {
+            $locales = collect($p->torres ?? [])
+                ->flatMap(function ($t) {
+                    return collect($t->locales ?? [])->map(function ($l) use ($t) {
+                        return [
+                            'id_local' => $l->id_local,
+                            'numero' => $l->numero,
+                            'torre' => $t->nombre_torre,
+                            'piso' => $l->pisoTorre?->nivel,
+                            'estado' => $l->estadoInmueble?->nombre,
+                            'area_total_local' => $l->area_total_local,
+                            'valor_m2' => $l->valor_m2,
+                            'valor_total' => $l->valor_total,
+                        ];
+                    });
+                })
+                ->values();
+
+            return [
+                'id_proyecto' => $p->id_proyecto,
+                'nombre' => $p->nombre,
+                'locales_count' => $locales->count(),
+                'locales' => $locales,
+            ];
+        });
 
         return Inertia::render('Admin/Local/Index', [
-            'locales' => $locales,
+            'proyectos' => $proyectos,
+            'filters' => ['search' => $search],
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+
+
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         return Inertia::render('Admin/Local/Create', [
             'proyectos' => Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get(),
             'estados' => EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get(),
+            'empleado' => $empleado,
         ]);
     }
 
@@ -92,8 +167,9 @@ class LocalWebController extends Controller
         return redirect()->route('locales.index')->with('success', 'Local creado exitosamente');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $local = Local::with(['estadoInmueble', 'torre.proyecto.ubicacion.ciudad', 'pisoTorre'])
             ->findOrFail($id);
 
@@ -115,11 +191,13 @@ class LocalWebController extends Controller
                 'valor_total' => $local->valor_total,
                 'valor_m2' => $local->valor_m2,
             ],
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $l = Local::with(['torre.proyecto', 'pisoTorre'])->findOrFail($id);
 
         // Pre-cargas
@@ -147,6 +225,7 @@ class LocalWebController extends Controller
             'estados' => EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get(),
             'torresInicial' => $torres,
             'pisosInicial' => $pisos,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -211,8 +290,9 @@ class LocalWebController extends Controller
     // Auxiliares Selects encadenados
     public function torresPorProyecto($id_proyecto)
     {
-        return Torre::where('id_proyecto', $id_proyecto)
-            ->select('id_torre', 'nombre_torre', 'id_proyecto')
+        return Torre::with('proyecto:id_proyecto,prima_altura_base,prima_altura_incremento,prima_altura_activa')
+            ->where('id_proyecto', $id_proyecto)
+            ->select('id_torre', 'nombre_torre', 'id_proyecto', 'nivel_inicio_prima')
             ->orderBy('nombre_torre')
             ->get();
     }

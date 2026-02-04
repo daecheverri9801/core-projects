@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Hash;
 
 class Empleado extends Authenticatable
 {
@@ -35,11 +36,20 @@ class Empleado extends Authenticatable
         'estado' => 'boolean'
     ];
 
+    // protected static function booted()
+    // {
+    //     static::saving(function ($empleado) {
+    //         if ($empleado->isDirty('password')) {
+    //             $empleado->password = Hash::make($empleado->password);
+    //         }
+    //     });
+    // }
+
     // Si usas mutator para encriptar password automáticamente
-    public function setPasswordAttribute($password)
-    {
-        $this->attributes['password'] = bcrypt($password);
-    }
+    // public function setPasswordAttribute($password)
+    // {
+    //     $this->attributes['password'] = bcrypt($password);
+    // }
 
     public function cargo()
     {

@@ -11,11 +11,14 @@ use App\Models\TipoApartamento;
 use App\Models\EstadoInmueble;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class ApartamentoWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $apartamentos = Apartamento::with(['tipoApartamento', 'torre.proyecto', 'pisoTorre', 'estadoInmueble'])
             ->orderBy('id_apartamento', 'desc')
             ->get()
@@ -34,11 +37,13 @@ class ApartamentoWebController extends Controller
 
         return Inertia::render('Admin/Apartamento/Index', [
             'apartamentos' => $apartamentos,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         // Selects iniciales
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
         $tipos = TipoApartamento::select('id_tipo_apartamento', 'id_proyecto', 'nombre', 'valor_estimado')->get();
@@ -48,9 +53,11 @@ class ApartamentoWebController extends Controller
             ->orderBy('nombre_torre')
             ->get();
 
-        $pisos = PisoTorre::select('id_piso_torre', 'nivel', 'id_torre')
-            ->orderBy('nivel')
-            ->get();
+        // $pisos = PisoTorre::select('id_piso_torre', 'nivel', 'id_torre')
+        //     ->orderBy('nivel')
+        //     ->get();
+
+        $pisos = [];
 
         return Inertia::render('Admin/Apartamento/Create', [
             'proyectos' => $proyectos,
@@ -58,81 +65,137 @@ class ApartamentoWebController extends Controller
             'estados' => $estados,
             'torres' => $torres,
             'pisos' => $pisos,
+            'empleado' => $empleado,
         ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'numero' => ['required', 'string', 'max:20'],
-            'id_tipo_apartamento' => ['required', 'exists:tipos_apartamento,id_tipo_apartamento'],
-            'id_torre' => ['required', 'exists:torres,id_torre'],
-            'id_piso_torre' => ['required', 'exists:pisos_torre,id_piso_torre'],
-            'id_estado_inmueble' => ['required', 'exists:estados_inmueble,id_estado_inmueble'],
-            'prima_altura_base' => 'nullable|numeric|min:0',
-            'prima_altura_incremento' => 'nullable|numeric|min:0',
-            'prima_altura_activa' => 'nullable|boolean',
-        ], [
-            'numero.required' => 'El número del apartamento es obligatorio',
-            'numero.max' => 'El número del apartamento no puede exceder 20 caracteres',
-            'id_tipo_apartamento.required' => 'El tipo de apartamento es obligatorio',
-            'id_tipo_apartamento.exists' => 'El tipo de apartamento seleccionado no existe',
-            'id_torre.required' => 'La torre es obligatoria',
-            'id_torre.exists' => 'La torre seleccionada no existe',
-            'id_piso_torre.required' => 'El piso es obligatorio',
-            'id_piso_torre.exists' => 'El piso seleccionado no existe',
-            'id_estado_inmueble.required' => 'El estado del inmueble es obligatorio',
-            'id_estado_inmueble.exists' => 'El estado del inmueble seleccionado no existe',
-            'prima_altura_base.numeric' => 'La prima altura base debe ser un valor numérico',
-            'prima_altura_base.min' => 'La prima altura base no puede ser negativa',
-            'prima_altura_incremento.numeric' => 'El incremento debe ser un valor numérico',
-            'prima_altura_incremento.min' => 'El incremento no puede ser negativo',
-        ]);
+        $isBulk = $request->has('apartamentos');
 
-        $validated['prima_altura_activa'] = $request->has('prima_altura_activa') ? true : false;
+        $validated = $request->validate(
+            $isBulk
+                ? [
+                    'id_torre' => ['required', 'exists:torres,id_torre'],
+                    'apartamentos' => ['required', 'array', 'min:1'],
+
+                    'apartamentos.*.numero' => ['required', 'string', 'max:20'],
+                    'apartamentos.*.id_tipo_apartamento' => ['required', 'exists:tipos_apartamento,id_tipo_apartamento'],
+                    'apartamentos.*.id_piso_torre' => ['required', 'exists:pisos_torre,id_piso_torre'],
+                    'apartamentos.*.id_estado_inmueble' => ['required', 'exists:estados_inmueble,id_estado_inmueble'],
+                ]
+                : [
+                    // compatibilidad con creación antigua (si aún existe alguna vista vieja)
+                    'numero' => ['required', 'string', 'max:20'],
+                    'id_tipo_apartamento' => ['required', 'exists:tipos_apartamento,id_tipo_apartamento'],
+                    'id_torre' => ['required', 'exists:torres,id_torre'],
+                    'id_piso_torre' => ['required', 'exists:pisos_torre,id_piso_torre'],
+                    'id_estado_inmueble' => ['required', 'exists:estados_inmueble,id_estado_inmueble'],
+                ]
+        );
 
         $torre = Torre::with('proyecto')->findOrFail($validated['id_torre']);
         $proyecto = $torre->proyecto;
-        $tipo = TipoApartamento::select('id_tipo_apartamento', 'valor_estimado')
-            ->findOrFail($validated['id_tipo_apartamento']);
 
-        $valorBase = (float)($tipo->valor_estimado ?? 0);
+        // Normalizar filas
+        $rows = $isBulk
+            ? collect($validated['apartamentos'])->map(function ($r) {
+                return [
+                    'numero' => trim((string)($r['numero'] ?? '')),
+                    'id_tipo_apartamento' => $r['id_tipo_apartamento'] ?? null,
+                    'id_piso_torre' => $r['id_piso_torre'] ?? null,
+                    'id_estado_inmueble' => $r['id_estado_inmueble'] ?? null,
+                ];
+            })->values()
+            : collect([[
+                'numero' => trim((string)$validated['numero']),
+                'id_tipo_apartamento' => $validated['id_tipo_apartamento'],
+                'id_piso_torre' => $validated['id_piso_torre'],
+                'id_estado_inmueble' => $validated['id_estado_inmueble'],
+            ]]);
 
-        // Calcular prima altura
-        $primaAltura = $this->calcularPrimaAltura($validated['id_piso_torre'], $validated['id_torre']);
-
-        // Calcular valor total
-        $validated['prima_altura'] = $primaAltura;
-        $validated['valor_total'] = $valorBase;
-
-        // aplicar política
-        $politicaCalc = $this->calcularValorConPolitica($validated['valor_total'], $proyecto->id_proyecto);
-
-        $validated['valor_politica'] = $politicaCalc['valor_politica'];
-        $validated['valor_final'] = $politicaCalc['valor_final'] + $primaAltura;
-
-        // Coherencia: el piso debe pertenecer a la torre
-        $piso = PisoTorre::find($validated['id_piso_torre']);
-        if ($piso && $piso->id_torre != $validated['id_torre']) {
-            return back()->withErrors(['id_piso_torre' => 'El piso seleccionado no pertenece a la torre indicada'])->withInput();
+        // Duplicados en request
+        $dups = $rows->pluck('numero')->duplicates();
+        if ($dups->isNotEmpty()) {
+            $errs = [];
+            foreach ($rows as $i => $r) {
+                if ($dups->contains($r['numero'])) {
+                    $errs["apartamentos.$i.numero"] = "Número repetido en el formulario: {$r['numero']}";
+                }
+            }
+            return back()->withErrors($errs)->withInput();
         }
 
-        // Unicidad: número dentro de la misma torre
-        $exists = Apartamento::where('numero', $validated['numero'])
-            ->where('id_torre', $validated['id_torre'])
-            ->exists();
+        // Validar que todos los pisos pertenezcan a la torre seleccionada
+        $pisoIds = $rows->pluck('id_piso_torre')->unique()->values()->all();
+        $pisos = PisoTorre::whereIn('id_piso_torre', $pisoIds)->get()->keyBy('id_piso_torre');
 
-        if ($exists) {
-            return back()->withErrors(['numero' => 'Ya existe un apartamento con este número en la torre seleccionada'])->withInput();
+        $errs = [];
+        foreach ($rows as $i => $r) {
+            $piso = $pisos->get($r['id_piso_torre']);
+            if (!$piso || (int)$piso->id_torre !== (int)$validated['id_torre']) {
+                $errs["apartamentos.$i.id_piso_torre"] = 'El piso seleccionado no pertenece a la torre indicada';
+            }
+        }
+        if (!empty($errs)) return back()->withErrors($errs)->withInput();
+
+        // Unicidad en BD (numero dentro de torre)
+        $numeros = $rows->pluck('numero')->all();
+        $existentes = Apartamento::where('id_torre', $validated['id_torre'])
+            ->whereIn('numero', $numeros)
+            ->pluck('numero')
+            ->all();
+
+        if (!empty($existentes)) {
+            $errs = [];
+            foreach ($rows as $i => $r) {
+                if (in_array($r['numero'], $existentes, true)) {
+                    $key = $isBulk ? "apartamentos.$i.numero" : "numero";
+                    $errs[$key] = 'Ya existe un apartamento con este número en la torre seleccionada';
+                }
+            }
+            return back()->withErrors($errs)->withInput();
         }
 
-        Apartamento::create($validated);
+        // Cargar tipos (valor_estimado) para cálculo
+        $tipoIds = $rows->pluck('id_tipo_apartamento')->unique()->values()->all();
+        $tipos = TipoApartamento::whereIn('id_tipo_apartamento', $tipoIds)
+            ->select('id_tipo_apartamento', 'valor_estimado')
+            ->get()
+            ->keyBy('id_tipo_apartamento');
 
-        return redirect()->route('apartamentos.index')->with('success', 'Apartamento creado exitosamente');
+        DB::transaction(function () use ($rows, $validated, $proyecto, $tipos, $pisos) {
+            foreach ($rows as $r) {
+                $tipo = $tipos->get($r['id_tipo_apartamento']);
+                $valorBase = (float)($tipo->valor_estimado ?? 0);
+
+                // prima altura por fila (depende del piso)
+                $primaAltura = $this->calcularPrimaAltura($r['id_piso_torre'], $validated['id_torre']);
+
+                // política por fila (sobre valor base del tipo)
+                $politicaCalc = $this->calcularValorConPolitica($valorBase, $proyecto->id_proyecto);
+
+                Apartamento::create([
+                    'numero' => $r['numero'],
+                    'id_tipo_apartamento' => $r['id_tipo_apartamento'],
+                    'id_torre' => $validated['id_torre'],
+                    'id_piso_torre' => $r['id_piso_torre'],
+                    'id_estado_inmueble' => $r['id_estado_inmueble'],
+
+                    'prima_altura' => $primaAltura,
+                    'valor_total' => $valorBase,
+                    'valor_politica' => $politicaCalc['valor_politica'],
+                    'valor_final' => $politicaCalc['valor_final'] + $primaAltura,
+                ]);
+            }
+        });
+
+        return redirect()->route('apartamentos.index')->with('success', $isBulk ? 'Apartamentos creados exitosamente' : 'Apartamento creado exitosamente');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $apartamento = Apartamento::with([
             'tipoApartamento',
             'torre.proyecto.ubicacion.ciudad',
@@ -165,13 +228,15 @@ class ApartamentoWebController extends Controller
                     'total' => $totalParqueaderos,
                     'vehiculos' => $parqVehiculo,
                     'motos' => $parqMoto,
-                ]
+                ],
+                'empleado' => $empleado,
             ]
         ]);
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $a = Apartamento::with(['torre.proyecto', 'pisoTorre'])->findOrFail($id);
 
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
@@ -213,6 +278,7 @@ class ApartamentoWebController extends Controller
             // datos filtrados correctos
             'torres' => $torres,
             'pisos' => $pisos,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -256,6 +322,12 @@ class ApartamentoWebController extends Controller
 
         $valorBase = (float)($tipo->valor_estimado ?? 0);
 
+        // Coherencia: el piso debe pertenecer a la torre
+        $piso = PisoTorre::find($validated['id_piso_torre']);
+        if ($piso && $piso->id_torre != $validated['id_torre']) {
+            return back()->withErrors(['id_piso_torre' => 'El piso seleccionado no pertenece a la torre indicada'])->withInput();
+        }
+
         $primaAltura = $this->calcularPrimaAltura($validated['id_piso_torre'], $validated['id_torre']);
 
         $validated['prima_altura'] = $primaAltura;
@@ -267,11 +339,6 @@ class ApartamentoWebController extends Controller
         $validated['valor_politica'] = $politicaCalc['valor_politica'];
         $validated['valor_final'] = $politicaCalc['valor_final'] + $primaAltura;
 
-        // Coherencia: el piso debe pertenecer a la torre
-        $piso = PisoTorre::find($validated['id_piso_torre']);
-        if ($piso && $piso->id_torre != $validated['id_torre']) {
-            return back()->withErrors(['id_piso_torre' => 'El piso seleccionado no pertenece a la torre indicada'])->withInput();
-        }
 
         // Unicidad: número dentro de la misma torre
         $exists = Apartamento::where('numero', $validated['numero'])
@@ -304,8 +371,9 @@ class ApartamentoWebController extends Controller
     // Auxiliares para selects encadenados
     public function torresPorProyecto($id_proyecto)
     {
-        return Torre::where('id_proyecto', $id_proyecto)
-            ->select('id_torre', 'nombre_torre', 'id_proyecto')
+        return Torre::with('proyecto:id_proyecto,prima_altura_base,prima_altura_incremento,prima_altura_activa')
+            ->where('id_proyecto', $id_proyecto)
+            ->select('id_torre', 'nombre_torre', 'id_proyecto', 'nivel_inicio_prima')
             ->orderBy('nombre_torre')
             ->get();
     }
@@ -320,36 +388,43 @@ class ApartamentoWebController extends Controller
 
     private function calcularPrimaAltura($idPisoTorre, $idTorre): float
     {
-        // Obtener el nivel del piso
-        $piso = \App\Models\PisoTorre::select('id_piso_torre', 'nivel')->find($idPisoTorre);
+        $piso = PisoTorre::select('id_piso_torre', 'nivel', 'id_torre')->find($idPisoTorre);
         if (!$piso) {
             return 0;
         }
+        if ((int)$piso->id_torre !== (int)$idTorre) return 0;
 
-        $nivel = (int)$piso->nivel;
+        $nivelActual = (int) $piso->nivel;
 
-        // Obtener configuración de prima del proyecto (a través de torre)
-        $torre = \App\Models\Torre::with('proyecto:id_proyecto,prima_altura_base,prima_altura_incremento,prima_altura_activa')
-            ->select('id_torre', 'id_proyecto')
+        $torre = Torre::with('proyecto:id_proyecto,prima_altura_base,prima_altura_incremento,prima_altura_activa')
+            ->select('id_torre', 'id_proyecto', 'nivel_inicio_prima')
             ->find($idTorre);
 
-        if (!$torre || !$torre->proyecto || !$torre->proyecto->prima_altura_activa) {
+        if (
+            !$torre ||
+            !$torre->proyecto ||
+            !$torre->proyecto->prima_altura_activa
+        ) {
             return 0;
         }
 
-        $proyecto = $torre->proyecto;
+        $nivelBase = (int) ($torre->nivel_inicio_prima ?? 2);
 
-        // Prima aplica desde piso 2 en adelante
-        if ($nivel < 2) {
+        // Si el piso está por debajo del inicio económico
+        if ($nivelActual < $nivelBase) {
             return 0;
         }
 
-        $base = (float)($proyecto->prima_altura_base ?? 0);
-        $incremento = (float)($proyecto->prima_altura_incremento ?? 0);
+        $base = (float) ($torre->proyecto->prima_altura_base ?? 0);
+        $incremento = (float) ($torre->proyecto->prima_altura_incremento ?? 0);
 
-        // Fórmula: base + (nivel - 2) * incremento
-        return $base + (($nivel - 2) * $incremento);
+        $pisosCalculables = $nivelActual - $nivelBase;
+
+
+
+        return $base + ($pisosCalculables * $incremento);
     }
+
 
     private function calcularValorConPolitica($valorConPrima, $idProyecto)
     {
