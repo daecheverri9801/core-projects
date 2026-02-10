@@ -16,6 +16,140 @@ import {
 } from 'chart.js'
 import { Bar, Doughnut, Line } from 'vue-chartjs'
 
+/* ==============================
+   PLUGINS (labels sin hover)
+============================== */
+const ValueLabelsPlugin = {
+  id: 'valueLabelsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart
+    const type = chart.config.type
+
+    // Solo para chartjs v3/4
+    if (!ctx) return
+
+    // Helpers de formato
+    const formatCompactMoney = (v) => {
+      const n = Number(v || 0)
+      // compact COP: 1,2M / 850k, etc.
+      const abs = Math.abs(n)
+      if (abs >= 1_000_000_000) return `${Math.round(n / 1_000_000_000)}B`
+      if (abs >= 1_000_000) return `${Math.round(n / 1_000_000)}M`
+      if (abs >= 1_000) return `${Math.round(n / 1_000)}k`
+      return `${Math.round(n)}`
+    }
+    const formatInt = (v) => `${Math.round(Number(v || 0))}`
+
+    ctx.save()
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = 'rgba(226,232,240,0.92)' // slate-200
+    ctx.font = '11px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto'
+
+    // BAR (vertical u horizontal)
+    if (type === 'bar') {
+      const meta0 = chart.getDatasetMeta(0)
+      if (!meta0 || meta0.hidden) {
+        ctx.restore()
+        return
+      }
+
+      const isHorizontal = chart.options?.indexAxis === 'y'
+      const datasets = chart.data.datasets || []
+      const maxLabels = 14 // evita saturación
+
+      datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di)
+        if (!meta || meta.hidden) return
+
+        meta.data.forEach((el, i) => {
+          if (!el) return
+          if (meta.data.length > maxLabels && i % 2 === 1) return // si hay muchos, etiqueta intercalada
+
+          const raw = ds.data?.[i]
+          const label =
+            // si parece dinero (valores grandes) usa compacto
+            Number(raw || 0) >= 100000 ? formatCompactMoney(raw) : formatInt(raw)
+
+          const x = isHorizontal ? el.x + 18 : el.x
+          const y = isHorizontal ? el.y : el.y - 12
+
+          // pequeña sombra para legibilidad
+          ctx.save()
+          ctx.fillStyle = 'rgba(15,23,42,0.75)'
+          ctx.fillText(label, x + 1, y + 1)
+          ctx.restore()
+
+          ctx.fillText(label, x, y)
+        })
+      })
+
+      ctx.restore()
+      return
+    }
+
+    // LINE
+    if (type === 'line') {
+      const datasets = chart.data.datasets || []
+      const labelsCount = chart.data.labels?.length || 0
+
+      // si es muy denso, solo etiqueta último punto por dataset
+      const dense = labelsCount > 10
+
+      datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di)
+        if (!meta || meta.hidden) return
+
+        meta.data.forEach((el, i) => {
+          if (!el) return
+          if (dense && i !== meta.data.length - 1) return
+
+          const raw = ds.data?.[i]
+          const label = formatInt(raw)
+          const x = el.x
+          const y = el.y - 12
+
+          ctx.save()
+          ctx.fillStyle = 'rgba(15,23,42,0.75)'
+          ctx.fillText(label, x + 1, y + 1)
+          ctx.restore()
+
+          ctx.fillText(label, x, y)
+        })
+      })
+
+      ctx.restore()
+      return
+    }
+
+    // DOUGHNUT: dibujar total al centro
+    if (type === 'doughnut') {
+      const ds = chart.data.datasets?.[0]
+      if (!ds) {
+        ctx.restore()
+        return
+      }
+      const total = (ds.data || []).reduce((a, b) => a + Number(b || 0), 0)
+      const { width, height } = chart
+
+      ctx.save()
+      ctx.textAlign = 'center'
+      ctx.fillStyle = 'rgba(226,232,240,0.95)'
+      ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto'
+      ctx.fillText('Total', width / 2, height / 2 - 10)
+
+      ctx.font = '700 18px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto'
+      ctx.fillText(`${Math.round(total)}`, width / 2, height / 2 + 12)
+      ctx.restore()
+
+      ctx.restore()
+      return
+    }
+
+    ctx.restore()
+  },
+}
+
 ChartJS.register(
   ArcElement,
   BarElement,
@@ -24,7 +158,8 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend
+  Legend,
+  ValueLabelsPlugin
 )
 
 const props = defineProps({
@@ -43,8 +178,6 @@ const props = defineProps({
   planPagosCI: Object,
 })
 
-const filtrosValue = props.filtros || {}
-
 const activeTab = ref('resumen')
 
 function qs(obj) {
@@ -52,7 +185,7 @@ function qs(obj) {
 }
 
 /* ==============================
-   FILTROS SUPERIORES
+   FILTROS
 ============================== */
 const filtros = ref({
   desde: props.filtros?.desde || '',
@@ -82,161 +215,190 @@ function formatPercent(num, den) {
   return ((num / den) * 100).toFixed(1) + ' %'
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toISOString().split('T')[0]
+}
+
 /* ==============================
-   GRÁFICA 1: Ventas por proyecto (Bar)
+   GRÁFICA 1: Ventas por proyecto
 ============================== */
 const ventasProyectoData = computed(() => {
-  const labels = (props.ventasPorProyecto || []).map((p) => p.nombre)
-  const data = (props.ventasPorProyecto || []).map((p) => p.total_valor)
+  const rows = props.ventasPorProyecto || []
+  const labels = rows.map((p) => p.nombre)
+  const data = rows.map((p) => Number(p.total_valor || 0))
 
   return {
     labels,
     datasets: [
       {
-        label: 'Ventas por proyecto',
+        label: 'Ventas (COP)',
         data,
-        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+        backgroundColor: 'rgba(56, 189, 248, 0.75)',
         borderColor: 'rgba(56, 189, 248, 1)',
         borderWidth: 1.5,
+        borderRadius: 10,
+        maxBarThickness: 44,
       },
     ],
   }
 })
 
-const barChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      labels: {
-        color: '#e5e7eb',
-        font: { size: 11 },
+const barChartOptions = computed(() => {
+  const labelsCount = (props.ventasPorProyecto || []).length
+  const many = labelsCount > 10
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 18, right: 10, left: 8, bottom: 0 } }, // espacio para labels
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#e5e7eb', font: { size: 11 } },
       },
-    },
-    tooltip: {
-      callbacks: {
-        label(ctx) {
-          const v = ctx.parsed.y ?? ctx.parsed.x
-          return formatMoney(v)
+      tooltip: {
+        callbacks: {
+          label(ctx) {
+            const v = ctx.parsed.y ?? ctx.parsed.x
+            return formatMoney(v)
+          },
         },
       },
     },
-  },
-  scales: {
-    x: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    scales: {
+      x: {
+        ticks: {
+          color: '#9ca3af',
+          maxRotation: many ? 45 : 0,
+          minRotation: many ? 45 : 0,
+          autoSkip: true,
+        },
+        grid: { color: 'rgba(55, 65, 81, 0.35)' },
+      },
+      y: {
+        ticks: {
+          color: '#9ca3af',
+          callback(value) {
+            // eje compacto
+            const n = Number(value || 0)
+            if (Math.abs(n) >= 1_000_000_000) return `${Math.round(n / 1_000_000_000)}B`
+            if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 1_000_000)}M`
+            if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`
+            return `${Math.round(n)}`
+          },
+        },
+        grid: { color: 'rgba(55, 65, 81, 0.35)' },
+      },
     },
-    y: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(55, 65, 81, 0.4)' },
-    },
-  },
-}
+  }
+})
+
+const ventasProyectoTabla = computed(() => {
+  return (props.ventasPorProyecto || [])
+    .map((r) => ({
+      nombre: r.nombre,
+      total: Number(r.total_valor || 0),
+      unidades: Number(r.unidades || 0),
+    }))
+    .sort((a, b) => b.total - a.total)
+})
 
 /* ==============================
-   GRÁFICA 2: Estado del inventario (Doughnut)
+   GRÁFICA 2: Estado del inventario (TABLA)
 ============================== */
 const proyectoInventarioSeleccionado = ref('')
 
+const INVENTARIO_ESTADOS = ['Disponible', 'Vendido', 'Separado', 'No Disponible', 'Congelado']
+
 const inventarioOptions = computed(() => {
   const base = [{ value: '', label: 'Todos los proyectos' }]
-  ;(props.estadoInventario || []).forEach((p) => {
+  ;(props.estadoInventario || []).forEach((p) =>
     base.push({ value: p.proyecto, label: p.proyecto })
-  })
+  )
   return base
 })
 
-const inventarioDoughnutData = computed(() => {
-  const labels = ['Disponible', 'Vendido', 'Separado', 'No Disponible', 'Congelado']
-  const counts = {
-    Disponible: 0,
-    Vendido: 0,
-    Separado: 0,
-    'No Disponible': 0,
-    Congelado: 0,
-  }
-
-  const dataSrc = props.estadoInventario || []
-
-  if (!dataSrc.length) {
-    return {
-      labels,
-      datasets: [
-        {
-          data: labels.map(() => 0),
-          backgroundColor: [],
-        },
-      ],
-    }
-  }
-
-  if (!proyectoInventarioSeleccionado.value) {
-    // Consolidado global
-    dataSrc.forEach((proj) => {
-      labels.forEach((estado) => {
-        const v = proj.estados?.[estado] ?? 0
-        counts[estado] += Number(v)
-      })
-    })
-  } else {
-    // Solo un proyecto
-    const proj = dataSrc.find((p) => p.proyecto === proyectoInventarioSeleccionado.value)
-    if (proj) {
-      labels.forEach((estado) => {
-        counts[estado] = Number(proj.estados?.[estado] ?? 0)
-      })
-    }
-  }
-
-  const palette = [
-    'rgba(16, 185, 129, 0.8)', // disponible
-    'rgba(56, 189, 248, 0.8)', // vendido
-    'rgba(245, 158, 11, 0.8)', // separado
-    'rgba(148, 163, 184, 0.8)', // no disponible
-    'rgba(244, 63, 94, 0.8)', // congelado
-  ]
-
-  const borderPalette = [
-    'rgba(16, 185, 129, 1)',
-    'rgba(56, 189, 248, 1)',
-    'rgba(245, 158, 11, 1)',
-    'rgba(148, 163, 184, 1)',
-    'rgba(244, 63, 94, 1)',
-  ]
-
-  return {
-    labels,
-    datasets: [
-      {
-        data: labels.map((estado) => counts[estado]),
-        backgroundColor: palette,
-        borderColor: borderPalette,
-        borderWidth: 1.5,
-      },
-    ],
-  }
+/**
+ * Proyectos que se muestran como columnas:
+ * - Si hay proyecto seleccionado: 1 columna (ese proyecto)
+ * - Si no: todas las columnas (todos los proyectos)
+ */
+const inventarioColumnasProyectos = computed(() => {
+  const src = props.estadoInventario || []
+  if (!src.length) return []
+  if (proyectoInventarioSeleccionado.value) return [proyectoInventarioSeleccionado.value]
+  return src.map((p) => p.proyecto)
 })
 
-const doughnutOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'bottom',
-      labels: {
-        color: '#e5e7eb',
-        font: { size: 10 },
-      },
-    },
-  },
-}
+/**
+ * Construye una fila por estado:
+ * row = { estado, porProyecto: { [proyecto]: count }, total, pct }
+ */
+const inventarioTablaPorProyecto = computed(() => {
+  const src = props.estadoInventario || []
+  const cols = inventarioColumnasProyectos.value
+  if (!src.length || !cols.length) return []
+
+  // mapa rápido proyecto -> estados
+  const mapProj = new Map(src.map((p) => [p.proyecto, p.estados || {}]))
+
+  const rows = INVENTARIO_ESTADOS.map((estado) => {
+    const porProyecto = {}
+    let total = 0
+
+    cols.forEach((proy) => {
+      const v = Number(mapProj.get(proy)?.[estado] ?? 0)
+      porProyecto[proy] = v
+      total += v
+    })
+
+    return { estado, porProyecto, total }
+  })
+
+  const totalGlobal = rows.reduce((acc, r) => acc + Number(r.total || 0), 0)
+
+  return rows.map((r) => ({
+    ...r,
+    pct: totalGlobal > 0 ? ((r.total / totalGlobal) * 100).toFixed(1) : '0.0',
+  }))
+})
+
+const inventarioTotalGlobal = computed(() => {
+  return inventarioTablaPorProyecto.value.reduce((acc, r) => acc + Number(r.total || 0), 0)
+})
+
+const inventarioTotalesPorProyecto = computed(() => {
+  const rows = inventarioTablaPorProyecto.value
+  const cols = inventarioColumnasProyectos.value
+  const out = Object.fromEntries(cols.map((c) => [c, 0]))
+
+  rows.forEach((r) => {
+    cols.forEach((c) => {
+      out[c] += Number(r.porProyecto?.[c] ?? 0)
+    })
+  })
+
+  return out
+})
+
+/**
+ * Resumen corto para el footer (sin hover)
+ */
+const inventarioResumenCompacto = computed(() => {
+  return inventarioTablaPorProyecto.value.map((r) => ({
+    estado: r.estado,
+    total: Number(r.total || 0),
+    pct: r.pct,
+  }))
+})
 
 /* ==============================
-   GRÁFICA 3: Ranking de asesores (Bar horizontal)
+   GRÁFICA 3: Ranking asesores
 ============================== */
 const rankingAsesoresData = computed(() => {
-  const rows = props.rankingAsesores || []
+  const rows = (props.rankingAsesores || []).slice(0, 12) // top 12 para que sea legible
   const labels = rows.map((r) => r.asesor)
   const data = rows.map((r) => Number(r.total_ventas || 0))
 
@@ -244,11 +406,13 @@ const rankingAsesoresData = computed(() => {
     labels,
     datasets: [
       {
-        label: 'Total ventas',
+        label: 'Ventas (COP)',
         data,
-        backgroundColor: 'rgba(244, 114, 182, 0.8)',
+        backgroundColor: 'rgba(244, 114, 182, 0.82)',
         borderColor: 'rgba(236, 72, 153, 1)',
         borderWidth: 1.5,
+        borderRadius: 10,
+        maxBarThickness: 18,
       },
     ],
   }
@@ -258,13 +422,9 @@ const rankingOptions = {
   responsive: true,
   maintainAspectRatio: false,
   indexAxis: 'y',
+  layout: { padding: { top: 10, right: 40, left: 8, bottom: 0 } }, // espacio label final
   plugins: {
-    legend: {
-      labels: {
-        color: '#e5e7eb',
-        font: { size: 11 },
-      },
-    },
+    legend: { display: false },
     tooltip: {
       callbacks: {
         label(ctx) {
@@ -276,18 +436,37 @@ const rankingOptions = {
   },
   scales: {
     x: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+      ticks: {
+        color: '#9ca3af',
+        callback(value) {
+          const n = Number(value || 0)
+          if (Math.abs(n) >= 1_000_000_000) return `${Math.round(n / 1_000_000_000)}B`
+          if (Math.abs(n) >= 1_000_000) return `${Math.round(n / 1_000_000)}M`
+          if (Math.abs(n) >= 1_000) return `${Math.round(n / 1_000)}k`
+          return `${Math.round(n)}`
+        },
+      },
+      grid: { color: 'rgba(55, 65, 81, 0.35)' },
     },
     y: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(31, 41, 55, 0.8)' },
+      ticks: {
+        color: '#9ca3af',
+        autoSkip: false,
+        font: { size: 10 },
+      },
+      grid: { display: false },
     },
   },
 }
 
+const rankingTabla = computed(() => {
+  return (props.rankingAsesores || [])
+    .map((r) => ({ asesor: r.asesor, total: Number(r.total_ventas || 0) }))
+    .sort((a, b) => b.total - a.total)
+})
+
 /* ==============================
-   GRÁFICA 4: Absorción mensual (Line)
+   GRÁFICA 4: Absorción mensual
 ============================== */
 const absorcionLineData = computed(() => {
   const rows = props.absorcionMensual || []
@@ -308,13 +487,14 @@ const absorcionLineData = computed(() => {
     [251, 146, 60],
     [244, 114, 182],
     [129, 140, 248],
-    [248, 250, 252],
+    [244, 63, 94],
+    [148, 163, 184],
   ]
 
   const datasets = proyectos.map((nombre, idx) => {
     const rgb = palette[idx % palette.length]
     const border = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`
-    const bg = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.25)`
+    const bg = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.22)`
 
     const data = labels.map((m) => {
       const row = rows.find((r) => r.proyecto === nombre && r.mes === m)
@@ -330,57 +510,71 @@ const absorcionLineData = computed(() => {
       tension: 0.25,
       pointRadius: 3,
       pointHoverRadius: 4,
+      borderWidth: 2,
     }
   })
 
   return { labels, datasets }
 })
 
-const lineOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      labels: {
-        color: '#e5e7eb',
-        font: { size: 10 },
+const lineOptions = computed(() => {
+  const labelsCount = absorcionLineData.value.labels?.length || 0
+  const many = labelsCount > 8
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 16, right: 10, left: 8, bottom: 0 } },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { color: '#e5e7eb', font: { size: 10 }, boxWidth: 10 },
+      },
+      tooltip: {
+        callbacks: {
+          label(ctx) {
+            const v = ctx.parsed.y
+            return `Unidades: ${Math.round(Number(v || 0))}`
+          },
+        },
       },
     },
-  },
-  scales: {
-    x: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(55, 65, 81, 0.4)' },
+    scales: {
+      x: {
+        ticks: {
+          color: '#9ca3af',
+          maxRotation: many ? 45 : 0,
+          minRotation: many ? 45 : 0,
+          autoSkip: true,
+        },
+        grid: { color: 'rgba(55, 65, 81, 0.35)' },
+      },
+      y: {
+        ticks: { color: '#9ca3af', precision: 0 },
+        grid: { color: 'rgba(55, 65, 81, 0.35)' },
+      },
     },
-    y: {
-      ticks: { color: '#9ca3af' },
-      grid: { color: 'rgba(55, 65, 81, 0.4)' },
-    },
-  },
-}
+  }
+})
 
-/* ==============================
-   PROYECTOS / INVENTARIO TAB
-============================== */
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toISOString().split('T')[0]
-}
+const absorcionTabla = computed(() => {
+  const rows = props.absorcionMensual || []
+  // total por mes (todas las líneas)
+  const byMes = new Map()
+  rows.forEach((r) => {
+    const mes = r.mes
+    const u = Number(r.unidades || 0)
+    byMes.set(mes, (byMes.get(mes) || 0) + u)
+  })
+  return Array.from(byMes.entries())
+    .map(([mes, total]) => ({ mes, total }))
+    .sort((a, b) => (a.mes > b.mes ? 1 : -1))
+})
 </script>
 
 <template>
   <GerenciaLayout>
     <Head title="Panel de Gerencia" />
-
-    <!-- Encabezado -->
-    <!-- <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-3xl font-semibold text-slate-50">Tablero de Gerencia</h1>
-        <p class="text-slate-400 text-sm">
-          Visión consolidada de proyectos, ventas, inventario y desempeño comercial.
-        </p>
-      </div>
-    </div> -->
 
     <!-- KPIs -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -508,6 +702,7 @@ function formatDate(dateStr) {
         >
           Resumen / Gráficas
         </button>
+
         <button
           type="button"
           :class="[
@@ -564,83 +759,280 @@ function formatDate(dateStr) {
 
     <!-- TAB: RESUMEN / GRÁFICAS -->
     <div v-if="activeTab === 'resumen'" class="space-y-6">
-      <!-- Fila de 4 tarjetas con hover -->
-      <div class="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-4">
-        <!-- Ventas por proyecto -->
+      <!-- Grid responsivo (mejor altura + scroll para tablas) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
+        <!-- Gráfica 1 -->
         <div
           class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-sky-500/60 hover:shadow-[0_0_25px_rgba(56,189,248,0.25)]"
-          style="height: 260px"
         >
           <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
               Ventas por proyecto
             </h2>
-            <span class="text-[10px] text-slate-500">Valor total</span>
+            <span class="text-[10px] text-slate-500">COP (con etiqueta)</span>
           </div>
-          <Bar :data="ventasProyectoData" :options="barChartOptions" />
+
+          <div class="h-[240px] sm:h-[260px]">
+            <Bar :data="ventasProyectoData" :options="barChartOptions" />
+          </div>
+
+          <!-- Datos visibles -->
+          <div class="mt-3 border-t border-slate-800 pt-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] text-slate-400">Detalle (sin hover)</p>
+              <p class="text-[11px] text-slate-500">{{ ventasProyectoTabla.length }} proyecto(s)</p>
+            </div>
+
+            <div class="mt-2 max-h-[120px] overflow-auto pr-1">
+              <div
+                v-for="(r, i) in ventasProyectoTabla"
+                :key="r.nombre + i"
+                class="flex items-center justify-between gap-3 py-1 text-xs"
+              >
+                <span class="text-slate-200 truncate">{{ r.nombre }}</span>
+                <span class="text-slate-100 font-semibold whitespace-nowrap">{{
+                  formatMoney(r.total)
+                }}</span>
+              </div>
+
+              <div v-if="!ventasProyectoTabla.length" class="text-xs text-slate-400 py-2">
+                No hay datos para el rango seleccionado.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Estado inventario (doughnut) -->
+        <!-- Gráfica 2 -->
         <div
           class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)]"
-          style="height: 260px"
         >
-          <div class="flex justify-between items-center mb-2">
+          <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
               Estado del inventario
             </h2>
+
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-slate-500">Proyecto</span>
+              <select
+                v-model="proyectoInventarioSeleccionado"
+                class="bg-slate-900 text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs"
+              >
+                <option
+                  v-for="opt in inventarioOptions"
+                  :key="opt.value || 'all'"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
           </div>
 
-          <div class="mb-2">
-            <select
-              v-model="proyectoInventarioSeleccionado"
-              class="w-full bg-slate-900 text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs"
-            >
-              <option v-for="opt in inventarioOptions" :key="opt.value || 'all'" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
+          <!-- Altura IGUAL a la gráfica 1 -->
+          <div class="h-[240px] sm:h-[260px]">
+            <div class="h-full rounded-xl border border-slate-800 bg-slate-950/30 overflow-hidden">
+              <div class="h-full overflow-auto">
+                <table class="min-w-full text-xs">
+                  <thead
+                    class="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-slate-800"
+                  >
+                    <tr class="text-slate-300">
+                      <th class="text-left font-semibold px-3 py-2">Estado</th>
+
+                      <!-- Columnas por proyecto -->
+                      <th
+                        v-for="p in inventarioColumnasProyectos"
+                        :key="p"
+                        class="text-right font-semibold px-3 py-2 whitespace-nowrap"
+                        :title="p"
+                      >
+                        <span class="inline-block max-w-[140px] truncate">{{ p }}</span>
+                      </th>
+
+                      <th class="text-right font-semibold px-3 py-2">Total</th>
+                      <th class="text-right font-semibold px-3 py-2">% Global</th>
+                    </tr>
+                  </thead>
+
+                  <tbody class="divide-y divide-slate-800/60">
+                    <tr
+                      v-for="row in inventarioTablaPorProyecto"
+                      :key="row.estado"
+                      class="hover:bg-slate-900/40"
+                    >
+                      <td class="px-3 py-2 text-slate-200 whitespace-nowrap">
+                        {{ row.estado }}
+                      </td>
+
+                      <!-- valores por proyecto -->
+                      <td
+                        v-for="p in inventarioColumnasProyectos"
+                        :key="row.estado + '-' + p"
+                        class="px-3 py-2 text-right text-slate-100 tabular-nums"
+                      >
+                        {{ row.porProyecto[p] ?? 0 }}
+                      </td>
+
+                      <td class="px-3 py-2 text-right text-slate-100 font-semibold tabular-nums">
+                        {{ row.total }}
+                      </td>
+
+                      <td class="px-3 py-2 text-right text-slate-300 tabular-nums">
+                        {{ row.pct }} %
+                      </td>
+                    </tr>
+
+                    <tr v-if="!inventarioTablaPorProyecto.length">
+                      <td
+                        :colspan="inventarioColumnasProyectos.length + 3"
+                        class="px-3 py-6 text-center text-slate-400"
+                      >
+                        No hay datos de inventario.
+                      </td>
+                    </tr>
+                  </tbody>
+
+                  <tfoot
+                    v-if="inventarioTablaPorProyecto.length"
+                    class="sticky bottom-0 bg-slate-900/95 backdrop-blur border-t border-slate-800"
+                  >
+                    <tr class="text-slate-200 font-semibold">
+                      <td class="px-3 py-2">TOTAL</td>
+
+                      <td
+                        v-for="p in inventarioColumnasProyectos"
+                        :key="'tot-' + p"
+                        class="px-3 py-2 text-right tabular-nums"
+                      >
+                        {{ inventarioTotalesPorProyecto[p] ?? 0 }}
+                      </td>
+
+                      <td class="px-3 py-2 text-right tabular-nums">
+                        {{ inventarioTotalGlobal }}
+                      </td>
+
+                      <td class="px-3 py-2 text-right tabular-nums">100.0 %</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <Doughnut :data="inventarioDoughnutData" :options="doughnutOptions" />
+          <!-- Footer (misma idea que la gráfica 1) -->
+          <div class="mt-3 border-t border-slate-800 pt-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] text-slate-400">Detalle (sin hover)</p>
+              <p class="text-[11px] text-slate-500">
+                {{ inventarioColumnasProyectos.length }} proyecto(s) •
+                {{ inventarioTotalGlobal }} unidad(es)
+              </p>
+            </div>
+
+            <!-- Scroll corto igual que la gráfica 1 -->
+            <div class="mt-2 max-h-[120px] overflow-auto pr-1">
+              <div
+                v-for="s in inventarioResumenCompacto"
+                :key="s.estado"
+                class="flex items-center justify-between gap-3 py-1 text-xs"
+              >
+                <span class="text-slate-200 truncate">{{ s.estado }}</span>
+                <span class="text-slate-100 font-semibold whitespace-nowrap">
+                  {{ s.total }} ({{ s.pct }} %)
+                </span>
+              </div>
+
+              <div v-if="!inventarioResumenCompacto.length" class="text-xs text-slate-400 py-2">
+                No hay datos para el rango seleccionado.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Ranking de asesores -->
+        <!-- Gráfica 3 -->
         <div
           class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-pink-500/60 hover:shadow-[0_0_25px_rgba(236,72,153,0.25)]"
-          style="height: 260px"
         >
           <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
               Ranking asesores
             </h2>
-            <span class="text-[10px] text-slate-500">Top por valor vendido</span>
+            <span class="text-[10px] text-slate-500">Top 12</span>
           </div>
-          <Bar :data="rankingAsesoresData" :options="rankingOptions" />
+
+          <div class="h-[240px] sm:h-[260px]">
+            <Bar :data="rankingAsesoresData" :options="rankingOptions" />
+          </div>
+
+          <!-- Datos visibles -->
+          <div class="mt-3 border-t border-slate-800 pt-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] text-slate-400">Detalle (sin hover)</p>
+              <p class="text-[11px] text-slate-500">{{ rankingTabla.length }} asesor(es)</p>
+            </div>
+
+            <div class="mt-2 max-h-[120px] overflow-auto pr-1">
+              <div
+                v-for="(r, i) in rankingTabla"
+                :key="r.asesor + i"
+                class="flex items-center justify-between gap-3 py-1 text-xs"
+              >
+                <span class="text-slate-200 truncate">{{ i + 1 }}. {{ r.asesor }}</span>
+                <span class="text-slate-100 font-semibold whitespace-nowrap">{{
+                  formatMoney(r.total)
+                }}</span>
+              </div>
+
+              <div v-if="!rankingTabla.length" class="text-xs text-slate-400 py-2">
+                No hay datos de ventas registrados.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Absorción mensual -->
+        <!-- Gráfica 4 -->
         <div
           class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-indigo-500/60 hover:shadow-[0_0_25px_rgba(129,140,248,0.25)]"
-          style="height: 260px"
         >
           <div class="flex justify-between items-center mb-3">
             <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
               Absorción mensual
             </h2>
-            <span class="text-[10px] text-slate-500">Unidades vendidas / mes</span>
+            <span class="text-[10px] text-slate-500">Unidades / mes</span>
           </div>
-          <Line :data="absorcionLineData" :options="lineOptions" />
+
+          <div class="h-[240px] sm:h-[260px]">
+            <Line :data="absorcionLineData" :options="lineOptions" />
+          </div>
+
+          <!-- Datos visibles -->
+          <div class="mt-3 border-t border-slate-800 pt-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] text-slate-400">Total unidades por mes</p>
+              <p class="text-[11px] text-slate-500">{{ absorcionTabla.length }} mes(es)</p>
+            </div>
+
+            <div class="mt-2 max-h-[120px] overflow-auto pr-1">
+              <div
+                v-for="r in absorcionTabla"
+                :key="r.mes"
+                class="flex items-center justify-between gap-3 py-1 text-xs"
+              >
+                <span class="text-slate-200">{{ r.mes }}</span>
+                <span class="text-slate-100 font-semibold">{{ r.total }}</span>
+              </div>
+
+              <div v-if="!absorcionTabla.length" class="text-xs text-slate-400 py-2">
+                No hay ventas para construir la serie mensual.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- TAB: PLAN DE PAGOS DE CUOTA INICIAL -->
     <div v-else-if="activeTab === 'plan_ci'" class="space-y-4">
-      <!-- <h2 class="text-sm font-semibold text-slate-100">
-        Plan de pagos de cuota inicial por ventas
-      </h2> -->
-
       <div class="flex justify-end mb-3">
         <a
           class="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-500 text-sm"
@@ -660,8 +1052,6 @@ function formatDate(dateStr) {
               <th class="p-2 border border-slate-700">Proyecto</th>
               <th class="p-2 border border-slate-700">Inmueble</th>
               <th class="p-2 border border-slate-700">Cliente</th>
-
-              <!-- Meses dinámicos -->
               <th
                 v-for="m in planPagosCI.encabezados"
                 :key="m"
@@ -865,18 +1255,10 @@ function formatDate(dateStr) {
                 :key="`${row.id_proyecto}-${row.id_empleado}`"
                 class="border-b border-slate-800/60"
               >
-                <td class="py-2 pr-2 text-slate-200">
-                  {{ row.proyecto }}
-                </td>
-                <td class="py-2 pr-2 text-slate-100">
-                  {{ row.empleado }}
-                </td>
-                <td class="py-2 pr-2 text-right text-sky-300">
-                  {{ row.ventas }}
-                </td>
-                <td class="py-2 pr-2 text-right text-slate-100">
-                  {{ row.separaciones }}
-                </td>
+                <td class="py-2 pr-2 text-slate-200">{{ row.proyecto }}</td>
+                <td class="py-2 pr-2 text-slate-100">{{ row.empleado }}</td>
+                <td class="py-2 pr-2 text-right text-sky-300">{{ row.ventas }}</td>
+                <td class="py-2 pr-2 text-right text-slate-100">{{ row.separaciones }}</td>
                 <td class="py-2 pr-2 text-right text-emerald-300">
                   {{ row.separaciones_ejecutadas }}
                 </td>

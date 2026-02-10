@@ -295,12 +295,14 @@ const stats = computed(() => {
 const filteredInmuebles = computed(() => {
   if (!props.inmuebles) return []
 
+  const term = searchTerm.value.toLowerCase()
+
   return props.inmuebles.filter((inmueble) => {
     const matchSearch =
-      searchTerm.value === '' ||
-      inmueble.numero.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      inmueble.proyecto.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      inmueble.tipo_inmueble.toLowerCase().includes(searchTerm.value.toLowerCase())
+      term === '' ||
+      String(inmueble.numero).toLowerCase().includes(term) ||
+      String(inmueble.proyecto).toLowerCase().includes(term) ||
+      String(inmueble.tipo_inmueble).toLowerCase().includes(term)
 
     return matchSearch
   })

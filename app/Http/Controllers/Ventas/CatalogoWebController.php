@@ -97,6 +97,14 @@ class CatalogoWebController extends Controller
                     );
             })
 
+            // ORDEN: número incremental (Postgres)
+            ->orderByRaw("
+      CASE
+        WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
+        ELSE numero
+      END ASC
+    ")
+
             ->get()
             ->map(function ($apto) {
                 return [
@@ -160,6 +168,14 @@ class CatalogoWebController extends Controller
                     );
             })
 
+            // ORDEN: número incremental (Postgres)
+            ->orderByRaw("
+      CASE
+        WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
+        ELSE numero
+      END ASC
+    ")
+
             ->get()
             ->map(function ($local) {
                 return [
@@ -189,7 +205,10 @@ class CatalogoWebController extends Controller
         // ========================
         $inmuebles = $apartamentos
             ->concat($locales)
-            ->sortBy('valor')
+            ->sort(function ($a, $b) {
+                // orden natural por numero (ej: 2 < 10 < 100)
+                return strnatcasecmp((string) $a['numero'], (string) $b['numero']);
+            })
             ->values();
 
         return Inertia::render('Ventas/Catalogo/Index', [
