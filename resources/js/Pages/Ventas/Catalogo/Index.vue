@@ -1,3 +1,4 @@
+<!-- resources/js/Pages/Ventas/Catalogo/Index.vue -->
 <template>
   <VentasLayout :empleado="empleado">
     <Head title="Catálogo de Inmuebles" />
@@ -12,6 +13,7 @@
               <p class="mt-1 text-sm text-gray-600">Explora nuestros proyectos disponibles</p>
             </div>
             <button
+              type="button"
               @click="showFilters = !showFilters"
               class="inline-flex items-center px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2c5282] transition-colors"
             >
@@ -19,12 +21,43 @@
               Filtros
             </button>
           </div>
+
+          <!-- Tabs por proyecto -->
+          <div class="mt-5 flex gap-2 overflow-x-auto pb-1">
+            <button
+              type="button"
+              @click="setTabProyecto('')"
+              class="shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition"
+              :class="
+                !selectedProyecto
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              "
+            >
+              Todos
+            </button>
+
+            <button
+              v-for="p in proyectos"
+              :key="p.id_proyecto"
+              type="button"
+              @click="setTabProyecto(String(p.id_proyecto))"
+              class="shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition"
+              :class="
+                String(selectedProyecto) === String(p.id_proyecto)
+                  ? projectTabClasses(p.id_proyecto).active
+                  : projectTabClasses(p.id_proyecto).inactive
+              "
+            >
+              {{ p.nombre }}
+            </button>
+          </div>
         </div>
       </div>
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Estadísticas -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div
             v-for="stat in stats"
             :key="stat.label"
@@ -34,9 +67,9 @@
               <div :class="[stat.color, 'p-3 rounded-lg']">
                 <component :is="stat.icon" class="h-6 w-6 text-white" />
               </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-600">{{ stat.label }}</p>
-                <p class="text-2xl font-bold text-gray-900">{{ stat.value }}</p>
+              <div class="ml-4 min-w-0">
+                <p class="text-sm font-medium text-gray-600 truncate">{{ stat.label }}</p>
+                <p class="text-2xl font-bold text-gray-900 truncate">{{ stat.value }}</p>
               </div>
             </div>
           </div>
@@ -48,8 +81,9 @@
           class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-200"
         >
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Filtros de Búsqueda</h3>
+
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Proyecto -->
+            <!-- Proyecto (opcional, existe tab) -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Proyecto</label>
               <select
@@ -60,7 +94,7 @@
                 <option
                   v-for="proyecto in proyectos"
                   :key="proyecto.id_proyecto"
-                  :value="proyecto.id_proyecto"
+                  :value="String(proyecto.id_proyecto)"
                 >
                   {{ proyecto.nombre }}
                 </option>
@@ -105,12 +139,14 @@
 
           <div class="flex justify-end gap-3 mt-6">
             <button
+              type="button"
               @click="clearFilters"
               class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             >
               Limpiar
             </button>
             <button
+              type="button"
               @click="applyFilters"
               class="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2c5282] transition-colors"
             >
@@ -127,6 +163,7 @@
             />
             <input
               v-model="searchTerm"
+              @keydown.enter.prevent="applyFilters"
               type="text"
               placeholder="Buscar por número, proyecto o tipo..."
               class="w-full pl-10 pr-4 py-3 rounded-lg border-gray-300 shadow-sm focus:border-[#1e3a5f] focus:ring focus:ring-[#1e3a5f] focus:ring-opacity-50"
@@ -157,10 +194,10 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                   <BuildingOfficeIcon class="h-6 w-6 text-white" />
-                  <span class="text-white font-semibold text-lg"
-                    >{{ inmueble.tipo === 'apartamento' ? 'Apto' : 'Local' }}
-                    {{ inmueble.numero }}</span
-                  >
+                  <span class="text-white font-semibold text-lg">
+                    {{ inmueble.tipo === 'apartamento' ? 'Apto' : 'Local' }}
+                    {{ inmueble.numero }}
+                  </span>
                 </div>
                 <span
                   class="bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium"
@@ -191,7 +228,9 @@
 
               <!-- Características -->
               <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <p class="text-sm font-semibold text-gray-700 mb-2">{{ inmueble.tipo_inmueble }}</p>
+                <p class="text-sm font-semibold text-gray-700 mb-2">
+                  {{ inmueble.tipo_inmueble }}
+                </p>
                 <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
                   <div>
                     <span class="font-medium">Área:</span> {{ inmueble.area_construida }} m²
@@ -213,11 +252,11 @@
                     {{ formatCurrency(inmueble.valor) }}
                   </p>
                 </div>
-                <button
+                <span
                   class="bg-[#f4c430] text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-[#e5b520] transition-colors"
                 >
                   Ver Detalles
-                </button>
+                </span>
               </div>
             </div>
           </Link>
@@ -231,6 +270,7 @@
             No se encontraron inmuebles que coincidan con los filtros seleccionados.
           </p>
           <button
+            type="button"
             @click="clearFilters"
             class="px-6 py-3 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2c5282] transition-colors"
           >
@@ -262,8 +302,8 @@ const props = defineProps({
   filters: Object,
 })
 
-// Filtros locales
-const searchTerm = ref('')
+// Filtros locales (inicializados desde backend)
+const searchTerm = ref(props.filters?.search || '')
 const selectedProyecto = ref(props.filters?.proyecto || '')
 const selectedTipo = ref(props.filters?.tipo || '')
 const precioMin = ref(props.filters?.precio_min || '')
@@ -276,47 +316,44 @@ const stats = computed(() => {
   const apartamentos = props.inmuebles?.filter((i) => i.tipo === 'apartamento').length || 0
   const locales = props.inmuebles?.filter((i) => i.tipo === 'local').length || 0
   const precioPromedio =
-    total > 0 ? props.inmuebles.reduce((sum, i) => sum + parseFloat(i.valor), 0) / total : 0
+    total > 0 ? props.inmuebles.reduce((sum, i) => sum + Number(i.valor || 0), 0) / total : 0
 
   return [
     { label: 'Total Disponibles', value: total, icon: HomeIcon, color: 'bg-blue-500' },
     { label: 'Apartamentos', value: apartamentos, icon: BuildingOfficeIcon, color: 'bg-green-500' },
     { label: 'Locales', value: locales, icon: BuildingOfficeIcon, color: 'bg-purple-500' },
-    {
-      label: 'Precio Promedio',
-      value: formatCurrency(precioPromedio),
-      icon: CurrencyDollarIcon,
-      color: 'bg-yellow-500',
-    },
   ]
 })
 
-// Filtrar inmuebles
 const filteredInmuebles = computed(() => {
   if (!props.inmuebles) return []
-
-  const term = searchTerm.value.toLowerCase()
+  const term = (searchTerm.value || '').toLowerCase().trim()
+  if (!term) return props.inmuebles
 
   return props.inmuebles.filter((inmueble) => {
-    const matchSearch =
-      term === '' ||
-      String(inmueble.numero).toLowerCase().includes(term) ||
-      String(inmueble.proyecto).toLowerCase().includes(term) ||
-      String(inmueble.tipo_inmueble).toLowerCase().includes(term)
-
-    return matchSearch
+    return (
+      String(inmueble.numero || '')
+        .toLowerCase()
+        .includes(term) ||
+      String(inmueble.proyecto || '')
+        .toLowerCase()
+        .includes(term) ||
+      String(inmueble.tipo_inmueble || '')
+        .toLowerCase()
+        .includes(term)
+    )
   })
 })
 
-// Aplicar filtros
-const applyFilters = () => {
+function applyFilters() {
   router.get(
     '/catalogo',
     {
-      proyecto: selectedProyecto.value,
-      tipo: selectedTipo.value,
-      precio_min: precioMin.value,
-      precio_max: precioMax.value,
+      proyecto: selectedProyecto.value || '',
+      tipo: selectedTipo.value || '',
+      precio_min: precioMin.value || '',
+      precio_max: precioMax.value || '',
+      search: searchTerm.value || '',
     },
     {
       preserveState: true,
@@ -325,21 +362,55 @@ const applyFilters = () => {
   )
 }
 
-// Limpiar filtros
-const clearFilters = () => {
+function clearFilters() {
   selectedProyecto.value = ''
   selectedTipo.value = ''
   precioMin.value = ''
   precioMax.value = ''
+  searchTerm.value = ''
   router.get('/catalogo')
 }
 
-// Formatear moneda
-const formatCurrency = (value) => {
+// Tabs
+function setTabProyecto(id) {
+  selectedProyecto.value = id || ''
+  applyFilters()
+}
+
+function formatCurrency(value) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
-  }).format(value)
+  }).format(Number(value || 0))
+}
+
+function projectTabClasses(id) {
+  // paleta por "bucket" usando el id (cámbiala a tu gusto)
+  const palette = [
+    {
+      active: 'bg-blue-600 text-white border-blue-600',
+      inactive: 'bg-blue-50 text-blue-800 border-blue-100 hover:bg-blue-100',
+    },
+    {
+      active: 'bg-green-600 text-white border-green-600',
+      inactive: 'bg-green-50 text-green-800 border-green-100 hover:bg-green-100',
+    },
+    {
+      active: 'bg-purple-600 text-white border-purple-600',
+      inactive: 'bg-purple-50 text-purple-800 border-purple-100 hover:bg-purple-100',
+    },
+    {
+      active: 'bg-amber-500 text-white border-amber-500',
+      inactive: 'bg-amber-50 text-amber-800 border-amber-100 hover:bg-amber-100',
+    },
+    {
+      active: 'bg-rose-600 text-white border-rose-600',
+      inactive: 'bg-rose-50 text-rose-800 border-rose-100 hover:bg-rose-100',
+    },
+  ]
+
+  const idx = Number(id || 0) % palette.length
+  return palette[idx]
 }
 </script>

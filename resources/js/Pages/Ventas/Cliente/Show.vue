@@ -16,7 +16,7 @@
       >
         <ArrowLeftIcon class="w-5 h-5" /> Volver
       </Link>
-      <Link
+      <!-- <Link
         :href="`/clientes/${cliente.documento}/edit`"
         class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
       >
@@ -27,7 +27,7 @@
         class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
       >
         <TrashIcon class="w-5 h-5" /> Eliminar
-      </button>
+      </button> -->
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

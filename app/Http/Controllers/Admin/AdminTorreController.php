@@ -9,6 +9,8 @@ use App\Models\Estado;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
+use Illuminate\Support\Facades\DB;
 
 class AdminTorreController extends Controller
 {
@@ -26,13 +28,13 @@ class AdminTorreController extends Controller
             ->with([
                 'torres' => function ($q) use ($search) {
                     $q->select('id_torre', 'nombre_torre', 'numero_pisos', 'id_proyecto', 'id_estado', 'nivel_inicio_prima')
-                      ->with(['estado:id_estado,nombre'])
-                      ->when($search, fn ($qq) => $qq->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
-                      ->orderBy('id_torre', 'desc');
+                        ->with(['estado:id_estado,nombre'])
+                        ->when($search, fn($qq) => $qq->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
+                        ->orderBy('id_torre', 'desc');
                 }
             ])
             ->when($search, function ($q) use ($search) {
-                $q->whereHas('torres', fn ($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'));
+                $q->whereHas('torres', fn($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'));
             })
             ->orderBy('nombre');
 
@@ -66,14 +68,13 @@ class AdminTorreController extends Controller
             $validated = $request->validate([
                 'id_proyecto' => ['required', Rule::exists('proyectos', 'id_proyecto')],
                 'id_estado'   => ['required', Rule::exists('estados', 'id_estado')],
-
                 'torres' => ['required', 'array', 'min:1'],
                 'torres.*.nombre_torre'       => ['required', 'string', 'max:50'],
                 'torres.*.numero_pisos'       => ['nullable', 'integer', 'min:1', 'max:32767'],
                 'torres.*.nivel_inicio_prima' => ['required', 'integer', 'min:1'],
             ]);
 
-            \DB::transaction(function () use ($validated) {
+            DB::transaction(function () use ($validated) {
                 foreach ($validated['torres'] as $t) {
                     Torre::create([
                         'nombre_torre'       => $t['nombre_torre'],
@@ -87,9 +88,13 @@ class AdminTorreController extends Controller
 
             $count = count($validated['torres']);
 
-            return redirect()
-                ->route('admin.torres.index')
-                ->with('success', $count === 1 ? 'Torre creada exitosamente.' : "{$count} torres creadas exitosamente.");
+            return RedirectBackTo::respond(
+                $request,
+                'admin.torres.index',
+                [],
+                $count === 1 ? 'Torre creada exitosamente.' : "{$count} torres creadas exitosamente.",
+                ['count' => $count]
+            );
         }
 
         $validated = $request->validate([
@@ -102,9 +107,13 @@ class AdminTorreController extends Controller
 
         $torre = Torre::create($validated);
 
-        return redirect()
-            ->route('admin.torres.show', $torre->id_torre)
-            ->with('success', 'Torre creada exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'admin.torres.show',
+            [$torre->id_torre],
+            'Torre creada exitosamente',
+            ['id_torre' => $torre->id_torre]
+        );
     }
 
     public function show(Request $request, $id_torre)

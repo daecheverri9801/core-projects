@@ -10,6 +10,7 @@ use App\Models\PisoTorre;
 use App\Models\EstadoInmueble;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
 
 class LocalWebController extends Controller
 {
@@ -164,7 +165,12 @@ class LocalWebController extends Controller
 
         Local::create($validated);
 
-        return redirect()->route('locales.index')->with('success', 'Local creado exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'locales.index',
+            [],
+            'Local creado exitosamente'
+        );
     }
 
     public function show(Request $request, $id)

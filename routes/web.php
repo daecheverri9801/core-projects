@@ -1,17 +1,16 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Auth\EmpleadoAuthController;
+use App\Http\Controllers\Auth\EmpleadoPasswordResetController;
+
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProyectoController;
 use App\Http\Controllers\Admin\EmpleadoController;
 use App\Http\Controllers\Admin\EstadosController;
 use App\Http\Controllers\Admin\DependenciasCargosController;
-use App\Http\Controllers\Auth\EmpleadoPasswordResetController;
 use App\Http\Controllers\Admin\UbicacionController;
-use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Admin\AdminTorreController;
 use App\Http\Controllers\Admin\PisoTorreWebController;
 use App\Http\Controllers\Admin\ApartamentoWebController;
@@ -20,6 +19,9 @@ use App\Http\Controllers\Admin\LocalWebController;
 use App\Http\Controllers\Admin\ZonaSocialWebController;
 use App\Http\Controllers\Admin\ParqueaderoWebController;
 use App\Http\Controllers\Admin\PoliticaPrecioProyectoWebController;
+use App\Http\Controllers\Admin\VentaAdminController;
+use App\Http\Controllers\Admin\ClienteAdminController;
+use App\Http\Controllers\Admin\ProyectoWizardController;
 
 use App\Http\Controllers\Ventas\TipoClienteWebController;
 use App\Http\Controllers\Ventas\TipoDocumentoWebController;
@@ -40,6 +42,7 @@ use App\Http\Controllers\Gerencia\MetasController;
 use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
 
 
+
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login');
 Route::post('/logout', [EmpleadoAuthController::class, 'logout'])->name('logout');
@@ -54,6 +57,7 @@ Route::middleware('guest')->group(function () {
 // Ruta solo para Administradores
 Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::prefix('proyectos')->group(function () {
         Route::get('/', [ProyectoController::class, 'index'])->name('proyectos.index');
         Route::get('/create', [ProyectoController::class, 'create'])->name('proyectos.create');
@@ -112,7 +116,6 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     //     Route::put('/torres/{id_torre}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'update'])->name('torres.update');
     //     Route::delete('/torres/{id_torre}', [\App\Http\Controllers\Admin\AdminTorreController::class, 'destroy'])->name('torres.destroy');
     // });
-
 
     Route::get('/pisos-torre', [PisoTorreWebController::class, 'index'])->name('pisostorre.index');
     Route::get('/pisos-torre/create', [PisoTorreWebController::class, 'create'])->name('pisostorre.create');
@@ -182,6 +185,21 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
         Route::put('/{id}', [PoliticaPrecioProyectoWebController::class, 'update'])->name('politicas-precio-proyecto.update');
         Route::delete('/{id}', [PoliticaPrecioProyectoWebController::class, 'destroy'])->name('politicas-precio-proyecto.destroy');
     });
+
+    Route::get('/admin/ventas', [VentaAdminController::class, 'index'])->name('admin.ventas.index');
+    Route::get('/admin/ventas/create', [VentaAdminController::class, 'create'])->name('admin.ventas.create');
+    Route::post('/admin/ventas', [VentaAdminController::class, 'store'])->name('admin.ventas.store');
+    Route::get('/admin/ventas/{id}/edit', [VentaAdminController::class, 'edit'])->name('admin.ventas.edit');
+    Route::put('/admin/ventas/{id}', [VentaAdminController::class, 'update'])->name('admin.ventas.update');
+    Route::delete('/admin/ventas/{id}', [VentaAdminController::class, 'destroy'])->name('admin.ventas.destroy');
+
+    Route::get('/admin/clientes', [ClienteAdminController::class, 'index'])->name('admin.clientes.index');
+    Route::get('/admin/clientes/create', [ClienteAdminController::class, 'create'])->name('admin.clientes.create');
+    Route::post('/admin/clientes', [ClienteAdminController::class, 'store'])->name('admin.clientes.store');
+    Route::get('/admin/clientes/{documento}', [ClienteAdminController::class, 'show'])->name('admin.clientes.show');
+    Route::get('/admin/clientes/{documento}/edit', [ClienteAdminController::class, 'edit'])->name('admin.clientes.edit');
+    Route::put('/admin/clientes/{documento}', [ClienteAdminController::class, 'update'])->name('admin.clientes.update');
+    Route::delete('/admin/clientes/{documento}', [ClienteAdminController::class, 'destroy'])->name('admin.clientes.destroy');
 });
 
 // ============================================
@@ -220,9 +238,9 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
     Route::get('clientes/create', [ClienteWebController::class, 'create'])->name('clientes.create');
     Route::post('clientes', [ClienteWebController::class, 'store'])->name('clientes.store');
     Route::get('clientes/{documento}', [ClienteWebController::class, 'show'])->name('clientes.show');
-    Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
-    Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
-    Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
+    // Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
+    // Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
+    // Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
 
     // 4. Formas de Pago
     Route::resource('formas-pago', FormaPagoWebController::class)->names([
@@ -274,9 +292,9 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
         'create' => 'ventas.create',
         'store' => 'ventas.store',
         'show' => 'ventas.show',
-        'edit' => 'ventas.edit',
-        'update' => 'ventas.update',
-        'destroy' => 'ventas.destroy',
+        // 'edit' => 'ventas.edit',
+        // 'update' => 'ventas.update',
+        // 'destroy' => 'ventas.destroy',
     ]);
 
     Route::prefix('ventas')->group(function () {

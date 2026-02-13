@@ -7,6 +7,7 @@ use App\Models\ZonaSocial;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
 
 class ZonaSocialWebController extends Controller
 {
@@ -74,7 +75,12 @@ class ZonaSocialWebController extends Controller
         }
 
         ZonaSocial::create($validated);
-        return redirect()->route('zonas-sociales.index')->with('success', 'Zona social creada exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'zonas-sociales.index',
+            [],
+            'Zona social creada exitosamente'
+        );
     }
 
     /**

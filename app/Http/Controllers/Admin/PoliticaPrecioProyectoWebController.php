@@ -8,6 +8,7 @@ use App\Models\PoliticaPrecioProyecto;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
 
 class PoliticaPrecioProyectoWebController extends Controller
 {
@@ -48,8 +49,13 @@ class PoliticaPrecioProyectoWebController extends Controller
 
         $politica = PoliticaPrecioProyecto::create($validated);
 
-        return redirect()->route('politicas-precio-proyecto.show', $politica->id_politica_precio)
-            ->with('success', 'Política de precio creada exitosamente.');
+        return RedirectBackTo::respond(
+            $request,
+            'politicas-precio-proyecto.show',
+            [$politica->id_politica_precio],
+            'Política de precio creada exitosamente.',
+            ['id_politica_precio' => $politica->id_politica_precio]
+        );
     }
 
     public function show(Request $request, $id)
@@ -100,5 +106,4 @@ class PoliticaPrecioProyectoWebController extends Controller
         return redirect()->route('politicas-precio-proyecto.index')
             ->with('success', 'Política de precio eliminada exitosamente.');
     }
-
 }

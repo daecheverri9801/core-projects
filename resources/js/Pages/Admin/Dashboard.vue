@@ -1,16 +1,10 @@
 <template>
-  <SidebarBannerLayout :empleado="empleado">
-    <template #title>Dashboard</template>
-
+  <TopBannerLayout :empleado="empleado" panel-name="Panel administrativo">
     <div class="space-y-6">
-      <!-- HERO -->
-      <section
-        class="rounded-2xl border border-brand-300/60 bg-white shadow-sm overflow-hidden"
-      >
+      <!-- HERO (se conserva) -->
+      <section class="rounded-2xl border border-brand-300/60 bg-white shadow-sm overflow-hidden">
         <div class="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p class="text-sm text-gray-600">Panel administrativo</p>
-
             <h3 class="text-2xl font-semibold text-gray-900">
               Bienvenido,
               <span class="text-brand-900">{{ empleadoNombre }}</span>
@@ -33,8 +27,7 @@
 
             <Link
               href="/perfil"
-              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow
-                     hover:bg-brand-700 active:bg-brand-800 transition"
+              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-700 active:bg-brand-800 transition"
             >
               <UserIcon class="w-4 h-4" />
               Mi perfil
@@ -45,21 +38,7 @@
         <div class="h-1.5 w-full bg-gradient-to-r from-brand-300 via-brand-600 to-brand-300"></div>
       </section>
 
-      <!-- BUSCADOR -->
-      <section class="rounded-2xl border border-brand-300/60 bg-white shadow-sm">
-        <div class="p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h4 class="text-base font-semibold text-gray-900">Módulos</h4>
-            <p class="text-sm text-gray-600">Busca por nombre o categoría.</p>
-          </div>
-
-          <div class="w-full sm:w-[420px]">
-            <QuickSearch v-model="query" placeholder="Buscar módulos…" />
-          </div>
-        </div>
-      </section>
-
-      <!-- GRID -->
+      <!-- GRID (solo 6 cards) -->
       <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <AdminTile
           v-for="item in filteredItems"
@@ -86,22 +65,20 @@
 
         <button
           @click="query = ''"
-          class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white
-                 hover:bg-brand-700 transition"
+          class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
         >
           Limpiar búsqueda
         </button>
       </section>
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AdminTile from '@/Components/AdminTile.vue'
-import QuickSearch from '@/Components/QuickSearch.vue'
 
 import { UserIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 
@@ -119,27 +96,59 @@ const cargoNombre = computed(() => props.empleado?.cargo?.nombre || 'Cargo')
 const query = ref('')
 
 const items = [
-  { title: 'Proyectos', description: 'Gestión general de proyectos.', icon: 'FolderIcon', href: '/proyectos', tag: 'Core' },
-  { title: 'Empleados', description: 'Administración de personal.', icon: 'UsersIcon', href: '/empleados', tag: 'Admin' },
-  { title: 'Estados', description: 'Catálogo de estados.', icon: 'CheckCircleIcon', href: '/estados', tag: 'Config' },
-  { title: 'Dependencias y Cargos', description: 'Estructura organizacional.', icon: 'IdentificationIcon', href: '/dependencias-cargos', tag: 'Admin' },
-  { title: 'Torres', description: 'Gestión de torres.', icon: 'BuildingOfficeIcon', href: '/admin/torres', tag: 'Inmobiliario' },
-  { title: 'Pisos Torre', description: 'Configuración de pisos.', icon: 'HomeIcon', href: '/pisos-torre', tag: 'Inmobiliario' },
-  { title: 'Apartamentos', description: 'Inventario de apartamentos.', icon: 'HomeIcon', href: '/apartamentos', tag: 'Inmobiliario' },
-  { title: 'Tipos Apartamento', description: 'Tipologías de unidades.', icon: 'Squares2X2Icon', href: '/tipos-apartamento', tag: 'Config' },
-  { title: 'Locales', description: 'Locales comerciales.', icon: 'BuildingStorefrontIcon', href: '/locales', tag: 'Inmobiliario' },
-  { title: 'Zonas Sociales', description: 'Amenidades y zonas comunes.', icon: 'SparklesIcon', href: '/zonas-sociales', tag: 'Inmobiliario' },
-  { title: 'Parqueaderos', description: 'Gestión de parqueaderos.', icon: 'TruckIcon', href: '/parqueaderos', tag: 'Inmobiliario' },
-  { title: 'Políticas', description: 'Políticas de precios.', icon: 'ShieldCheckIcon', href: '/politicas-precio-proyecto', tag: 'Comercial' },
+  {
+    title: 'Proyectos',
+    description: 'Gestión general de proyectos de construcción.',
+    icon: 'FolderIcon',
+    href: '/proyectos',
+    tag: 'Core',
+  },
+  {
+    title: 'Ventas',
+    description: 'Gestión comercial y seguimiento de ventas.',
+    icon: 'ChartBarIcon',
+    href: '/admin/ventas',
+    tag: 'Comercial',
+  },
+  {
+    title: 'Clientes',
+    description: 'Administración y control de clientes.',
+    icon: 'UserGroupIcon',
+    href: '/admin/clientes',
+    tag: 'Comercial',
+  },
+  {
+    title: 'Empleados',
+    description: 'Administración de personal.',
+    icon: 'UsersIcon',
+    href: '/empleados',
+    tag: 'Admin',
+  },
+  {
+    title: 'Estados',
+    description: 'Catálogo de estados.',
+    icon: 'CheckCircleIcon',
+    href: '/estados',
+    tag: 'Config',
+  },
+  {
+    title: 'Dependencias y Cargos',
+    description: 'Estructura organizacional.',
+    icon: 'IdentificationIcon',
+    href: '/dependencias-cargos',
+    tag: 'Admin',
+  },
 ]
 
 const filteredItems = computed(() => {
   if (!query.value) return items
   const q = query.value.toLowerCase()
-  return items.filter(i =>
-    i.title.toLowerCase().includes(q) ||
-    i.description.toLowerCase().includes(q) ||
-    i.tag.toLowerCase().includes(q)
-  )
+  return items.filter((i) => {
+    return (
+      i.title.toLowerCase().includes(q) ||
+      i.description.toLowerCase().includes(q) ||
+      i.tag.toLowerCase().includes(q)
+    )
+  })
 })
 </script>

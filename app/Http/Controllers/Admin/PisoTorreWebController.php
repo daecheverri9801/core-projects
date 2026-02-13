@@ -9,6 +9,7 @@ use App\Models\Torre;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Support\RedirectBackTo;
 
 class PisoTorreWebController extends Controller
 {
@@ -34,7 +35,7 @@ class PisoTorreWebController extends Controller
                         ->when($search, function ($qq) use ($search) {
                             $qq->where(function ($w) use ($search) {
                                 $w->where('uso', 'ILIKE', '%' . $search . '%')
-                                  ->orWhere('nivel', (int) $search === 0 ? '!=' : '=', is_numeric($search) ? (int)$search : -999999);
+                                    ->orWhere('nivel', (int) $search === 0 ? '!=' : '=', is_numeric($search) ? (int)$search : -999999);
                             });
                         })
                         ->orderBy('nivel');
@@ -43,10 +44,10 @@ class PisoTorreWebController extends Controller
             ->when($search, function ($q) use ($search) {
                 $q->whereHas('torres.pisos', function ($p) use ($search) {
                     $p->where('uso', 'ILIKE', '%' . $search . '%')
-                      ->orWhereHas('torre', fn ($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
-                      ->orWhere('nivel', is_numeric($search) ? (int)$search : -999999);
+                        ->orWhereHas('torre', fn($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'))
+                        ->orWhere('nivel', is_numeric($search) ? (int)$search : -999999);
                 })
-                ->orWhereHas('torres', fn ($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'));
+                    ->orWhereHas('torres', fn($t) => $t->where('nombre_torre', 'ILIKE', '%' . $search . '%'));
             })
             ->orderBy('nombre');
 
@@ -111,40 +112,22 @@ class PisoTorreWebController extends Controller
             'pisos' => ['required', 'array', 'min:1'],
             'pisos.*.nivel' => ['required', 'integer', 'min:1'],
             'pisos.*.uso' => ['nullable', 'string', 'max:40'],
-        ], [
-            'id_torre.required' => 'La torre es obligatoria',
-            'id_torre.exists' => 'La torre seleccionada no existe',
-
-            'pisos.required' => 'Debes agregar al menos un piso',
-            'pisos.array' => 'Formato inválido de pisos',
-            'pisos.min' => 'Debes agregar al menos un piso',
-
-            'pisos.*.nivel.required' => 'El nivel es obligatorio',
-            'pisos.*.nivel.integer' => 'El nivel debe ser un entero',
-            'pisos.*.nivel.min' => 'El nivel mínimo es 1',
-
-            'pisos.*.uso.max' => 'El uso no puede exceder 40 caracteres',
-        ]);
+        ], [ /* tus mensajes */]);
 
         $idTorre = (int) $validated['id_torre'];
         $pisos = $validated['pisos'];
 
-        // Validación: duplicados en el mismo payload
-        $niveles = array_map(fn ($p) => (int) $p['nivel'], $pisos);
+        $niveles = array_map(fn($p) => (int) $p['nivel'], $pisos);
         if (count($niveles) !== count(array_unique($niveles))) {
-            return back()
-                ->withErrors(['pisos' => 'Hay niveles duplicados en la carga.'])
-                ->withInput();
+            return back()->withErrors(['pisos' => 'Hay niveles duplicados en la carga.'])->withInput();
         }
 
-        // Validación: ya existen en DB para esa torre
         $existing = PisoTorre::where('id_torre', $idTorre)
             ->whereIn('nivel', $niveles)
             ->pluck('nivel')
             ->all();
 
         if (!empty($existing)) {
-            // marcar error por fila
             $errors = [];
             foreach ($pisos as $i => $p) {
                 if (in_array((int)$p['nivel'], $existing, true)) {
@@ -164,9 +147,12 @@ class PisoTorreWebController extends Controller
             }
         });
 
-        return redirect()
-            ->route('pisostorre.index')
-            ->with('success', 'Pisos creados exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'pisostorre.index',
+            [],
+            'Pisos creados exitosamente'
+        );
     }
 
     public function show(Request $request, $id)

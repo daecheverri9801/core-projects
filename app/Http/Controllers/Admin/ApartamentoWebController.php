@@ -12,6 +12,7 @@ use App\Models\EstadoInmueble;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use App\Support\RedirectBackTo;
 use Illuminate\Validation\Rule;
 
 class ApartamentoWebController extends Controller
@@ -190,7 +191,12 @@ class ApartamentoWebController extends Controller
             }
         });
 
-        return redirect()->route('apartamentos.index')->with('success', $isBulk ? 'Apartamentos creados exitosamente' : 'Apartamento creado exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'apartamentos.index',
+            [],
+            $isBulk ? 'Apartamentos creados exitosamente' : 'Apartamento creado exitosamente'
+        );
     }
 
     public function show(Request $request, $id)

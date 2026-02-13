@@ -1,127 +1,320 @@
+<!-- resources/js/Pages/Admin/Configuracion/Estados.vue -->
 <template>
-  <SidebarBannerLayout>
-    <template #title>Gestión de Estados</template>
+  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+    <Head title="Gestión de Estados" />
 
-    <div class="max-w-6xl mx-auto space-y-12">
-      <!-- Estados -->
-      <section>
-        <h2 class="text-2xl font-bold mb-4">Estados Proyectos - Torres</h2>
+    <div class="space-y-6">
+      <PageHeader
+        title="Gestión de estados"
+        subtitle="Administra estados de proyectos/torres y estados de inmuebles. Visualiza asociaciones y gestiona cambios."
+      />
 
-        <form @submit.prevent="submitEstado" class="mb-6 space-y-4 max-w-md">
-          <InputText
-            label="Nombre"
-            v-model="formEstado.nombre"
-            :error="formEstado.errors.nombre"
-            required
-            maxlength="50"
-          />
-          <InputTextarea
-            label="Descripción"
-            v-model="formEstado.descripcion"
-            :error="formEstado.errors.descripcion"
-            maxlength="200"
-          />
-          <button type="submit" :disabled="formEstado.processing" class="btn-primary">
-            {{ editEstadoId ? 'Actualizar Estado' : 'Crear Estado' }}
-          </button>
-          <button v-if="editEstadoId" type="button" @click="cancelEditEstado" class="btn-secondary">
-            Cancelar
-          </button>
-        </form>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ===================== -->
+        <!-- ESTADOS PROYECTO / TORRES -->
+        <!-- ===================== -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Estados proyectos · torres</p>
+              <p class="text-sm text-gray-600 mt-1">
+                Usados para el estado general del proyecto y la torre.
+              </p>
+            </div>
 
-        <table class="w-full table-auto border border-gray-300 rounded shadow">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="p-2 border-b">Nombre</th>
-              <th class="p-2 border-b text-center">Descripción</th>
-              <th class="p-2 border-b">Proyectos Asociados</th>
-              <th class="p-2 border-b text-center">Torres Asociadas</th>
-              <th class="p-2 border-b">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="estado in estados || []" :key="estado.id_estado" class="hover:bg-gray-50">
-              <td class="p-2 border-b">{{ estado.nombre }}</td>
-              <td class="p-2 border-b">{{ estado.descripcion || '-' }}</td>
-              <td class="p-2 border-b text-center">{{ (estado.proyectos || []).length }}</td>
-              <td class="p-2 border-b text-center">{{ (estado.torres || []).length }}</td>
-              <td class="p-2 border-b text-center space-x-2">
-                <button @click="editEstado(estado)" class="btn-edit">Editar</button>
-                <button @click="confirmDeleteEstado(estado.id_estado)" class="btn-delete">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-        <!-- Estados Inmueble -->
-        <section>
-          <h2 class="text-2xl font-bold mb-4">Estados de Inmuebles</h2>
-
-          <form @submit.prevent="submitEstadoInmueble" class="mb-6 space-y-4 max-w-md">
-            <InputText
-              label="Nombre"
-              v-model="formEstadoInmueble.nombre"
-              :error="formEstadoInmueble.errors.nombre"
-              required
-              maxlength="50"
-            />
-            <InputTextarea
-              label="Descripción"
-              v-model="formEstadoInmueble.descripcion"
-              :error="formEstadoInmueble.errors.descripcion"
-              maxlength="200"
-            />
-            <button type="submit" :disabled="formEstadoInmueble.processing" class="btn-primary">
-              {{
-                editEstadoInmuebleId ? 'Actualizar Estado de Inmueble' : 'Crear Estado de Inmueble'
-              }}
-            </button>
-            <button
-              v-if="editEstadoInmuebleId"
-              type="button"
-              @click="cancelEditEstadoInmueble"
-              class="btn-secondary"
+            <span
+              class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
             >
-              Cancelar
-            </button>
+              {{ estados?.length || 0 }} en total
+            </span>
+          </div>
+
+          <!-- Form -->
+          <form @submit.prevent="submitEstado" class="mt-6 space-y-4">
+            <FormField label="Nombre" required :error="formEstado.errors.nombre">
+              <TextInput v-model="formEstado.nombre" maxlength="50" placeholder="Ej: En obra" />
+            </FormField>
+
+            <FormField label="Descripción" :error="formEstado.errors.descripcion">
+              <TextArea
+                v-model="formEstado.descripcion"
+                maxlength="200"
+                rows="3"
+                placeholder="Opcional…"
+              />
+            </FormField>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="submit"
+                :disabled="formEstado.processing"
+                class="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60"
+              >
+                {{ editEstadoId ? 'Actualizar estado' : 'Crear estado' }}
+              </button>
+
+              <button
+                v-if="editEstadoId"
+                type="button"
+                @click="cancelEditEstado"
+                class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <span v-if="editEstadoId" class="text-xs text-amber-700 sm:ml-auto">
+                Editando ID: <span class="font-semibold">{{ editEstadoId }}</span>
+              </span>
+            </div>
           </form>
 
-          <table class="w-full table-auto border border-gray-300 rounded shadow">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="p-2 border-b">Nombre</th>
-                <th class="p-2 border-b">Descripción</th>
-                <th class="p-2 border-b">Apartamentos Asociados</th>
-                <th class="p-2 border-b">Locales Asociados</th>
-                <th class="p-2 border-b">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="estado in estadosInmueble || []"
-                :key="estado.id_estado_inmueble"
-                class="hover:bg-gray-50"
-              >
-                <td class="p-2 border-b">{{ estado.nombre }}</td>
-                <td class="p-2 border-b">{{ estado.descripcion || '-' }}</td>
-                <td class="p-2 border-b text-center">{{ (estado.apartamentos || []).length }}</td>
-                <td class="p-2 border-b text-center">{{ (estado.locales || []).length }}</td>
-                <td class="p-2 border-b text-center space-x-2">
-                  <button @click="editEstadoInmueble(estado)" class="btn-edit">Editar</button>
-                  <button
-                    @click="confirmDeleteEstadoInmueble(estado.id_estado_inmueble)"
-                    class="btn-delete"
+          <!-- Table -->
+          <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
                   >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
+                    Nombre
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Descripción
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Proyectos
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Torres
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr
+                  v-for="estadoItem in estados"
+                  :key="estadoItem.id_estado"
+                  class="hover:bg-gray-50 transition"
+                >
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                    {{ estadoItem.nombre }}
+                  </td>
+
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    {{ estadoItem.descripcion || '—' }}
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ (estadoItem.proyectos || []).length }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ (estadoItem.torres || []).length }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex justify-end items-center gap-2">
+                      <button
+                        type="button"
+                        @click="editEstado(estadoItem)"
+                        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="confirmDeleteEstado(estadoItem.id_estado)"
+                        class="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="!estados?.length">
+                  <td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">
+                    No hay estados registrados.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AppCard>
+
+        <!-- ===================== -->
+        <!-- ESTADOS INMUEBLE -->
+        <!-- ===================== -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Estados de inmuebles</p>
+              <p class="text-sm text-gray-600 mt-1">Aplican para apartamentos y locales.</p>
+            </div>
+
+            <span
+              class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
+            >
+              {{ estadosInmueble?.length || 0 }} en total
+            </span>
+          </div>
+
+          <!-- Form -->
+          <form @submit.prevent="submitEstadoInmueble" class="mt-6 space-y-4">
+            <FormField label="Nombre" required :error="formEstadoInmueble.errors.nombre">
+              <TextInput
+                v-model="formEstadoInmueble.nombre"
+                maxlength="50"
+                placeholder="Ej: Disponible"
+              />
+            </FormField>
+
+            <FormField label="Descripción" :error="formEstadoInmueble.errors.descripcion">
+              <TextArea
+                v-model="formEstadoInmueble.descripcion"
+                maxlength="200"
+                rows="3"
+                placeholder="Opcional…"
+              />
+            </FormField>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="submit"
+                :disabled="formEstadoInmueble.processing"
+                class="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60"
+              >
+                {{ editEstadoInmuebleId ? 'Actualizar estado inmueble' : 'Crear estado inmueble' }}
+              </button>
+
+              <button
+                v-if="editEstadoInmuebleId"
+                type="button"
+                @click="cancelEditEstadoInmueble"
+                class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <span v-if="editEstadoInmuebleId" class="text-xs text-amber-700 sm:ml-auto">
+                Editando ID: <span class="font-semibold">{{ editEstadoInmuebleId }}</span>
+              </span>
+            </div>
+          </form>
+
+          <!-- Table -->
+          <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Descripción
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Apartamentos
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Locales
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr
+                  v-for="estadoItem in estadosInmueble"
+                  :key="estadoItem.id_estado_inmueble"
+                  class="hover:bg-gray-50 transition"
+                >
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                    {{ estadoItem.nombre }}
+                  </td>
+
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    {{ estadoItem.descripcion || '—' }}
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ (estadoItem.apartamentos || []).length }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ (estadoItem.locales || []).length }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex justify-end items-center gap-2">
+                      <button
+                        type="button"
+                        @click="editEstadoInmueble(estadoItem)"
+                        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="confirmDeleteEstadoInmueble(estadoItem.id_estado_inmueble)"
+                        class="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="!estadosInmueble?.length">
+                  <td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">
+                    No hay estados de inmuebles registrados.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AppCard>
       </div>
 
       <!-- Modal confirmación eliminación -->
@@ -131,16 +324,24 @@
         @confirm="deleteItem"
         @cancel="cancelDelete"
       />
-  </SidebarBannerLayout>
+    </div>
+  </TopBannerLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useForm, router } from '@inertiajs/vue3'
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
-import InputText from '@/Components/InputText.vue'
-import InputTextarea from '@/Components/InputTextarea.vue'
+import { Head, useForm, router, usePage } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
+
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
+import AppCard from '@/Components/AppCard.vue'
+import FormField from '@/Components/FormField.vue'
+import TextInput from '@/Components/TextInput.vue'
+import TextArea from '@/Components/TextArea.vue'
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
+
+const page = usePage()
+const empleado = computed(() => page.props.auth?.empleado || null)
 
 const props = defineProps({
   estados: Array,
@@ -167,13 +368,14 @@ const editEstadoInmuebleId = ref(null)
 // Modal control
 const showConfirmDelete = ref(false)
 const deleteId = ref(null)
-const deleteType = ref(null) // 'estado' or 'estadoInmueble'
+const deleteType = ref(null) // 'estado' | 'estadoInmueble'
 const deleteMessage = ref('')
 
 // Funciones para Estados
 function submitEstado() {
   if (editEstadoId.value) {
     formEstado.put(`/estados/${editEstadoId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         resetEstadoForm()
         reloadPage()
@@ -181,6 +383,7 @@ function submitEstado() {
     })
   } else {
     formEstado.post('/estados', {
+      preserveScroll: true,
       onSuccess: () => {
         resetEstadoForm()
         reloadPage()
@@ -189,10 +392,10 @@ function submitEstado() {
   }
 }
 
-function editEstado(estado) {
-  editEstadoId.value = estado.id_estado
-  formEstado.nombre = estado.nombre
-  formEstado.descripcion = estado.descripcion || ''
+function editEstado(estadoItem) {
+  editEstadoId.value = estadoItem.id_estado
+  formEstado.nombre = estadoItem.nombre
+  formEstado.descripcion = estadoItem.descripcion || ''
 }
 
 function cancelEditEstado() {
@@ -208,6 +411,7 @@ function resetEstadoForm() {
 function submitEstadoInmueble() {
   if (editEstadoInmuebleId.value) {
     formEstadoInmueble.put(`/estados-inmueble/${editEstadoInmuebleId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         resetEstadoInmuebleForm()
         reloadPage()
@@ -215,6 +419,7 @@ function submitEstadoInmueble() {
     })
   } else {
     formEstadoInmueble.post('/estados-inmueble', {
+      preserveScroll: true,
       onSuccess: () => {
         resetEstadoInmuebleForm()
         reloadPage()
@@ -223,10 +428,10 @@ function submitEstadoInmueble() {
   }
 }
 
-function editEstadoInmueble(estado) {
-  editEstadoInmuebleId.value = estado.id_estado_inmueble
-  formEstadoInmueble.nombre = estado.nombre
-  formEstadoInmueble.descripcion = estado.descripcion || ''
+function editEstadoInmueble(estadoItem) {
+  editEstadoInmuebleId.value = estadoItem.id_estado_inmueble
+  formEstadoInmueble.nombre = estadoItem.nombre
+  formEstadoInmueble.descripcion = estadoItem.descripcion || ''
 }
 
 function cancelEditEstadoInmueble() {
@@ -256,6 +461,7 @@ function confirmDeleteEstadoInmueble(id) {
 function deleteItem() {
   if (deleteType.value === 'estado') {
     router.delete(`/estados/${deleteId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
@@ -263,6 +469,7 @@ function deleteItem() {
     })
   } else if (deleteType.value === 'estadoInmueble') {
     router.delete(`/estados-inmueble/${deleteId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
@@ -282,61 +489,3 @@ function reloadPage() {
   router.reload({ only: ['estados', 'estadosInmueble'] })
 }
 </script>
-
-<style scoped>
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-}
-.btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-}
-.btn-secondary:hover {
-  background-color: #d1d5db;
-}
-.btn-edit {
-  background-color: #fbbf24;
-  color: #92400e;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-edit:hover {
-  background-color: #f59e0b;
-}
-.btn-delete {
-  background-color: #ef4444;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-delete:hover {
-  background-color: #dc2626;
-}
-table {
-  border-collapse: collapse;
-}
-th,
-td {
-  text-align: left;
-}
-</style>

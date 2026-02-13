@@ -36,14 +36,16 @@ class CatalogoWebController extends Controller
         }
 
         // ========================
-        // PROYECTOS DISPONIBLES
+        // PROYECTOS DISPONIBLES (agrupado)
         // ========================
         $proyectos = Proyecto::with(['ubicacion.ciudad'])
-            ->whereHas('torres.apartamentos', function ($q) use ($estadoDisponible) {
-                $q->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
-            })
-            ->orWhereHas('torres.locales', function ($q) use ($estadoDisponible) {
-                $q->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
+            ->where(function ($q) use ($estadoDisponible) {
+                $q->whereHas('torres.apartamentos', function ($qa) use ($estadoDisponible) {
+                    $qa->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
+                })
+                ->orWhereHas('torres.locales', function ($ql) use ($estadoDisponible) {
+                    $ql->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
+                });
             })
             ->select('id_proyecto', 'nombre', 'id_ubicacion')
             ->orderBy('nombre')
@@ -61,50 +63,39 @@ class CatalogoWebController extends Controller
             ->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble)
 
             // Filtro por proyecto
-            ->when(
-                $proyectoId,
-                fn($q) =>
-                $q->whereHas(
-                    'torre',
-                    fn($p) =>
-                    $p->where('id_proyecto', $proyectoId)
-                )
-            )
+            ->when($proyectoId, function ($q) use ($proyectoId) {
+                $q->whereHas('torre', function ($t) use ($proyectoId) {
+                    $t->where('id_proyecto', $proyectoId);
+                });
+            })
 
             // Filtro por precio
-            ->when($precioMin, fn($q) => $q->where('valor_final', '>=', $precioMin))
-            ->when($precioMax, fn($q) => $q->where('valor_final', '<=', $precioMax))
+            ->when($precioMin, fn ($q) => $q->where('valor_final', '>=', $precioMin))
+            ->when($precioMax, fn ($q) => $q->where('valor_final', '<=', $precioMax))
 
             // Tipo de inmueble
-            ->when(
-                $tipoInmueble === 'local',
-                fn($q) =>
-                $q->whereRaw('1 = 0')
-            )
+            ->when($tipoInmueble === 'local', fn ($q) => $q->whereRaw('1 = 0'))
 
-            // Búsqueda
+            // Búsqueda (agrupada)
             ->when($search, function ($q) use ($search) {
-                $q->where('numero', 'like', "%{$search}%")
-                    ->orWhereHas(
-                        'torre.proyecto',
-                        fn($p) =>
-                        $p->where('nombre', 'like', "%{$search}%")
-                    )
-                    ->orWhereHas(
-                        'tipoApartamento',
-                        fn($t) =>
-                        $t->where('nombre', 'like', "%{$search}%")
-                    );
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('numero', 'like', "%{$search}%")
+                        ->orWhereHas('torre.proyecto', function ($p) use ($search) {
+                            $p->where('nombre', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('tipoApartamento', function ($t) use ($search) {
+                            $t->where('nombre', 'like', "%{$search}%");
+                        });
+                });
             })
 
             // ORDEN: número incremental (Postgres)
             ->orderByRaw("
-      CASE
-        WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
-        ELSE numero
-      END ASC
-    ")
-
+                CASE
+                  WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
+                  ELSE numero
+                END ASC
+            ")
             ->get()
             ->map(function ($apto) {
                 return [
@@ -140,42 +131,34 @@ class CatalogoWebController extends Controller
         ])
             ->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble)
 
-            ->when(
-                $proyectoId,
-                fn($q) =>
-                $q->whereHas(
-                    'torre',
-                    fn($p) =>
-                    $p->where('id_proyecto', $proyectoId)
-                )
-            )
+            ->when($proyectoId, function ($q) use ($proyectoId) {
+                $q->whereHas('torre', function ($t) use ($proyectoId) {
+                    $t->where('id_proyecto', $proyectoId);
+                });
+            })
 
-            ->when($precioMin, fn($q) => $q->where('valor_total', '>=', $precioMin))
-            ->when($precioMax, fn($q) => $q->where('valor_total', '<=', $precioMax))
+            ->when($precioMin, fn ($q) => $q->where('valor_total', '>=', $precioMin))
+            ->when($precioMax, fn ($q) => $q->where('valor_total', '<=', $precioMax))
 
-            ->when(
-                $tipoInmueble === 'apartamento',
-                fn($q) =>
-                $q->whereRaw('1 = 0')
-            )
+            ->when($tipoInmueble === 'apartamento', fn ($q) => $q->whereRaw('1 = 0'))
 
+            // Búsqueda (agrupada)
             ->when($search, function ($q) use ($search) {
-                $q->where('numero', 'like', "%{$search}%")
-                    ->orWhereHas(
-                        'torre.proyecto',
-                        fn($p) =>
-                        $p->where('nombre', 'like', "%{$search}%")
-                    );
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('numero', 'like', "%{$search}%")
+                        ->orWhereHas('torre.proyecto', function ($p) use ($search) {
+                            $p->where('nombre', 'like', "%{$search}%");
+                        });
+                });
             })
 
             // ORDEN: número incremental (Postgres)
             ->orderByRaw("
-      CASE
-        WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
-        ELSE numero
-      END ASC
-    ")
-
+                CASE
+                  WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
+                  ELSE numero
+                END ASC
+            ")
             ->get()
             ->map(function ($local) {
                 return [
@@ -206,7 +189,6 @@ class CatalogoWebController extends Controller
         $inmuebles = $apartamentos
             ->concat($locales)
             ->sort(function ($a, $b) {
-                // orden natural por numero (ej: 2 < 10 < 100)
                 return strnatcasecmp((string) $a['numero'], (string) $b['numero']);
             })
             ->values();
@@ -244,7 +226,7 @@ class CatalogoWebController extends Controller
                 'torre' => $inmueble->torre->nombre_torre,
                 'piso' => $inmueble->pisoTorre->nivel,
                 'tipo_inmueble' => $inmueble->tipoApartamento->nombre,
-                'area_construida' => $inmueble->tipoApartamento->area_construida,
+                'area_construida' => $inueble->tipoApartamento->area_construida ?? null,
                 'area_privada' => $inmueble->tipoApartamento->area_privada,
                 'habitaciones' => $inmueble->tipoApartamento->cantidad_habitaciones,
                 'banos' => $inmueble->tipoApartamento->cantidad_banos,
@@ -263,7 +245,6 @@ class CatalogoWebController extends Controller
                 'parqueaderos' => $inmueble->parqueaderos->count(),
             ];
         } else {
-
             $inmueble = Local::with([
                 'torre.proyecto.ubicacion.ciudad',
                 'pisoTorre',
@@ -288,13 +269,12 @@ class CatalogoWebController extends Controller
                 'prima_altura' => 0,
                 'valor_politica' => 0,
                 'valor_final' => $inmueble->valor_total,
-                'valor_comercial' => $inmueble->valor_comercial,
+                'valor_comercial' => $inueble->valor_comercial ?? null,
                 'cuota_inicial' => $inmueble->torre->proyecto->porcentaje_cuota_inicial_min
                     ? $inmueble->valor_total * ($inmueble->torre->proyecto->porcentaje_cuota_inicial_min / 100)
                     : 0,
-
                 'ubicacion' => $inmueble->torre->proyecto->ubicacion->ciudad->nombre,
-                'direccion' => $inmueble->torre->proyecto->ubicacion->direccion,
+                'direccion' => $inueble->torre->proyecto->ubicacion->direccion ?? null,
                 'estado' => $inmueble->estadoInmueble->nombre,
                 'parqueaderos' => 0,
             ];

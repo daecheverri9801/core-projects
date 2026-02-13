@@ -8,6 +8,7 @@ use App\Models\Apartamento;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
 
 class ParqueaderoWebController extends Controller
 {
@@ -86,7 +87,13 @@ class ParqueaderoWebController extends Controller
         // Regla adicional: si id_apartamento viene, validar que ese parqueadero no esté asignado ya (no aplica porque es nuevo)
         $parqueadero = Parqueadero::create($validated);
 
-        return redirect()->route('parqueaderos.index')->with('success', 'Parqueadero creado exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'parqueaderos.index',
+            [],
+            'Parqueadero creado exitosamente',
+            ['id_parqueadero' => $parqueadero->id_parqueadero]
+        );
     }
 
     public function show(Request $request, $id)

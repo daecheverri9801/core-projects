@@ -1,114 +1,297 @@
+<!-- resources/js/Pages/Admin/Empleados/DependenciasCargos.vue -->
 <template>
-  <SidebarBannerLayout>
-    <template #title>Gestión de Dependencias y Cargos</template>
+  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+    <Head title="Dependencias y Cargos" />
 
-    <div class="max-w-6xl mx-auto space-y-12">
-      <!-- Dependencias -->
-      <section>
-        <h2 class="text-2xl font-bold mb-4">Dependencias</h2>
+    <div class="space-y-6">
+      <PageHeader
+        title="Dependencias y cargos"
+        subtitle="Crea, edita y elimina dependencias y cargos. Visualiza cuántos empleados están asociados."
+      />
 
-        <form @submit.prevent="submitDependencia" class="mb-6 space-y-4 max-w-md">
-          <InputText
-            label="Nombre"
-            v-model="formDependencia.nombre"
-            :error="formDependencia.errors.nombre"
-            required
-            maxlength="80"
-          />
-          <InputTextarea
-            label="Descripción"
-            v-model="formDependencia.descripcion"
-            :error="formDependencia.errors.descripcion"
-            maxlength="200"
-          />
-          <button type="submit" :disabled="formDependencia.processing" class="btn-primary">
-            {{ editDependenciaId ? 'Actualizar Dependencia' : 'Crear Dependencia' }}
-          </button>
-          <button
-            v-if="editDependenciaId"
-            type="button"
-            @click="cancelEditDependencia"
-            class="btn-secondary"
-          >
-            Cancelar
-          </button>
-        </form>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ===================== -->
+        <!-- DEPENDENCIAS -->
+        <!-- ===================== -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Dependencias</p>
+              <p class="text-sm text-gray-600 mt-1">
+                Administra dependencias y valida empleados asociados.
+              </p>
+            </div>
 
-        <table class="w-full table-auto border border-gray-300 rounded shadow">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="p-2 border-b">Nombre</th>
-              <th class="p-2 border-b">Descripción</th>
-              <th class="p-2 border-b text-center">Empleados Asociados</th>
-              <th class="p-2 border-b">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="dep in dependencias" :key="dep.id_dependencia" class="hover:bg-gray-50">
-              <td class="p-2 border-b">{{ dep.nombre }}</td>
-              <td class="p-2 border-b">{{ dep.descripcion || '-' }}</td>
-              <td class="p-2 border-b text-center">{{ dep.empleados_count }}</td>
-              <td class="p-2 border-b text-center space-x-2">
-                <button @click="editDependencia(dep)" class="btn-edit">Editar</button>
-                <button @click="confirmDeleteDependencia(dep.id_dependencia)" class="btn-delete">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+            <span
+              class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
+            >
+              {{ dependencias?.length || 0 }} en total
+            </span>
+          </div>
 
-      <!-- Cargos -->
-      <section>
-        <h2 class="text-2xl font-bold mb-4">Cargos</h2>
+          <!-- Form -->
+          <form @submit.prevent="submitDependencia" class="mt-6 space-y-4">
+            <FormField label="Nombre" required :error="formDependencia.errors.nombre">
+              <TextInput
+                v-model="formDependencia.nombre"
+                maxlength="80"
+                placeholder="Ej: Comercial"
+              />
+            </FormField>
 
-        <form @submit.prevent="submitCargo" class="mb-6 space-y-4 max-w-md">
-          <InputText
-            label="Nombre"
-            v-model="formCargo.nombre"
-            :error="formCargo.errors.nombre"
-            required
-            maxlength="80"
-          />
-          <InputTextarea
-            label="Descripción"
-            v-model="formCargo.descripcion"
-            :error="formCargo.errors.descripcion"
-            maxlength="200"
-          />
-          <button type="submit" :disabled="formCargo.processing" class="btn-primary">
-            {{ editCargoId ? 'Actualizar Cargo' : 'Crear Cargo' }}
-          </button>
-          <button v-if="editCargoId" type="button" @click="cancelEditCargo" class="btn-secondary">
-            Cancelar
-          </button>
-        </form>
+            <FormField label="Descripción" :error="formDependencia.errors.descripcion">
+              <TextArea
+                v-model="formDependencia.descripcion"
+                maxlength="200"
+                rows="3"
+                placeholder="Opcional…"
+              />
+            </FormField>
 
-        <table class="w-full table-auto border border-gray-300 rounded shadow">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="p-2 border-b">Nombre</th>
-              <th class="p-2 border-b">Descripción</th>
-              <th class="p-2 border-b text-center">Empleados Asociados</th>
-              <th class="p-2 border-b">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="cargo in cargos" :key="cargo.id_cargo" class="hover:bg-gray-50">
-              <td class="p-2 border-b">{{ cargo.nombre }}</td>
-              <td class="p-2 border-b">{{ cargo.descripcion || '-' }}</td>
-              <td class="p-2 border-b text-center">{{ cargo.empleados_count }}</td>
-              <td class="p-2 border-b text-center space-x-2">
-                <button @click="editCargo(cargo)" class="btn-edit">Editar</button>
-                <button @click="confirmDeleteCargo(cargo.id_cargo)" class="btn-delete">
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="submit"
+                :disabled="formDependencia.processing"
+                class="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60"
+              >
+                {{ editDependenciaId ? 'Actualizar dependencia' : 'Crear dependencia' }}
+              </button>
+
+              <button
+                v-if="editDependenciaId"
+                type="button"
+                @click="cancelEditDependencia"
+                class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <span v-if="editDependenciaId" class="text-xs text-amber-700 sm:ml-auto">
+                Editando ID: <span class="font-semibold">{{ editDependenciaId }}</span>
+              </span>
+            </div>
+          </form>
+
+          <!-- Table -->
+          <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Descripción
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Asociados
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr
+                  v-for="dep in dependencias"
+                  :key="dep.id_dependencia"
+                  class="hover:bg-gray-50 transition"
+                >
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                    {{ dep.nombre }}
+                  </td>
+
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    {{ dep.descripcion || '—' }}
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ dep.empleados_count }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex justify-end items-center gap-2">
+                      <button
+                        type="button"
+                        @click="editDependencia(dep)"
+                        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="confirmDeleteDependencia(dep.id_dependencia)"
+                        class="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="!dependencias?.length">
+                  <td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">
+                    No hay dependencias registradas.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AppCard>
+
+        <!-- ===================== -->
+        <!-- CARGOS -->
+        <!-- ===================== -->
+        <AppCard padding="md">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Cargos</p>
+              <p class="text-sm text-gray-600 mt-1">
+                Administra cargos y valida empleados asociados.
+              </p>
+            </div>
+
+            <span
+              class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700"
+            >
+              {{ cargos?.length || 0 }} en total
+            </span>
+          </div>
+
+          <!-- Form -->
+          <form @submit.prevent="submitCargo" class="mt-6 space-y-4">
+            <FormField label="Nombre" required :error="formCargo.errors.nombre">
+              <TextInput v-model="formCargo.nombre" maxlength="80" placeholder="Ej: Auxiliar" />
+            </FormField>
+
+            <FormField label="Descripción" :error="formCargo.errors.descripcion">
+              <TextArea
+                v-model="formCargo.descripcion"
+                maxlength="200"
+                rows="3"
+                placeholder="Opcional…"
+              />
+            </FormField>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+              <button
+                type="submit"
+                :disabled="formCargo.processing"
+                class="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60"
+              >
+                {{ editCargoId ? 'Actualizar cargo' : 'Crear cargo' }}
+              </button>
+
+              <button
+                v-if="editCargoId"
+                type="button"
+                @click="cancelEditCargo"
+                class="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+
+              <span v-if="editCargoId" class="text-xs text-amber-700 sm:ml-auto">
+                Editando ID: <span class="font-semibold">{{ editCargoId }}</span>
+              </span>
+            </div>
+          </form>
+
+          <!-- Table -->
+          <div class="mt-6 overflow-x-auto rounded-2xl border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Nombre
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Descripción
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Asociados
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr
+                  v-for="cargo in cargos"
+                  :key="cargo.id_cargo"
+                  class="hover:bg-gray-50 transition"
+                >
+                  <td class="px-4 py-3 text-sm font-semibold text-gray-900">
+                    {{ cargo.nombre }}
+                  </td>
+
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    {{ cargo.descripcion || '—' }}
+                  </td>
+
+                  <td class="px-4 py-3 text-center">
+                    <span
+                      class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700"
+                    >
+                      {{ cargo.empleados_count }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex justify-end items-center gap-2">
+                      <button
+                        type="button"
+                        @click="editCargo(cargo)"
+                        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="confirmDeleteCargo(cargo.id_cargo)"
+                        class="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="!cargos?.length">
+                  <td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">
+                    No hay cargos registrados.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </AppCard>
+      </div>
 
       <!-- Modal confirmación eliminación -->
       <ConfirmDeleteModal
@@ -118,24 +301,31 @@
         @cancel="cancelDelete"
       />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useForm, router } from '@inertiajs/vue3'
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
-import InputText from '@/Components/InputText.vue'
-import InputTextarea from '@/Components/InputTextarea.vue'
+import { Head, useForm, router, usePage } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
+
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
+import AppCard from '@/Components/AppCard.vue'
+import FormField from '@/Components/FormField.vue'
+import TextInput from '@/Components/TextInput.vue'
+import TextArea from '@/Components/TextArea.vue'
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
+
+const page = usePage()
+const empleado = computed(() => page.props.auth?.empleado || null)
 
 const props = defineProps({
   dependencias: Array,
   cargos: Array,
 })
 
-const dependencias = ref(props.dependencias)
-const cargos = ref(props.cargos)
+const dependencias = ref(props.dependencias || [])
+const cargos = ref(props.cargos || [])
 
 // Formularios
 const formDependencia = useForm({
@@ -153,13 +343,14 @@ const editCargoId = ref(null)
 // Modal eliminar
 const showConfirmDelete = ref(false)
 const deleteId = ref(null)
-const deleteType = ref(null) // 'dependencia' o 'cargo'
+const deleteType = ref(null) // 'dependencia' | 'cargo'
 const deleteMessage = ref('')
 
 // Dependencias
 function submitDependencia() {
   if (editDependenciaId.value) {
     formDependencia.put(`/dependencias/${editDependenciaId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         resetDependenciaForm()
         reloadPage()
@@ -167,6 +358,7 @@ function submitDependencia() {
     })
   } else {
     formDependencia.post('/dependencias', {
+      preserveScroll: true,
       onSuccess: () => {
         resetDependenciaForm()
         reloadPage()
@@ -194,6 +386,7 @@ function resetDependenciaForm() {
 function submitCargo() {
   if (editCargoId.value) {
     formCargo.put(`/cargos/${editCargoId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         resetCargoForm()
         reloadPage()
@@ -201,6 +394,7 @@ function submitCargo() {
     })
   } else {
     formCargo.post('/cargos', {
+      preserveScroll: true,
       onSuccess: () => {
         resetCargoForm()
         reloadPage()
@@ -242,6 +436,7 @@ function confirmDeleteCargo(id) {
 function deleteItem() {
   if (deleteType.value === 'dependencia') {
     router.delete(`/dependencias/${deleteId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
@@ -249,6 +444,7 @@ function deleteItem() {
     })
   } else if (deleteType.value === 'cargo') {
     router.delete(`/cargos/${deleteId.value}`, {
+      preserveScroll: true,
       onSuccess: () => {
         reloadPage()
         showConfirmDelete.value = false
@@ -268,61 +464,3 @@ function reloadPage() {
   router.reload({ only: ['dependencias', 'cargos'] })
 }
 </script>
-
-<style scoped>
-.btn-primary {
-  background-color: #3b82f6;
-  color: white;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-}
-.btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-secondary {
-  background-color: #e5e7eb;
-  color: #374151;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
-  border-radius: 0.375rem;
-  transition: background-color 0.2s;
-}
-.btn-secondary:hover {
-  background-color: #d1d5db;
-}
-.btn-edit {
-  background-color: #fbbf24;
-  color: #92400e;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-edit:hover {
-  background-color: #f59e0b;
-}
-.btn-delete {
-  background-color: #ef4444;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-delete:hover {
-  background-color: #dc2626;
-}
-table {
-  border-collapse: collapse;
-}
-th,
-td {
-  text-align: left;
-}
-</style>

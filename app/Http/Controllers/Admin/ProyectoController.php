@@ -33,11 +33,13 @@ class ProyectoController extends Controller
 
     public function create(Request $request)
     {
-        $empleado = $request->user()->load('cargo');
-        $estados = Estado::all();
-        $ubicaciones = Ubicacion::with('ciudad')->get();
-
-        return Inertia::render('Admin/Proyectos/Create', compact('estados', 'ubicaciones', 'empleado'));
+        return inertia('Admin/Proyectos/Create', [
+            'empleado' => $request->user()->load('cargo'),
+            'estados' => Estado::all(),
+            'ubicaciones' => Ubicacion::with('ciudad.departamento.pais')->get(),
+            'estadosInmueble' => Estado::all(),
+            'proyecto' => null, // importante para wizard nuevo
+        ]);
     }
 
     public function store(Request $request)
@@ -65,36 +67,29 @@ class ProyectoController extends Controller
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
-            'nombre.max' => 'El nombre no puede exceder 150 caracteres',
-            'descripcion.max' => 'La descripción no puede exceder 500 caracteres',
-            'fecha_inicio.date' => 'La fecha de inicio debe ser una fecha válida',
-            'fecha_finalizacion.date' => 'La fecha de finalización debe ser una fecha válida',
-            'fecha_finalizacion.after_or_equal' => 'La fecha de finalización debe ser posterior o igual a la fecha de inicio',
-            'presupuesto_inicial.numeric' => 'El presupuesto inicial debe ser un valor numérico',
-            'presupuesto_inicial.min' => 'El presupuesto inicial no puede ser negativo',
-            'presupuesto_final.numeric' => 'El presupuesto final debe ser un valor numérico',
-            'presupuesto_final.min' => 'El presupuesto final no puede ser negativo',
-            'metros_construidos.numeric' => 'Los metros construidos deben ser un valor numérico',
-            'metros_construidos.min' => 'Los metros construidos no pueden ser negativos',
-            'estrato.min' => 'El estrato debe ser entre 1 y 6',
-            'estrato.max' => 'El estrato debe ser entre 1 y 6',
-            'porcentaje_cuota_inicial_min.min' => 'El porcentaje no puede ser negativo',
-            'porcentaje_cuota_inicial_min.max' => 'El porcentaje no puede ser mayor a 100',
             'id_estado.required' => 'El estado del proyecto es obligatorio',
-            'id_estado.exists' => 'El estado seleccionado no existe',
             'id_ubicacion.required' => 'La ubicación del proyecto es obligatoria',
-            'id_ubicacion.exists' => 'La ubicación seleccionada no existe',
-            'plazo_max_separacion_dias.integer' => 'El plazo máximo de separación debe ser un número entero.',
-            'plazo_max_separacion_dias.min' => 'El plazo debe ser mínimo de 1 día.',
-            'plazo_max_separacion_dias.max' => 'El plazo no puede superar los 3650 días.',
+            // ... tus mensajes
         ]);
 
         if ($validator->fails()) {
+            // Para requests tipo JSON, devolver 422 en JSON (mejor para wizard)
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
             return back()->withErrors($validator)->withInput();
         }
 
         $proyecto = Proyecto::create($request->all());
-        $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
+
+        // ✅ Si viene del wizard (AJAX/JSON), NO redirigir
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'id_proyecto' => $proyecto->id_proyecto,
+                'message' => 'Proyecto creado exitosamente',
+            ]);
+        }
 
         return redirect()->route('proyectos.index')->with('success', 'Proyecto creado exitosamente');
     }

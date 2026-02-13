@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Ventas;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cliente;
@@ -9,7 +9,7 @@ use App\Models\TipoDocumento;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class ClienteWebController extends Controller
+class ClienteAdminController extends Controller
 {
     public function index()
     {
@@ -17,7 +17,7 @@ class ClienteWebController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return Inertia::render('Ventas/Cliente/Index', [
+        return Inertia::render('Admin/Cliente/Index', [
             'clientes' => $clientes,
         ]);
     }
@@ -27,7 +27,7 @@ class ClienteWebController extends Controller
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
 
-        return Inertia::render('Ventas/Cliente/Create', [
+        return Inertia::render('Admin/Cliente/Create', [
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
         ]);
@@ -43,25 +43,11 @@ class ClienteWebController extends Controller
             'direccion' => 'nullable|string|max:200',
             'telefono' => 'nullable|string|max:30',
             'correo' => 'nullable|email|max:150',
-            'redirect_to' => 'nullable|string',
         ]);
 
-        $cliente = Cliente::create([
-            'nombre' => $validated['nombre'],
-            'id_tipo_cliente' => $validated['id_tipo_cliente'],
-            'id_tipo_documento' => $validated['id_tipo_documento'],
-            'documento' => $validated['documento'],
-            'direccion' => $validated['direccion'] ?? null,
-            'telefono' => $validated['telefono'] ?? null,
-            'correo' => $validated['correo'] ?? null,
-        ]);
+        Cliente::create($validated);
 
-        // si viene de ventas/create, vuelves allí y mandas el documento para seleccionarlo
-        $redirectTo = $validated['redirect_to'] ?? url()->previous();
-
-        return redirect($redirectTo)
-            ->with('success', 'Cliente creado exitosamente.')
-            ->with('new_cliente_documento', $cliente->documento);
+        return redirect()->route('admin.clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
 
     public function show($documento)
@@ -70,7 +56,7 @@ class ClienteWebController extends Controller
             ->where('documento', $documento)
             ->firstOrFail();
 
-        return Inertia::render('Ventas/Cliente/Show', [
+        return Inertia::render('Admin/Cliente/Show', [
             'cliente' => $cliente,
         ]);
     }
@@ -81,7 +67,7 @@ class ClienteWebController extends Controller
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
 
-        return Inertia::render('Ventas/Cliente/Edit', [
+        return Inertia::render('Admin/Cliente/Edit', [
             'cliente' => $cliente,
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
@@ -102,7 +88,7 @@ class ClienteWebController extends Controller
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $cliente->update($validated);
 
-        return redirect()->route('clientes.show', $documento)
+        return redirect()->route('admin.clientes.index', $documento)
             ->with('success', 'Cliente actualizado exitosamente');
     }
 
@@ -111,6 +97,6 @@ class ClienteWebController extends Controller
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $cliente->delete();
 
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado correctamente.');
+        return redirect()->route('admin.clientes.index')->with('success', 'Cliente eliminado correctamente.');
     }
 }

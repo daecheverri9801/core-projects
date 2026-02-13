@@ -143,7 +143,7 @@
                   >
                     <EyeIcon class="w-5 h-5" />
                   </Link>
-                  <Link
+                  <!-- <Link
                     :href="`/clientes/${cliente.documento}/edit`"
                     class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
                     title="Editar"
@@ -156,7 +156,7 @@
                     title="Eliminar"
                   >
                     <TrashIcon class="w-5 h-5" />
-                  </button>
+                  </button> -->
                 </div>
               </td>
             </tr>

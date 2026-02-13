@@ -1,156 +1,218 @@
 <template>
-  <SidebarBannerLayout>
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4 w-full">
-      <!-- Título a la izquierda -->
-      <h1 class="text-3xl font-bold text-gray-900 flex-shrink-0">Empleados</h1>
+  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+    <Head title="Empleados" />
 
-      <!-- Contenedor central para el input de búsqueda -->
-      <div class="flex-grow max-w-md mx-auto w-full">
-        <input
-          v-model="filters.search"
-          @input="search"
-          type="text"
-          placeholder="Buscar por nombre, apellido o email"
-          class="block w-full rounded-md border border-gray-300 px-4 py-2 shadow-sm placeholder-gray-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-        />
-      </div>
+    <div class="space-y-6">
+      <PageHeader title="Empleados" subtitle="Consulta, filtra y administra los empleados registrados.">
+        <template #actions>
+          <Link
+            href="/empleados/create"
+            class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
+          >
+            <PlusIcon class="h-5 w-5" />
+            Nuevo empleado
+          </Link>
+        </template>
+      </PageHeader>
 
-      <!-- Botón a la derecha -->
-      <div class="flex-shrink-0">
-        <Link
-          href="/empleados/create"
-          class="inline-flex items-center gap-2 rounded bg-brand-500 px-5 py-3 text-white font-semibold shadow hover:bg-brand-600 transition whitespace-nowrap"
-        >
-          Nuevo Empleado
-        </Link>
-      </div>
-    </div>
+      <!-- Filtros -->
+      <!-- <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div class="md:col-span-8">
+            <label class="block text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">
+              Buscar
+            </label>
 
-    <table
-      class="w-full table-fixed divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm"
-    >
-      <thead class="bg-gray-100">
-        <tr>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Nombre
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Apellido
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Email
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Cargo
-          </th>
-          <th
-            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Dependencia
-          </th>
-          <th
-            style="width: 80px"
-            class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Acciones
-          </th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr
-          v-for="empleado in empleados.data"
-          :key="empleado.id_empleado"
-          class="hover:bg-gray-50 align-top"
-        >
-          <td class="px-6 py-4 text-sm font-medium text-gray-900 break-words">
-            {{ empleado.nombre }}
-          </td>
-          <td class="px-6 py-4 text-sm text-gray-500 break-words">{{ empleado.apellido }}</td>
-          <td class="px-6 py-4 text-sm text-gray-500 break-words">{{ empleado.email }}</td>
-          <td class="px-6 py-4 text-sm text-gray-500 break-words">
-            {{ empleado.cargo?.nombre || '-' }}
-          </td>
-          <td class="px-6 py-4 text-sm text-gray-500 break-words">
-            {{ empleado.dependencia?.nombre || '-' }}
-          </td>
-          <td class="px-6 py-4 text-sm text-center align-top">
-            <div class="flex flex-col items-center space-y-2">
-              <Link
-                :href="`/empleados/${empleado.id_empleado}`"
-                class="text-blue-600 hover:text-blue-800 transition"
-                title="Ver empleado"
-              >
-                <EyeIcon class="w-5 h-5" />
-              </Link>
+            <div
+              class="group relative rounded-2xl border border-gray-200 bg-white shadow-sm transition
+                     focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200/70"
+            >
+              <MagnifyingGlassIcon
+                class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 transition
+                       group-focus-within:text-brand-600"
+              />
 
-              <Link
-                :href="`/empleados/${empleado.id_empleado}/edit`"
-                class="text-green-600 hover:text-green-800 transition"
-                title="Editar empleado"
-              >
-                <PencilIcon class="w-5 h-5" />
-              </Link>
+              <input
+                v-model="filters.search"
+                @input="search"
+                type="text"
+                class="w-full rounded-2xl bg-transparent pl-10 pr-10 py-3 text-sm text-gray-900
+                       placeholder:text-gray-400 focus:outline-none"
+                placeholder="Buscar por nombre, apellido o email"
+              />
 
               <button
-                @click="confirmDelete(empleado.id_empleado)"
-                class="text-red-600 hover:text-red-800 transition"
-                title="Eliminar empleado"
+                v-show="filters.search"
+                type="button"
+                @click="clearSearch"
+                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-2
+                       text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition"
+                title="Limpiar"
+                aria-label="Limpiar búsqueda"
               >
-                <TrashIcon class="w-5 h-5" />
+                ✕
               </button>
             </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
 
-    <!-- Paginación -->
-    <div class="mt-4 flex justify-center space-x-2">
-      <button
-        :disabled="!empleados.prev_page_url"
-        @click="changePage(empleados.current_page - 1)"
-        class="btn-pagination"
-      >
-        Anterior
-      </button>
-      <span class="px-3 py-1 border rounded"
-        >{{ empleados.current_page }} / {{ empleados.last_page }}</span
-      >
-      <button
-        :disabled="!empleados.next_page_url"
-        @click="changePage(empleados.current_page + 1)"
-        class="btn-pagination"
-      >
-        Siguiente
-      </button>
+            <p class="mt-1 text-xs text-gray-500">
+              {{ empleados?.total ?? 0 }} resultado(s)
+            </p>
+          </div>
+
+          <div class="md:col-span-4 flex md:justify-end">
+            <Link
+              href="/empleados/create"
+              class="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-xl
+                     bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition"
+            >
+              <PlusIcon class="h-5 w-5" />
+              Nuevo empleado
+            </Link>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Tabla -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="min-w-[900px] w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Nombre
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Apellido
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Email
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Cargo
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Dependencia
+                </th>
+                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <tr
+                v-for="emp in empleados.data"
+                :key="emp.id_empleado"
+                class="hover:bg-gray-50/70 transition"
+              >
+                <td class="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                  {{ emp.nombre }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
+                  {{ emp.apellido }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700">
+                  <span class="break-all">{{ emp.email }}</span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700">
+                  {{ emp.cargo?.nombre || '—' }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-700">
+                  {{ emp.dependencia?.nombre || '—' }}
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-center gap-2">
+                    <Link
+                      :href="`/empleados/${emp.id_empleado}`"
+                      class="icon-btn text-blue-700 hover:bg-blue-50"
+                      title="Ver empleado"
+                      aria-label="Ver empleado"
+                    >
+                      <EyeIcon class="w-5 h-5" />
+                    </Link>
+
+                    <Link
+                      :href="`/empleados/${emp.id_empleado}/edit`"
+                      class="icon-btn text-emerald-700 hover:bg-emerald-50"
+                      title="Editar empleado"
+                      aria-label="Editar empleado"
+                    >
+                      <PencilIcon class="w-5 h-5" />
+                    </Link>
+
+                    <button
+                      type="button"
+                      @click="confirmDelete(emp.id_empleado)"
+                      class="icon-btn text-red-700 hover:bg-red-50"
+                      title="Eliminar empleado"
+                      aria-label="Eliminar empleado"
+                    >
+                      <TrashIcon class="w-5 h-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-if="empleados.data?.length === 0">
+                <td colspan="6" class="px-6 py-10 text-center text-sm text-gray-600">
+                  No hay empleados registrados.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer paginación -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 md:px-6 py-4 border-t bg-gray-50">
+          <p class="text-xs text-gray-600">
+            Página <span class="font-semibold text-gray-900">{{ empleados.current_page }}</span>
+            de <span class="font-semibold text-gray-900">{{ empleados.last_page }}</span>
+            · Total <span class="font-semibold text-gray-900">{{ empleados.total }}</span>
+          </p>
+
+          <div class="flex items-center gap-2 justify-end">
+            <button
+              :disabled="!empleados.prev_page_url"
+              @click="changePage(empleados.current_page - 1)"
+              class="btn-pagination"
+            >
+              Anterior
+            </button>
+
+            <button
+              :disabled="!empleados.next_page_url"
+              @click="changePage(empleados.current_page + 1)"
+              class="btn-pagination"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal confirmación eliminación -->
+      <ConfirmDeleteModal v-if="showConfirmDelete" @confirm="deleteEmpleado" @cancel="cancelDelete" />
     </div>
-
-    <!-- Modal confirmación eliminación -->
-    <ConfirmDeleteModal v-if="showConfirmDelete" @confirm="deleteEmpleado" @cancel="cancelDelete" />
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
+import { Head, Link, router } from '@inertiajs/vue3'
 import { ref, reactive } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
-import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { EyeIcon, PencilIcon, TrashIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
+import PageHeader from '@/Components/PageHeader.vue'
 
 const props = defineProps({
+  empleado: Object,
   empleados: Object,
   filters: Object,
 })
 
-const filters = reactive({ ...props.filters })
+const filters = reactive({ search: props.filters?.search ?? '' })
+
 const showConfirmDelete = ref(false)
 const empleadoToDelete = ref(null)
 
@@ -158,12 +220,13 @@ function search() {
   router.get('/empleados', { search: filters.search }, { preserveState: true, replace: true })
 }
 
+function clearSearch() {
+  filters.search = ''
+  search()
+}
+
 function changePage(page) {
-  router.get(
-    '/empleados',
-    { page, search: filters.search },
-    { preserveState: true, replace: true }
-  )
+  router.get('/empleados', { page, search: filters.search }, { preserveState: true, replace: true })
 }
 
 function confirmDelete(id) {
@@ -173,6 +236,7 @@ function confirmDelete(id) {
 
 function deleteEmpleado() {
   router.delete(`/empleados/${empleadoToDelete.value}`, {
+    preserveScroll: true,
     onSuccess: () => {
       showConfirmDelete.value = false
       empleadoToDelete.value = null
@@ -188,14 +252,10 @@ function cancelDelete() {
 
 <style scoped>
 .btn-pagination {
-  padding: 0.25rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  background-color: white;
-  cursor: pointer;
+  @apply inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800
+    hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed;
 }
-.btn-pagination:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.icon-btn {
+  @apply inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white p-2 transition;
 }
 </style>

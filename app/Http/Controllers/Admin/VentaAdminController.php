@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Ventas;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venta;
@@ -11,22 +11,20 @@ use App\Models\Local;
 use App\Models\Proyecto;
 use App\Models\FormaPago;
 use App\Models\EstadoInmueble;
-use App\Models\TipoCliente;
-use App\Models\TipoDocumento;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
-class VentaWebController extends Controller
+class VentaAdminController extends Controller
 {
     /* ===========================================================
      *  INDEX
      * =========================================================== */
 
-    public function index()
+    public function index(Request $request)
     {
-        $proyecto = Proyecto::first(); // temporal para debug, escoger el proyecto real
+        $empleado = $request->user()->load('cargo');
+        $proyecto = Proyecto::first();
 
         $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
             ->whereIn('tipo_operacion', ['venta', 'separacion'])
@@ -53,7 +51,8 @@ class VentaWebController extends Controller
             'formaPago',
         ])->orderBy('fecha_venta', 'desc')->get();
 
-        return Inertia::render('Ventas/Venta/Index', [
+        return Inertia::render('Admin/Ventas/Index', [
+            'empleado' => $empleado,
             'ventas' => $ventas,
             // Debug ProyectoPricingService
             'debug_proyecto' => [
@@ -89,6 +88,7 @@ class VentaWebController extends Controller
 
     public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $clientes = Cliente::orderBy('nombre')->get();
         $empleados = Empleado::orderBy('nombre')->get();
 
@@ -148,10 +148,8 @@ class VentaWebController extends Controller
             $plazos = $this->calcularPlazosDisponibles($proyecto);
         }
 
-        $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
-        $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
-
-        return Inertia::render('Ventas/Venta/Create', [
+        return Inertia::render('Admin/Ventas/Create', [
+            'empleado' => $empleado,
             'clientes' => $clientes,
             'empleados' => $empleados,
             'apartamentos' => $apartamentos,
@@ -161,8 +159,6 @@ class VentaWebController extends Controller
             'estadosInmueble' => $estadosInmueble,
             'inmueblePrecargado' => $inmueblePrecargado,
             'plazos_disponibles' => $plazos,
-            'tiposCliente' => $tiposCliente,
-            'tiposDocumento' => $tiposDocumento,
 
             // DEBUG directo para Vue
             'debug_plazos' => [
@@ -191,6 +187,9 @@ class VentaWebController extends Controller
 
         return range(1, $restantes);
     }
+
+
+
 
     /* ===========================================================
      *  STORE
@@ -303,68 +302,25 @@ class VentaWebController extends Controller
                 ->recalcularProyectoPorVenta($venta);
 
             return redirect()
-                ->route('ventas.index')
+                ->route('admin.ventas.index')
                 ->with('success', 'Operación registrada exitosamente.');
         });
     }
 
     /* ===========================================================
-     *  SHOW
-     * =========================================================== */
-
-    public function show($id)
-    {
-        $venta = Venta::with([
-            'cliente',
-            'empleado',
-            'proyecto',
-            'formaPago',
-
-
-            // Apartamento completo
-            'apartamento.estadoInmueble',
-            'apartamento.torre',
-            'apartamento.pisoTorre',
-            'apartamento.tipoApartamento',
-
-            // Local completo
-            'local.estadoInmueble',
-            'local.torre',
-            'local.pisoTorre',
-
-            // Amortización + cuotas (y pagos por cuota si quieres saldo real por pagos)
-            'planAmortizacion.cuotas',
-            // 'planAmortizacion.cuotas.pagos', // (opcional, si luego calculas saldos por pagos)
-            'pagos', // ya lo usas en la vista lateral
-        ])->findOrFail($id);
-
-        $imagenTipoAptoUrl = null;
-
-        if ($venta->apartamento?->tipoApartamento?->imagen) {
-            $path = $venta->apartamento->tipoApartamento->imagen; // ej: tipos-apartamento/abc.jpg
-            $imagenTipoAptoUrl = asset('storage/' . $path);
-        }
-
-        return Inertia::render('Ventas/Venta/Show', [
-            'venta' => $venta,
-            'imagenTipoAptoUrl' => $imagenTipoAptoUrl,
-        ]);
-    }
-
-
-    /* ===========================================================
      *  EDIT / UPDATE
      * =========================================================== */
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $venta = Venta::with(['apartamento', 'local', 'proyecto'])
             ->findOrFail($id);
 
         $proyecto = $venta->proyecto;
         $plazos = $this->calcularPlazosDisponibles($proyecto);
 
-        return Inertia::render('Ventas/Venta/Edit', [
+        return Inertia::render('Admin/Ventas/Edit', [
             'venta' => $venta,
             'clientes' => Cliente::all(),
             'empleados' => Empleado::all(),
@@ -374,6 +330,7 @@ class VentaWebController extends Controller
             'formasPago' => FormaPago::all(),
             'estadosInmueble' => EstadoInmueble::all(),
             'plazos_disponibles' => $plazos,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -461,7 +418,7 @@ class VentaWebController extends Controller
                 ->recalcularProyectoPorVenta($venta);
 
             return redirect()
-                ->route('ventas.show', $venta->id_venta)
+                ->route('admin.ventas.index')
                 ->with('success', 'Operación actualizada correctamente.');
         });
     }
@@ -502,7 +459,7 @@ class VentaWebController extends Controller
             }
 
             return redirect()
-                ->route('ventas.index')
+                ->route('admin.ventas.index')
                 ->with('success', 'Operación eliminada correctamente.');
         });
     }
@@ -567,7 +524,7 @@ class VentaWebController extends Controller
         }
 
         return redirect()
-            ->route('ventas.show', $venta->id_venta)
+            ->route('admin.ventas.index')
             ->with('success', 'La separación ahora es una venta.');
     }
 

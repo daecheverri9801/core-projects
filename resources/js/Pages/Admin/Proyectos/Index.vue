@@ -1,16 +1,12 @@
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
     <div class="space-y-6">
       <PageHeader
         title="Proyectos"
-        kicker="Panel administrador"
         subtitle="Crea, consulta y administra la configuración general de cada proyecto."
       >
         <template #actions>
-          <ButtonPrimary href="/proyectos/create">
-            <PlusIcon class="w-5 h-5" />
-            Crear proyecto
-          </ButtonPrimary>
+          <Link :href="route('proyectos.create')" class="btn-primary"> Crear proyecto </Link>
         </template>
       </PageHeader>
 
@@ -19,148 +15,164 @@
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div class="min-w-0">
             <p class="text-sm text-gray-600">
-              Total en esta página:
-              <span class="font-semibold text-gray-900">{{ proyectos.data?.length ?? 0 }}</span>
+              Mostrando:
+              <span class="font-semibold text-gray-900">{{ filtered.length }}</span>
+              de
+              <span class="font-semibold text-gray-900">{{
+                proyectos.total ?? proyectos.data?.length ?? 0
+              }}</span>
+              proyectos
+            </p>
+            <p class="text-xs text-gray-500 mt-1">
+              Página {{ proyectos.current_page }} de {{ proyectos.last_page }}
             </p>
           </div>
 
-          <div class="w-full md:w-[420px]">
+          <div class="w-full md:w-[460px]">
             <QuickSearch v-model="q" placeholder="Buscar por nombre, estado, ciudad o dirección…" />
           </div>
         </div>
       </AppCard>
 
-      <!-- Tabla -->
-      <AppCard padding="none">
-        <div class="overflow-x-auto">
-          <table class="min-w-[980px] w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Proyecto
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Ubicación
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Inicio
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Finalización
-                </th>
-                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
+      <!-- LISTADO (Cards) -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <AppCard
+          v-for="proyecto in filtered"
+          :key="proyecto.id_proyecto"
+          padding="md"
+          class="group relative overflow-hidden"
+        >
+          <!-- Glow -->
+          <div
+            class="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-brand-600/10 blur-2xl opacity-0 group-hover:opacity-100 transition"
+          ></div>
 
-            <tbody class="divide-y divide-gray-200 bg-white">
-              <tr
-                v-for="proyecto in filtered"
-                :key="proyecto.id_proyecto"
-                class="hover:bg-brand-50/40 transition"
-              >
-                <td class="px-6 py-4">
-                  <div class="flex items-start gap-3">
-                    <span class="mt-0.5 rounded-2xl border border-brand-300/60 bg-brand-200 p-2">
-                      <FolderIcon class="w-5 h-5 text-brand-900" />
-                    </span>
+          <div class="relative flex flex-col gap-4">
+            <!-- Header card -->
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0 flex items-start gap-3">
+                <span class="mt-0.5 rounded-2xl border border-brand-300/60 bg-brand-200 p-2">
+                  <FolderIcon class="w-5 h-5 text-brand-900" />
+                </span>
 
-                    <div class="min-w-0">
-                      <p class="font-semibold text-gray-900 truncate">
-                        {{ proyecto.nombre }}
-                      </p>
-                      <p class="text-xs text-gray-600">
-                        ID: {{ proyecto.id_proyecto }}
-                      </p>
-                    </div>
-                  </div>
-                </td>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base font-semibold text-gray-900 truncate max-w-[420px]">
+                      {{ proyecto.nombre }}
+                    </h3>
 
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  <span
-                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                    :class="estadoBadgeClass(proyecto.estado_proyecto?.nombre)"
-                  >
-                    {{ proyecto.estado_proyecto?.nombre || '—' }}
-                  </span>
-                </td>
-
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  <p class="truncate max-w-[360px]">
-                    {{ proyecto.ubicacion?.direccion || '—' }}
-                  </p>
-                  <p class="text-xs text-gray-600 truncate max-w-[360px]">
-                    {{ proyecto.ubicacion?.ciudad?.nombre || '—' }}
-                  </p>
-                </td>
-
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ proyecto.fecha_inicio || '—' }}
-                </td>
-
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ proyecto.fecha_finalizacion || '—' }}
-                </td>
-
-                <td class="px-6 py-4">
-                  <div class="flex items-center justify-end gap-2">
-                    <IconButton
-                      :href="`/proyectos/${proyecto.id_proyecto}`"
-                      icon="EyeIcon"
-                      title="Ver"
-                      variant="info"
-                    />
-                    <IconButton
-                      :href="`/proyectos/${proyecto.id_proyecto}/edit`"
-                      icon="PencilIcon"
-                      title="Editar"
-                      variant="warn"
-                    />
-                    <IconButton
-                      icon="TrashIcon"
-                      title="Eliminar"
-                      variant="danger"
-                      @click="askDelete(proyecto.id_proyecto)"
-                    />
-                  </div>
-                </td>
-              </tr>
-
-              <!-- Empty -->
-              <tr v-if="filtered.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center">
-                  <div class="mx-auto max-w-md">
-                    <MagnifyingGlassIcon class="w-8 h-8 mx-auto text-brand-700" />
-                    <p class="mt-3 text-sm font-semibold text-gray-900">Sin resultados</p>
-                    <p class="mt-1 text-sm text-gray-600">
-                      No hay proyectos que coincidan con tu búsqueda.
-                    </p>
-                    <button
-                      v-if="q"
-                      @click="q = ''"
-                      class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
+                    <span
+                      class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+                      :class="estadoBadgeClass(proyecto.estado_proyecto?.nombre)"
                     >
-                      Limpiar búsqueda
-                    </button>
+                      {{ proyecto.estado_proyecto?.nombre || '—' }}
+                    </span>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
 
-        <!-- Paginación -->
-        <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200">
+                  <p class="text-xs text-gray-500 mt-1">
+                    ID: <span class="font-semibold text-gray-700">{{ proyecto.id_proyecto }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex items-center gap-2 shrink-0">
+                <IconButton
+                  :href="`/proyectos/${proyecto.id_proyecto}`"
+                  icon="EyeIcon"
+                  title="Ver"
+                  variant="info"
+                />
+                <IconButton
+                  :href="`/proyectos/${proyecto.id_proyecto}/edit`"
+                  icon="PencilIcon"
+                  title="Editar"
+                  variant="warn"
+                />
+                <IconButton
+                  icon="TrashIcon"
+                  title="Eliminar"
+                  variant="danger"
+                  @click="askDelete(proyecto.id_proyecto)"
+                />
+              </div>
+            </div>
+
+            <!-- Body card: datos principales -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-brand-200/60 bg-white p-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ubicación</p>
+                <p class="mt-1 text-sm font-semibold text-gray-900 truncate">
+                  {{ proyecto.ubicacion?.ciudad?.nombre || '—' }}
+                </p>
+                <p class="text-xs text-gray-600 truncate">
+                  {{ proyecto.ubicacion?.direccion || '—' }}
+                </p>
+              </div>
+
+              <div class="rounded-2xl border border-brand-200/60 bg-white p-4">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fechas</p>
+                <div class="mt-1 flex flex-col gap-1">
+                  <p class="text-sm text-gray-900">
+                    <span class="text-gray-500">Inicio:</span>
+                    <span class="font-semibold">{{ proyecto.fecha_inicio || '—' }}</span>
+                  </p>
+                  <p class="text-sm text-gray-900">
+                    <span class="text-gray-500">Finalización:</span>
+                    <span class="font-semibold">{{ proyecto.fecha_finalizacion || '—' }}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer: CTA -->
+            <div class="flex items-center justify-between pt-1">
+              <p class="text-xs text-gray-500">
+                Gestiona torres, políticas y configuración desde el detalle.
+              </p>
+
+              <Link
+                :href="`/proyectos/${proyecto.id_proyecto}`"
+                class="inline-flex items-center gap-2 text-sm font-semibold text-brand-900 hover:underline"
+              >
+                Entrar
+                <ArrowRightIcon class="w-4 h-4 group-hover:translate-x-0.5 transition" />
+              </Link>
+            </div>
+          </div>
+
+          <div class="mt-4 h-1 w-full bg-brand-200 group-hover:bg-brand-600/60 transition"></div>
+        </AppCard>
+
+        <!-- Empty -->
+        <AppCard v-if="filtered.length === 0" padding="md" class="lg:col-span-2">
+          <div class="py-10 text-center">
+            <MagnifyingGlassIcon class="w-8 h-8 mx-auto text-brand-700" />
+            <p class="mt-3 text-sm font-semibold text-gray-900">Sin resultados</p>
+            <p class="mt-1 text-sm text-gray-600">
+              No hay proyectos que coincidan con tu búsqueda.
+            </p>
+
+            <button
+              v-if="q"
+              @click="q = ''"
+              class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
+        </AppCard>
+      </section>
+
+      <!-- Paginación -->
+      <AppCard padding="md">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p class="text-sm text-gray-600">
-            Página <span class="font-semibold text-gray-900">{{ proyectos.current_page }}</span>
-            de <span class="font-semibold text-gray-900">{{ proyectos.last_page }}</span>
+            Página <span class="font-semibold text-gray-900">{{ proyectos.current_page }}</span> de
+            <span class="font-semibold text-gray-900">{{ proyectos.last_page }}</span>
           </p>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center justify-end gap-2">
             <button
               :disabled="!proyectos.prev_page_url"
               @click="cambiarPagina(proyectos.current_page - 1)"
@@ -190,14 +202,14 @@
         @confirm="confirmarEliminar"
       />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import ButtonPrimary from '@/Components/ButtonPrimary.vue'
@@ -205,7 +217,12 @@ import QuickSearch from '@/Components/QuickSearch.vue'
 import IconButton from '@/Components/IconButton.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 
-import { PlusIcon, FolderIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import {
+  PlusIcon,
+  FolderIcon,
+  MagnifyingGlassIcon,
+  ArrowRightIcon,
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   proyectos: Object,
@@ -235,16 +252,10 @@ const filtered = computed(() => {
 
 function estadoBadgeClass(nombre) {
   const n = (nombre || '').toLowerCase()
-  // Ajusta estas reglas a tus estados reales si quieres
-  if (n.includes('activo') || n.includes('ejec')) {
+  if (n.includes('activo') || n.includes('ejec'))
     return 'border-green-200 bg-green-50 text-green-800'
-  }
-  if (n.includes('final') || n.includes('termin')) {
-    return 'border-blue-200 bg-blue-50 text-blue-800'
-  }
-  if (n.includes('paus') || n.includes('susp')) {
-    return 'border-amber-200 bg-amber-50 text-amber-800'
-  }
+  if (n.includes('final') || n.includes('termin')) return 'border-blue-200 bg-blue-50 text-blue-800'
+  if (n.includes('paus') || n.includes('susp')) return 'border-amber-200 bg-amber-50 text-amber-800'
   return 'border-gray-200 bg-gray-50 text-gray-700'
 }
 

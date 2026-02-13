@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Support\RedirectBackTo;
 
 class TipoApartamentoWebController extends Controller
 {
@@ -96,9 +97,12 @@ class TipoApartamentoWebController extends Controller
                 }
             });
 
-            return redirect()
-                ->route('tipos-apartamento.index')
-                ->with('success', 'Tipos de apartamento creados exitosamente');
+            return RedirectBackTo::respond(
+                $request,
+                'tipos-apartamento.index',
+                [],
+                'Tipos de apartamento creados exitosamente'
+            );
         }
 
         // ✅ MODO SIMPLE: mantiene tu implementación actual
@@ -145,9 +149,13 @@ class TipoApartamentoWebController extends Controller
 
         $tipo = TipoApartamento::create($validated);
 
-        return redirect()
-            ->route('tipos-apartamento.show', $tipo->id_tipo_apartamento)
-            ->with('success', 'Tipo de apartamento creado exitosamente');
+        return RedirectBackTo::respond(
+            $request,
+            'tipos-apartamento.show',
+            [$tipo->id_tipo_apartamento],
+            'Tipo de apartamento creado exitosamente',
+            ['id_tipo_apartamento' => $tipo->id_tipo_apartamento]
+        );
     }
 
     public function show(Request $request, $id)
