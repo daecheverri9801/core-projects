@@ -33,7 +33,8 @@ class Empleado extends Authenticatable
     ];
 
     protected $casts = [
-        'estado' => 'boolean'
+        'estado' => 'boolean',
+        'password' => 'hashed', 
     ];
 
     // protected static function booted()

@@ -65,13 +65,24 @@
                     <p class="font-medium">{{ inmueble.direccion }}, {{ inmueble.ubicacion }}</p>
                   </div>
                 </div>
-                <div class="flex items-center text-gray-700">
-                  <BuildingOfficeIcon class="h-5 w-5 mr-3 text-gray-400" />
-                  <div>
-                    <p class="text-sm text-gray-500">Tipo de Inmueble</p>
-                    <p class="font-medium">{{ inmueble.tipo_inmueble }}</p>
-                  </div>
-                </div>
+              </div>
+            </div>
+
+            <!-- Imagen tipo apartamento -->
+            <div
+              v-if="inmueble.tipo === 'apartamento' && inmueble.tipo_apartamento_imagen_url"
+              class="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+            >
+              <h2 class="text-xl font-bold text-gray-900 mb-4">
+                Tipo de Apartamento: {{ inmueble.tipo_inmueble }}
+              </h2>
+              <div class="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                <img
+                  :src="inmueble.tipo_apartamento_imagen_url"
+                  :alt="inmueble.tipo_inmueble || 'Tipo apartamento'"
+                  class="w-full h-64 object-contain"
+                  loading="lazy"
+                />
               </div>
             </div>
 

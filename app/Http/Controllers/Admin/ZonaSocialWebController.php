@@ -11,22 +11,26 @@ use App\Support\RedirectBackTo;
 
 class ZonaSocialWebController extends Controller
 {
-    /**
-     * Listado general
-     */
     public function index(Request $request)
     {
         $empleado = $request->user()->load('cargo');
+
         $zonas = ZonaSocial::with('proyecto.ubicacion.ciudad')
             ->orderBy('id_zona_social', 'desc')
             ->get()
-            ->map(fn($z) => [
-                'id_zona_social' => $z->id_zona_social,
-                'nombre' => $z->nombre,
-                'descripcion' => $z->descripcion,
-                'proyecto' => $z->proyecto?->nombre,
-                'ubicacion' => optional($z->proyecto?->ubicacion?->ciudad)->nombre,
-            ]);
+            ->map(function ($z) {
+                $u = $z->proyecto?->ubicacion;
+                $ciudad = $u?->ciudad?->nombre ?? '';
+                $direccion = $u?->direccion ?? '';
+
+                return [
+                    'id_zona_social' => $z->id_zona_social,
+                    'nombre' => $z->nombre,
+                    'descripcion' => $z->descripcion,
+                    'proyecto' => $z->proyecto?->nombre,
+                    'ubicacion' => trim($direccion . (strlen($ciudad) ? ', ' . $ciudad : '')),
+                ];
+            });
 
         return Inertia::render('Admin/ZonaSocial/Index', [
             'zonas' => $zonas,
@@ -34,22 +38,18 @@ class ZonaSocialWebController extends Controller
         ]);
     }
 
-    /**
-     * Formulario de creación
-     */
     public function create(Request $request)
     {
         $empleado = $request->user()->load('cargo');
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
+
         return Inertia::render('Admin/ZonaSocial/Create', [
             'proyectos' => $proyectos,
             'empleado' => $empleado,
+            'proyecto_preseleccionado' => $request->query('proyecto'), // ✅ flujo
         ]);
     }
 
-    /**
-     * Guardar nueva zona social
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -75,17 +75,12 @@ class ZonaSocialWebController extends Controller
         }
 
         ZonaSocial::create($validated);
-        return RedirectBackTo::respond(
-            $request,
-            'zonas-sociales.index',
-            [],
-            'Zona social creada exitosamente'
-        );
+
+        return redirect()
+            ->route('zonas-sociales.create', ['proyecto' => $validated['id_proyecto']])
+            ->with('success', 'Zona social creada exitosamente');
     }
 
-    /**
-     * Mostrar detalle
-     */
     public function show(Request $request, $id)
     {
         $empleado = $request->user()->load('cargo');
@@ -100,9 +95,6 @@ class ZonaSocialWebController extends Controller
         ]);
     }
 
-    /**
-     * Formulario de edición
-     */
     public function edit(Request $request, $id)
     {
         $empleado = $request->user()->load('cargo');
@@ -116,9 +108,6 @@ class ZonaSocialWebController extends Controller
         ]);
     }
 
-    /**
-     * Actualizar registro
-     */
     public function update(Request $request, $id)
     {
         $zona = ZonaSocial::findOrFail($id);
@@ -141,13 +130,11 @@ class ZonaSocialWebController extends Controller
         }
 
         $zona->update($validated);
+
         return redirect()->route('zonas-sociales.show', $zona->id_zona_social)
             ->with('success', 'Zona social actualizada exitosamente');
     }
 
-    /**
-     * Eliminar zona social
-     */
     public function destroy($id)
     {
         $zona = ZonaSocial::findOrFail($id);

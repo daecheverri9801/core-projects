@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/ZonaSocial/Edit.vue -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <PageHeader
         title="Editar zona social"
@@ -115,14 +115,14 @@
 
       <FlashMessages />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'

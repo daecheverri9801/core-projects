@@ -15,7 +15,14 @@ class Parqueadero extends Model
     protected $fillable = [
         'numero',
         'tipo',
-        'id_apartamento'
+        'id_apartamento',
+        'id_torre',
+        'id_proyecto',
+        'precio'
+    ];
+
+    protected $casts = [
+        'precio' => 'decimal:2',
     ];
 
     public function apartamento()
@@ -23,4 +30,13 @@ class Parqueadero extends Model
         return $this->belongsTo(Apartamento::class, 'id_apartamento', 'id_apartamento');
     }
 
+    public function torre()
+    {
+        return $this->belongsTo(Torre::class, 'id_torre', 'id_torre');
+    }
+
+    public function proyecto()
+    {
+        return $this->belongsTo(Proyecto::class, 'id_proyecto', 'id_proyecto');
+    }
 }

@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <PageHeader
         title="Pisos de Torre"
@@ -89,14 +89,14 @@
 
       <FlashMessages />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'

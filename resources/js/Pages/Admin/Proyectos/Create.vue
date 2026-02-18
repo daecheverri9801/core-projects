@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Proyectos/Create.vue -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <!-- Header -->
       <PageHeader
@@ -375,14 +375,14 @@
         </form>
       </ModalShell>
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 

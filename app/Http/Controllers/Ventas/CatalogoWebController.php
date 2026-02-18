@@ -7,6 +7,7 @@ use App\Models\Proyecto;
 use App\Models\Apartamento;
 use App\Models\Local;
 use App\Models\EstadoInmueble;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -43,9 +44,9 @@ class CatalogoWebController extends Controller
                 $q->whereHas('torres.apartamentos', function ($qa) use ($estadoDisponible) {
                     $qa->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
                 })
-                ->orWhereHas('torres.locales', function ($ql) use ($estadoDisponible) {
-                    $ql->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
-                });
+                    ->orWhereHas('torres.locales', function ($ql) use ($estadoDisponible) {
+                        $ql->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
+                    });
             })
             ->select('id_proyecto', 'nombre', 'id_ubicacion')
             ->orderBy('nombre')
@@ -61,7 +62,7 @@ class CatalogoWebController extends Controller
             'estadoInmueble',
         ])
             ->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble)
-
+            ->withCount('parqueaderos')
             // Filtro por proyecto
             ->when($proyectoId, function ($q) use ($proyectoId) {
                 $q->whereHas('torre', function ($t) use ($proyectoId) {
@@ -70,11 +71,11 @@ class CatalogoWebController extends Controller
             })
 
             // Filtro por precio
-            ->when($precioMin, fn ($q) => $q->where('valor_final', '>=', $precioMin))
-            ->when($precioMax, fn ($q) => $q->where('valor_final', '<=', $precioMax))
+            ->when($precioMin, fn($q) => $q->where('valor_final', '>=', $precioMin))
+            ->when($precioMax, fn($q) => $q->where('valor_final', '<=', $precioMax))
 
             // Tipo de inmueble
-            ->when($tipoInmueble === 'local', fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($tipoInmueble === 'local', fn($q) => $q->whereRaw('1 = 0'))
 
             // Búsqueda (agrupada)
             ->when($search, function ($q) use ($search) {
@@ -118,6 +119,7 @@ class CatalogoWebController extends Controller
                     'ubicacion' => $apto->torre->proyecto->ubicacion->ciudad->nombre,
                     'direccion' => $apto->torre->proyecto->ubicacion->direccion,
                     'estado' => $apto->estadoInmueble->nombre,
+                    'tiene_parqueadero' => ((int) $apto->parqueaderos_count) > 0,
                 ];
             });
 
@@ -137,10 +139,10 @@ class CatalogoWebController extends Controller
                 });
             })
 
-            ->when($precioMin, fn ($q) => $q->where('valor_total', '>=', $precioMin))
-            ->when($precioMax, fn ($q) => $q->where('valor_total', '<=', $precioMax))
+            ->when($precioMin, fn($q) => $q->where('valor_total', '>=', $precioMin))
+            ->when($precioMax, fn($q) => $q->where('valor_total', '<=', $precioMax))
 
-            ->when($tipoInmueble === 'apartamento', fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($tipoInmueble === 'apartamento', fn($q) => $q->whereRaw('1 = 0'))
 
             // Búsqueda (agrupada)
             ->when($search, function ($q) use ($search) {
@@ -180,6 +182,7 @@ class CatalogoWebController extends Controller
                     'ubicacion' => $local->torre->proyecto->ubicacion->ciudad->nombre,
                     'direccion' => $local->torre->proyecto->ubicacion->direccion,
                     'estado' => $local->estadoInmueble->nombre,
+                    'tiene_parqueadero' => false,
                 ];
             });
 
@@ -217,6 +220,8 @@ class CatalogoWebController extends Controller
                 'parqueaderos'
             ])->findOrFail($id);
 
+            $imagen = $inmueble->tipoApartamento?->imagen;
+
             $data = [
                 'id' => $inmueble->id_apartamento,
                 'tipo' => 'apartamento',
@@ -226,7 +231,7 @@ class CatalogoWebController extends Controller
                 'torre' => $inmueble->torre->nombre_torre,
                 'piso' => $inmueble->pisoTorre->nivel,
                 'tipo_inmueble' => $inmueble->tipoApartamento->nombre,
-                'area_construida' => $inueble->tipoApartamento->area_construida ?? null,
+                'area_construida' => $inmueble->tipoApartamento->area_construida ?? null,
                 'area_privada' => $inmueble->tipoApartamento->area_privada,
                 'habitaciones' => $inmueble->tipoApartamento->cantidad_habitaciones,
                 'banos' => $inmueble->tipoApartamento->cantidad_banos,
@@ -243,6 +248,11 @@ class CatalogoWebController extends Controller
                 'direccion' => $inmueble->torre->proyecto->ubicacion->direccion,
                 'estado' => $inmueble->estadoInmueble->nombre,
                 'parqueaderos' => $inmueble->parqueaderos->count(),
+                'tipo_apartamento_imagen_url' => $imagen
+                    ? (str_starts_with($imagen, 'http')
+                        ? $imagen
+                        : Storage::url($imagen))
+                    : null,
             ];
         } else {
             $inmueble = Local::with([
@@ -269,12 +279,12 @@ class CatalogoWebController extends Controller
                 'prima_altura' => 0,
                 'valor_politica' => 0,
                 'valor_final' => $inmueble->valor_total,
-                'valor_comercial' => $inueble->valor_comercial ?? null,
+                'valor_comercial' => $inmueble->valor_comercial ?? null,
                 'cuota_inicial' => $inmueble->torre->proyecto->porcentaje_cuota_inicial_min
                     ? $inmueble->valor_total * ($inmueble->torre->proyecto->porcentaje_cuota_inicial_min / 100)
                     : 0,
                 'ubicacion' => $inmueble->torre->proyecto->ubicacion->ciudad->nombre,
-                'direccion' => $inueble->torre->proyecto->ubicacion->direccion ?? null,
+                'direccion' => $inmueble->torre->proyecto->ubicacion->direccion ?? null,
                 'estado' => $inmueble->estadoInmueble->nombre,
                 'parqueaderos' => 0,
             ];

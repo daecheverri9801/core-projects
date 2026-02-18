@@ -11,12 +11,18 @@ use App\Models\Local;
 use App\Models\Proyecto;
 use App\Models\FormaPago;
 use App\Models\EstadoInmueble;
+use App\Services\VentaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 
 class VentaAdminController extends Controller
 {
+
+    public function __construct(
+        protected VentaService $ventaService
+    ) {}
+    
     /* ===========================================================
      *  INDEX
      * =========================================================== */
@@ -204,108 +210,51 @@ class VentaAdminController extends Controller
                 'id_empleado'       => 'required|exists:empleados,id_empleado',
                 'documento_cliente' => 'required|exists:clientes,documento',
                 'fecha_venta'       => 'required|date',
+
+                'id_proyecto'       => 'required|exists:proyectos,id_proyecto',
+
                 'inmueble_tipo'     => 'required|in:apartamento,local',
                 'inmueble_id'       => 'required|integer',
-                'id_forma_pago'     => 'required',
-                'id_estado_inmueble' => 'required',
-                'id_proyecto'       => 'nullable',
+
+                'id_forma_pago'     => 'required|exists:formas_pago,id_forma_pago',
+
+                // Nota: el service decide el estado final del inmueble (Vendido/Separado).
+                // Puedes dejarlo opcional si no quieres enviarlo desde el front.
+                'id_estado_inmueble' => 'nullable|exists:estados_inmueble,id_estado_inmueble',
+
                 'cuota_inicial'     => 'nullable|numeric|min:0',
                 'valor_separacion'  => 'nullable|numeric|min:0',
                 'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
+
                 'valor_total'       => 'nullable|numeric|min:0',
                 'valor_restante'    => 'nullable|numeric|min:0',
                 'descripcion'       => 'nullable|max:300',
+
                 'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
+                'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
             ]);
 
-            /* --------------------
-             *  Obtener inmueble
-             * -------------------- */
-            $tipo = $validated['inmueble_tipo'];
-
-            if ($tipo === 'apartamento') {
-                $inmueble = Apartamento::with('torre.proyecto')->findOrFail($validated['inmueble_id']);
-                $validated['id_apartamento'] = $inmueble->id_apartamento;
-                $validated['id_local'] = null;
+            // Defaults coherentes
+            if (($validated['tipo_operacion'] ?? null) === 'venta') {
+                $validated['frecuencia_cuota_inicial_meses'] = (int)($validated['frecuencia_cuota_inicial_meses'] ?? 1);
             } else {
-                $inmueble = Local::with('torre.proyecto')->findOrFail($validated['inmueble_id']);
-                $validated['id_local'] = $inmueble->id_local;
-                $validated['id_apartamento'] = null;
-            }
-
-            /* --------------------
-             *  Inferir proyecto
-             * -------------------- */
-            if (!$validated['id_proyecto']) {
-                $validated['id_proyecto'] = $inmueble->torre->id_proyecto;
-            }
-
-            $proyecto = Proyecto::find($validated['id_proyecto']);
-
-            /* =======================================================
-             *   VALIDACIONES DE NEGOCIO
-             * ======================================================= */
-
-            if ($validated['tipo_operacion'] === Venta::TIPO_VENTA) {
-
-                $porcMin = (float) ($proyecto->porcentaje_cuota_inicial_min ?? 0);
-                $valorTotal = $validated['valor_total'] ?? $inmueble->valor_final;
-
-                if ($porcMin > 0) {
-                    $minimo = $valorTotal * ($porcMin / 100);
-                    if ($validated['cuota_inicial'] < $minimo) {
-                        return back()->withErrors([
-                            'cuota_inicial' => 'La cuota inicial mínima es ' .
-                                number_format($minimo, 0, ',', '.') . ' (' . $porcMin . '%).'
-                        ]);
-                    }
-                }
-
-                $validated['valor_separacion'] = null;
-            }
-
-            if ($validated['tipo_operacion'] === Venta::TIPO_SEPARACION) {
-
-                $minSep = $proyecto->valor_min_separacion ?? 0;
-                if ($validated['valor_separacion'] < $minSep) {
-                    return back()->withErrors([
-                        'valor_separacion' =>
-                        'El valor mínimo de separación es ' . number_format($minSep, 0, ',', '.')
-                    ]);
-                }
-
-                // ✅ Validar fecha límite para separación
-                if (empty($validated['fecha_limite_separacion'])) {
-                    return back()->withErrors([
-                        'fecha_limite_separacion' => 'La fecha límite es obligatoria para separaciones'
-                    ]);
-                }
-
+                $validated['frecuencia_cuota_inicial_meses'] = null;
+                $validated['plazo_cuota_inicial_meses'] = null;
                 $validated['cuota_inicial'] = null;
             }
 
-            unset($validated['inmueble_tipo'], $validated['inmueble_id']);
+            // Si no quieres manejar estados desde el front:
+            // $validated['id_estado_inmueble'] = null;
 
-            $validated['plazo_cuota_inicial_meses'] = $request->plazo_cuota_inicial_meses;
-
-            $validated['estado_operacion'] = 'vigente';
-            // Crear venta
-            $venta = Venta::create($validated);
-
-            // Congelar inmueble
-            $inmueble->update([
-                'id_estado_inmueble' => $validated['id_estado_inmueble'],
-            ]);
-
-            // Recalcular precios del proyecto (bloque/escalón)
-            app(\App\Services\PriceEngine::class)
-                ->recalcularProyectoPorVenta($venta);
+            // Delegar al servicio (genera plan, cambia estado inmueble, recalcula precios)
+            $venta = $this->ventaService->crearOperacion($validated);
 
             return redirect()
-                ->route('admin.ventas.index')
+                ->route('ventas.show', $venta->id_venta)
                 ->with('success', 'Operación registrada exitosamente.');
         });
     }
+
 
     /* ===========================================================
      *  EDIT / UPDATE
@@ -360,6 +309,7 @@ class VentaAdminController extends Controller
                 'valor_separacion'  => 'nullable|numeric|min:0',
                 'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
                 'plazo_cuota_inicial_meses' => 'nullable|integer|min:0', // ✅ CAMBIAR a nullable
+                'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
             ]);
 
             // ✅ DEBUG: Verificar qué datos llegan

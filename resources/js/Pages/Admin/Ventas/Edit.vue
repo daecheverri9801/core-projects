@@ -67,6 +67,7 @@ const form = useForm({
   valor_separacion: props.venta?.valor_separacion,
   fecha_limite_separacion: inicializarFecha(props.venta?.fecha_limite_separacion),
   plazo_cuota_inicial_meses: props.venta?.plazo_cuota_inicial_meses || '',
+  frecuencia_cuota_inicial_meses: props.venta?.frecuencia_cuota_inicial_meses ?? 1,
 })
 
 onMounted(() => {
@@ -514,6 +515,34 @@ function submit() {
                       {{ p }} mes{{ p === 1 ? '' : 'es' }}
                     </option>
                   </SelectInput>
+                </FormField>
+              </div>
+
+              <div class="md:col-span-4">
+                <FormField label="Frecuencia de pago cuota inicial">
+                  <select
+                    v-model="form.frecuencia_cuota_inicial_meses"
+                    :disabled="!form.plazo_cuota_inicial_meses"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option :value="1">Mensual (cada 1 mes)</option>
+                    <option :value="2" v-if="Number(form.plazo_cuota_inicial_meses) >= 2">
+                      Bimestral (cada 2 meses)
+                    </option>
+                    <option :value="3" v-if="Number(form.plazo_cuota_inicial_meses) >= 3">
+                      Trimestral (cada 3 meses)
+                    </option>
+                    <option :value="4" v-if="Number(form.plazo_cuota_inicial_meses) >= 4">
+                      Cada 4 meses
+                    </option>
+                    <option :value="6" v-if="Number(form.plazo_cuota_inicial_meses) >= 6">
+                      Semestral (cada 6 meses)
+                    </option>
+                    <option :value="12" v-if="Number(form.plazo_cuota_inicial_meses) >= 12">
+                      Anual (cada 12 meses)
+                    </option>
+                  </select>
+                  <template #hint> Ej: plazo 12 meses, trimestral => 4 pagos. </template>
                 </FormField>
               </div>
 

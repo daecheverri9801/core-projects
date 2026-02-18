@@ -99,7 +99,7 @@ class TipoApartamentoWebController extends Controller
 
             return RedirectBackTo::respond(
                 $request,
-                'tipos-apartamento.index',
+                'apartamentos.create',
                 [],
                 'Tipos de apartamento creados exitosamente'
             );

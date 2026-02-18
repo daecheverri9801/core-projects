@@ -92,7 +92,7 @@ class GerenciaEstadisticasService
                 }
                 return is_numeric($v) && ((int)$v) > 0;
             })
-            ->map(fn ($v) => (int) $v)
+            ->map(fn($v) => (int) $v)
             ->unique()
             ->values();
     }
@@ -217,7 +217,7 @@ class GerenciaEstadisticasService
 
         $metas = Meta::where('ano', $ano)
             ->where('mes', $mes)
-            ->when(!empty($filtros['proyecto_id']), fn ($qq) => $qq->where('id_proyecto', $filtros['proyecto_id']))
+            ->when(!empty($filtros['proyecto_id']), fn($qq) => $qq->where('id_proyecto', $filtros['proyecto_id']))
             ->get()
             ->keyBy('id_proyecto');
 
@@ -321,7 +321,7 @@ class GerenciaEstadisticasService
             $dias = $ventasProyecto->map(function ($v) use ($inicio) {
                 if (!$v->fecha_venta) return null;
                 return $inicio->diffInDays(Carbon::parse($v->fecha_venta));
-            })->filter(fn ($x) => $x !== null);
+            })->filter(fn($x) => $x !== null);
 
             $promedio = $dias->count() ? round($dias->avg(), 1) : null;
 
@@ -639,11 +639,7 @@ class GerenciaEstadisticasService
         $ventas = $ventasQuery->get();
 
         if ($ventas->isEmpty()) {
-            return [
-                'encabezados' => [],
-                'filas'       => [],
-                'totales'     => [],
-            ];
+            return ['encabezados' => [], 'filas' => [], 'totales' => []];
         }
 
         $minMes = null;
@@ -655,18 +651,15 @@ class GerenciaEstadisticasService
             $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
             $inicio = Carbon::parse($v->fecha_venta)->startOfMonth();
-            $fin    = (clone $inicio)->addMonths($plazo);
+            // Mes 0 (separación) + ... + mes n+1 (restante)
+            $fin = (clone $inicio)->addMonths($plazo + 1);
 
             if ($minMes === null || $inicio->lt($minMes)) $minMes = $inicio->copy();
             if ($maxMes === null || $fin->gt($maxMes))    $maxMes = $fin->copy();
         }
 
         if (!$minMes || !$maxMes) {
-            return [
-                'encabezados' => [],
-                'filas'       => [],
-                'totales'     => [],
-            ];
+            return ['encabezados' => [], 'filas' => [], 'totales' => []];
         }
 
         $encabezados = [];
@@ -685,41 +678,69 @@ class GerenciaEstadisticasService
 
             $inmueble = $v->apartamento?->numero
                 ? 'Apto ' . $v->apartamento->numero
-                : ($v->local?->numero
-                    ? 'Local ' . $v->local->numero
-                    : '—');
+                : ($v->local?->numero ? 'Local ' . $v->local->numero : '—');
 
             $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
             $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
-            $separacion     = (float) ($v->valor_separacion ?? $valorMinSep);
+
+            // Venta: normalmente valor_separacion viene null, pero el negocio exige reflejar separación en mes 0
+            $separacion     = (float) ($v->valor_min_separacion ?? $valorMinSep);
+
             $valorRestante  = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
             $saldoAmortizar = max(0, $cuotaInicial - $separacion);
-            $plazo          = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
+            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+
+            // ✅ FRECUENCIA (1 mensual, 2 bimestral, 3 trimestral, ...)
+            $frecuencia = max(1, (int) ($v->frecuencia_cuota_inicial_meses ?? 1));
+
+            // Cantidad de pagos dentro del plazo (ej 10 meses bimestral => ceil(10/2)=5 pagos)
+            $numPagos = (int) ceil($plazo / $frecuencia);
+
+            // Mes base = mes 0 (separación)
             $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
 
-            $cuotaMensual = (int) floor($saldoAmortizar / $plazo);
-            $residuo      = $saldoAmortizar - ($cuotaMensual * $plazo);
+            // Distribución por número de pagos (no por meses)
+            $cuotaPorPago = $numPagos > 0 ? (int) floor($saldoAmortizar / $numPagos) : 0;
+            $residuo      = $saldoAmortizar - ($cuotaPorPago * $numPagos);
 
             $mesesRow = [];
 
-            for ($i = 1; $i <= $plazo; $i++) {
-                $mes = $fechaBase->format('Y-m');
-
-                $valorCuota = $cuotaMensual;
-
-                if ($i === $plazo) $valorCuota += $residuo;
-                if ($i === 1)      $valorCuota += $separacion;
-
-                $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
-                if (isset($totales[$mes])) {
-                    $totales[$mes] += $valorCuota;
-                }
-
-                $fechaBase->addMonth();
+            // =========================
+            // MES 0: SOLO SEPARACIÓN
+            // =========================
+            $mes0 = $fechaBase->format('Y-m');
+            if (isset($totales[$mes0])) {
+                $mesesRow[$mes0] = ($mesesRow[$mes0] ?? 0) + $separacion;
+                $totales[$mes0]  += $separacion;
             }
 
-            $mesRestante = $fechaBase->format('Y-m');
+            // =========================
+            // PAGOS SEGÚN FRECUENCIA
+            // Ej: bimestral => meses 2,4,6,8,10 (relativo a mes 0)
+            // =========================
+            $fechaPago = $fechaBase->copy()->addMonths($frecuencia);
+
+            for ($k = 1; $k <= $numPagos; $k++) {
+                $mes = $fechaPago->format('Y-m');
+
+                $valorCuota = $cuotaPorPago;
+                if ($k === $numPagos) $valorCuota += $residuo;
+
+                if (isset($totales[$mes])) {
+                    $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
+                    $totales[$mes]  += $valorCuota;
+                }
+
+                $fechaPago->addMonths($frecuencia);
+            }
+
+            // =========================
+            // MES N+1: VALOR RESTANTE
+            // (se mantiene como está actualmente)
+            // =========================
+            $mesRestante = $fechaBase->copy()->addMonths($plazo + 1)->format('Y-m');
+
             if (isset($totales[$mesRestante])) {
                 $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
                 $totales[$mesRestante]  += $valorRestante;

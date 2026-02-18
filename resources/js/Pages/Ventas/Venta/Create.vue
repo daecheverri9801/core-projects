@@ -60,6 +60,7 @@ const form = useForm({
   valor_separacion: 0,
   fecha_limite_separacion: '',
   plazo_cuota_inicial_meses: '',
+  frecuencia_cuota_inicial_meses: 1,
 })
 
 const proyectoSeleccionado = computed(() =>
@@ -749,6 +750,33 @@ function submit() {
                     <p :class="hintClass()">
                       Se calcula con base en la fecha de inicio del proyecto.
                     </p>
+                  </div>
+
+                  <div>
+                    <label :class="labelClass()">Frecuencia de pago cuota inicial</label>
+                    <select
+                      v-model="form.frecuencia_cuota_inicial_meses"
+                      :disabled="!form.plazo_cuota_inicial_meses"
+                      :class="inputClass(false, !form.plazo_cuota_inicial_meses)"
+                    >
+                      <option :value="1">Mensual (cada 1 mes)</option>
+                      <option :value="2" v-if="Number(form.plazo_cuota_inicial_meses) >= 2">
+                        Bimestral
+                      </option>
+                      <option :value="3" v-if="Number(form.plazo_cuota_inicial_meses) >= 3">
+                        Trimestral
+                      </option>
+                      <option :value="4" v-if="Number(form.plazo_cuota_inicial_meses) >= 4">
+                        Cada 4 meses
+                      </option>
+                      <option :value="6" v-if="Number(form.plazo_cuota_inicial_meses) >= 6">
+                        Semestral
+                      </option>
+                      <option :value="12" v-if="Number(form.plazo_cuota_inicial_meses) >= 12">
+                        Anual
+                      </option>
+                    </select>
+                    <p :class="hintClass()">Ej: plazo 12 meses, trimestral => 4 pagos.</p>
                   </div>
 
                   <div>

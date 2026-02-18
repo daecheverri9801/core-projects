@@ -222,7 +222,7 @@
                 </div>
                 <div class="flex items-center text-sm text-gray-600">
                   <BuildingOfficeIcon class="h-4 w-4 mr-2 text-gray-400" />
-                  Torre {{ inmueble.torre }} - Piso {{ inmueble.piso }}
+                  {{ inmueble.torre }} - Piso {{ inmueble.piso }}
                 </div>
               </div>
 
@@ -240,6 +240,10 @@
                   </div>
                   <div v-if="inmueble.banos">
                     <span class="font-medium">Baños:</span> {{ inmueble.banos }}
+                  </div>
+                  <div v-if="inmueble.tipo === 'apartamento'">
+                    <span class="font-medium">Parqueadero:</span>
+                    {{ inmueble.tiene_parqueadero ? 'Sí' : 'No' }}
                   </div>
                 </div>
               </div>

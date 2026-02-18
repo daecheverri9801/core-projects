@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/PoliticasPrecioProyecto/Index.vue -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <PageHeader
         title="Políticas de precio"
@@ -171,14 +171,14 @@
         @confirm="confirmarEliminar"
       />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import ButtonPrimary from '@/Components/ButtonPrimary.vue'

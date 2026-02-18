@@ -38,6 +38,7 @@ class Venta extends Model
         'tipo_operacion',
         'valor_separacion',
         'fecha_limite_separacion',
+        'frecuencia_cuota_inicial_meses',
     ];
 
     protected $casts = [
@@ -50,6 +51,7 @@ class Venta extends Model
         'cuota_inicial' => 'decimal:2',
         'valor_restante' => 'decimal:2',
         'valor_separacion' => 'decimal:2',
+        'frecuencia_cuota_inicial_meses' => 'integer',
     ];
 
     // Relaciones

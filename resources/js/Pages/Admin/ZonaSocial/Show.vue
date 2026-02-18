@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <!-- Header -->
       <div class="flex items-start justify-between">
@@ -56,11 +56,11 @@
 
       <FlashMessages />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { Link } from '@inertiajs/vue3'
 import InfoItem from '@/Components/InfoItem.vue'

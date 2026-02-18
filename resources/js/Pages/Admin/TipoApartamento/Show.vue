@@ -1,5 +1,5 @@
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <template #title>Detalle Tipo de Apartamento</template>
 
     <div class="space-y-6">
@@ -130,11 +130,11 @@
     </div>
 
     <FlashMessages />
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 import { Link } from '@inertiajs/vue3'
 import InfoItem from '@/Components/InfoItem.vue'

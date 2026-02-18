@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use App\Models\Estado;
 use App\Models\Ubicacion;
 use App\Models\Torre;
+use App\Models\ZonaSocial;
 
 class ProyectoController extends Controller
 {

@@ -88,13 +88,14 @@ class AdminTorreController extends Controller
 
             $count = count($validated['torres']);
 
-            return RedirectBackTo::respond(
-                $request,
-                'admin.torres.index',
-                [],
-                $count === 1 ? 'Torre creada exitosamente.' : "{$count} torres creadas exitosamente.",
-                ['count' => $count]
-            );
+            return redirect()
+                ->route('pisostorre.create', [
+                    'proyecto' => $validated['id_proyecto'],
+                    // opcional si quieres preselección también del estado:
+                    // 'estado' => $validated['id_estado'],
+                ])
+                ->with('success', $count === 1 ? 'Torre creada exitosamente.' : "{$count} torres creadas exitosamente.")
+                ->with('count', $count);
         }
 
         $validated = $request->validate([
@@ -107,13 +108,14 @@ class AdminTorreController extends Controller
 
         $torre = Torre::create($validated);
 
-        return RedirectBackTo::respond(
-            $request,
-            'admin.torres.show',
-            [$torre->id_torre],
-            'Torre creada exitosamente',
-            ['id_torre' => $torre->id_torre]
-        );
+        return redirect()
+            ->route('pisostorre.create', [
+                'proyecto' => $validated['id_proyecto'],
+                // opcional:
+                // 'estado' => $validated['id_estado'],
+            ])
+            ->with('success', 'Torre creada exitosamente')
+            ->with('id_torre', $torre->id_torre);
     }
 
     public function show(Request $request, $id_torre)

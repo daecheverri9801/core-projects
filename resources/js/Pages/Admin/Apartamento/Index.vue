@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Apartamento/Index.vue -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <!-- Header -->
       <PageHeader
@@ -220,14 +220,14 @@
     </div>
 
     <FlashMessages />
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
 import AppCard from '@/Components/AppCard.vue'

@@ -167,7 +167,7 @@ class LocalWebController extends Controller
 
         return RedirectBackTo::respond(
             $request,
-            'locales.index',
+            'parqueaderos.create',
             [],
             'Local creado exitosamente'
         );

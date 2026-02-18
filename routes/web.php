@@ -125,11 +125,8 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::put('/pisos-torre/{id}', [PisoTorreWebController::class, 'update'])->name('pisostorre.update');
     Route::delete('/pisos-torre/{id}', [PisoTorreWebController::class, 'destroy'])->name('pisostorre.destroy');
 
-    // Auxiliar para selects dependientes
-    Route::get('/api/torres-por-proyecto/{id_proyecto}', [PisoTorreWebController::class, 'torresPorProyecto'])->name('pisostorre.torresPorProyecto');
-
     Route::get('/apartamentos', [ApartamentoWebController::class, 'index'])->name('apartamentos.index');
-    Route::get('/apartamentos/create', [ApartamentoWebController::class, 'create'])->name('apartamentos.create');
+    Route::get('/admin/apartamentos/create', [ApartamentoWebController::class, 'create'])->name('admin.apartamentos.create');
     Route::post('/apartamentos', [ApartamentoWebController::class, 'store'])->name('apartamentos.store');
     Route::get('/apartamentos/{id}', [ApartamentoWebController::class, 'show'])->name('apartamentos.show');
     Route::get('/apartamentos/{id}/edit', [ApartamentoWebController::class, 'edit'])->name('apartamentos.edit');
@@ -137,8 +134,9 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::delete('/apartamentos/{id}', [ApartamentoWebController::class, 'destroy'])->name('apartamentos.destroy');
 
     // Auxiliares para selects encadenados
-    Route::get('/api/torres-por-proyecto/{id_proyecto}', [ApartamentoWebController::class, 'torresPorProyecto'])->name('apartamentos.torresPorProyecto');
     Route::get('/api/pisos-por-torre/{id_torre}', [ApartamentoWebController::class, 'pisosPorTorre'])->name('apartamentos.pisosPorTorre');
+    Route::get('torres-por-proyecto/{id_proyecto}', [PisoTorreWebController::class, 'torresPorProyecto'])->name('pisostorre.torresPorProyecto');
+
 
     Route::get('/tipos-apartamento', [TipoApartamentoWebController::class, 'index'])->name('tipos-apartamento.index');
     Route::get('/tipos-apartamento/create', [TipoApartamentoWebController::class, 'create'])->name('tipos-apartamento.create');
@@ -168,6 +166,7 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::put('/zonas-sociales/{id}', [ZonaSocialWebController::class, 'update'])->name('zonas-sociales.update');
     Route::delete('/zonas-sociales/{id}', [ZonaSocialWebController::class, 'destroy'])->name('zonas-sociales.destroy');
 
+
     Route::get('/parqueaderos', [ParqueaderoWebController::class, 'index'])->name('parqueaderos.index');
     Route::get('/parqueaderos/create', [ParqueaderoWebController::class, 'create'])->name('parqueaderos.create');
     Route::post('/parqueaderos', [ParqueaderoWebController::class, 'store'])->name('parqueaderos.store');
@@ -175,6 +174,31 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::get('/parqueaderos/{id}/edit', [ParqueaderoWebController::class, 'edit'])->name('parqueaderos.edit');
     Route::put('/parqueaderos/{id}', [ParqueaderoWebController::class, 'update'])->name('parqueaderos.update');
     Route::delete('/parqueaderos/{id}', [ParqueaderoWebController::class, 'destroy'])->name('parqueaderos.destroy');
+
+    // routes/web.php (CRUD ya lo tienes). Agrega endpoints auxiliares para selects encadenados:
+    // Route::get('/api/torres-por-proyecto/{id_proyecto}', [ParqueaderoWebController::class, 'torresPorProyecto']);
+    Route::get('/api/apartamentos-por-torre/{id_torre}', [ParqueaderoWebController::class, 'apartamentosPorTorre']);
+
+
+    // Route::get('/api/torres-por-proyecto/{idProyecto}', function ($idProyecto) {
+    //     return \App\Models\Torre::select('id_torre', 'nombre_torre', 'id_proyecto')
+    //         ->where('id_proyecto', $idProyecto)
+    //         ->orderBy('nombre_torre')
+    //         ->get();
+    // });
+
+    // Route::get('/api/apartamentos-por-torre/{idTorre}', function ($idTorre) {
+    //     return \App\Models\Apartamento::with('torre:id_torre,nombre_torre')
+    //         ->select('id_apartamento', 'numero', 'id_torre')
+    //         ->where('id_torre', $idTorre)
+    //         ->orderBy('numero')
+    //         ->get()
+    //         ->map(fn($a) => [
+    //             'id_apartamento' => $a->id_apartamento,
+    //             'numero' => $a->numero,
+    //             'torre' => $a->torre?->nombre_torre,
+    //         ]);
+    // });
 
     Route::prefix('politicas-precio-proyecto')->group(function () {
         Route::get('/', [PoliticaPrecioProyectoWebController::class, 'index'])->name('politicas-precio-proyecto.index');
@@ -292,8 +316,8 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
         'create' => 'ventas.create',
         'store' => 'ventas.store',
         'show' => 'ventas.show',
-        // 'edit' => 'ventas.edit',
-        // 'update' => 'ventas.update',
+        'edit' => 'ventas.edit',
+        'update' => 'ventas.update',
         // 'destroy' => 'ventas.destroy',
     ]);
 
@@ -367,6 +391,12 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
         ->name('cotizador.index');
     Route::get('/catalogo/simulador/{tipo}/{id}', [SimuladorWebController::class, 'index'])
         ->name('simulador.index');
+
+    Route::get('/ventas/{id}/convertir', [VentaWebController::class, 'convertirForm'])
+        ->name('ventas.convertir.form');
+
+    Route::put('/ventas/{id}/convertir', [VentaWebController::class, 'convertirStore'])
+        ->name('ventas.convertir');
 });
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {

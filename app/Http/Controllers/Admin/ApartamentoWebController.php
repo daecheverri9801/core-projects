@@ -49,8 +49,8 @@ class ApartamentoWebController extends Controller
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
         $tipos = TipoApartamento::select('id_tipo_apartamento', 'id_proyecto', 'nombre', 'valor_estimado')->get();
         $estados = EstadoInmueble::select('id_estado_inmueble', 'nombre')->orderBy('nombre')->get();
-        $torres = Torre::with('proyecto:id_proyecto,nombre,prima_altura_base,prima_altura_incremento,prima_altura_activa')
-            ->select('id_torre', 'nombre_torre', 'id_proyecto')
+        $torres = Torre::with('proyecto:id_proyecto,prima_altura_base,prima_altura_incremento,prima_altura_activa')
+            ->select('id_torre', 'nombre_torre', 'id_proyecto', 'nivel_inicio_prima')
             ->orderBy('nombre_torre')
             ->get();
 
@@ -193,7 +193,7 @@ class ApartamentoWebController extends Controller
 
         return RedirectBackTo::respond(
             $request,
-            'apartamentos.index',
+            'locales.create',
             [],
             $isBulk ? 'Apartamentos creados exitosamente' : 'Apartamento creado exitosamente'
         );

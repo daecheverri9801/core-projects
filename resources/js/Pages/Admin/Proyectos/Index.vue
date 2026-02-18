@@ -6,7 +6,13 @@
         subtitle="Crea, consulta y administra la configuración general de cada proyecto."
       >
         <template #actions>
-          <Link :href="route('proyectos.create')" class="btn-primary"> Crear proyecto </Link>
+          <Link
+            href="/proyectos/create"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition whitespace-nowrap"
+          >
+            <PlusIcon class="w-5 h-5" />
+            Nuevo Proyecto
+          </Link>
         </template>
       </PageHeader>
 

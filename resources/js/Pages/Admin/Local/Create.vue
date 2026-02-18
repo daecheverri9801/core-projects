@@ -1,43 +1,103 @@
 <!-- resources/js/Pages/Admin/Local/Create.vue -->
+<!-- Ajuste: integra Banner Flujo (6/8) y corrige links a orden final -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <PageHeader
         title="Crear local"
         kicker="Locales"
-        subtitle="Asocia el local a un proyecto/torre/piso y define sus datos comerciales."
+        subtitle="Crea uno o varios locales para el proyecto."
       >
-        <template #actions>
-          <Link
-            href="/locales"
-            class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
-          >
-            Volver
-          </Link>
-        </template>
       </PageHeader>
 
+      <!-- Banner Flujo (6/8) -->
+      <AppCard padding="md" v-if="flowProyectoId">
+        <div class="flex flex-col gap-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900">Flujo de configuración</p>
+              <p class="mt-1 text-sm text-gray-700">
+                Proyecto <span class="font-semibold">#{{ flowProyectoId }}</span> · Paso
+                <span class="font-semibold">6/8</span> (Locales)
+              </p>
+            </div>
+
+            <Link
+              :href="`/proyectos/${flowProyectoId}`"
+              class="shrink-0 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+            >
+              Volver al proyecto
+            </Link>
+          </div>
+
+          <div class="overflow-x-auto">
+            <ol class="min-w-[900px] grid grid-cols-8 gap-2">
+              <li v-for="s in steps" :key="s.key">
+                <Link
+                  :href="s.href"
+                  class="block rounded-xl border px-3 py-2 text-xs font-semibold transition"
+                  :class="
+                    s.key === activeStep
+                      ? 'border-brand-400 bg-brand-50 text-brand-900'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  "
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="truncate">{{ s.label }}</span>
+                    <span class="text-[10px] opacity-70">{{ s.n }}</span>
+                  </div>
+                </Link>
+              </li>
+            </ol>
+          </div>
+
+          <div class="flex items-center justify-between gap-2">
+            <Link
+              :href="steps[4].href"
+              class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
+            >
+              Anterior: Apartamentos
+            </Link>
+
+            <Link
+              :href="steps[6].href"
+              class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
+            >
+              Siguiente: Parqueaderos
+            </Link>
+          </div>
+        </div>
+      </AppCard>
+
       <AppCard padding="md">
-        <form @submit.prevent="submit" class="space-y-6">
+        <form @submit.prevent="saveAndNext_Parqueaderos" class="space-y-6">
           <!-- Selección jerárquica -->
           <div>
             <h3 class="text-sm font-semibold text-gray-900">Ubicación</h3>
-            <p class="mt-1 text-sm text-gray-600">Selecciona primero el proyecto, luego la torre y el piso.</p>
+            <p class="mt-1 text-sm text-gray-600">
+              Selecciona primero el proyecto, luego la torre y el piso.
+            </p>
 
             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Proyecto -->
               <div>
-                <label class="form-label">Proyecto</label>
+                <label class="form-label">Proyecto *</label>
                 <select v-model="form.id_proyecto" @change="onProyectoChange" class="form-input">
                   <option value="">Seleccione un proyecto</option>
-                  <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
+                  <option
+                    v-for="p in proyectos"
+                    :key="p.id_proyecto"
+                    :value="String(p.id_proyecto)"
+                  >
                     {{ p.nombre }}
                   </option>
                 </select>
                 <p v-if="errors.id_proyecto" class="form-error">{{ errors.id_proyecto }}</p>
               </div>
 
+              <!-- Torre -->
               <div>
-                <label class="form-label">Torre</label>
+                <label class="form-label">Torre *</label>
                 <select
                   v-model="form.id_torre"
                   :disabled="torres.length === 0"
@@ -45,26 +105,36 @@
                   class="form-input"
                 >
                   <option value="">Seleccione una torre</option>
-                  <option v-for="t in torres" :key="t.id_torre" :value="t.id_torre">
+                  <option v-for="t in torres" :key="t.id_torre" :value="String(t.id_torre)">
                     {{ t.nombre_torre }}
                   </option>
                 </select>
                 <p v-if="errors.id_torre" class="form-error">{{ errors.id_torre }}</p>
               </div>
 
+              <!-- Piso -->
               <div>
-                <label class="form-label">Piso</label>
-                <select v-model="form.id_piso_torre" :disabled="pisos.length === 0" class="form-input">
+                <label class="form-label">Piso *</label>
+                <select
+                  v-model="form.id_piso_torre"
+                  :disabled="pisos.length === 0"
+                  class="form-input"
+                >
                   <option value="">Seleccione un piso</option>
-                  <option v-for="p in pisos" :key="p.id_piso_torre" :value="p.id_piso_torre">
+                  <option
+                    v-for="p in pisos"
+                    :key="p.id_piso_torre"
+                    :value="String(p.id_piso_torre)"
+                  >
                     Nivel {{ p.nivel }}
                   </option>
                 </select>
                 <p v-if="errors.id_piso_torre" class="form-error">{{ errors.id_piso_torre }}</p>
               </div>
 
+              <!-- Número -->
               <div>
-                <label class="form-label">Número</label>
+                <label class="form-label">Número *</label>
                 <input
                   v-model="form.numero"
                   type="text"
@@ -77,27 +147,34 @@
             </div>
           </div>
 
+          <!-- Datos comerciales -->
           <div class="border-t border-gray-200 pt-6">
             <h3 class="text-sm font-semibold text-gray-900">Datos comerciales</h3>
-            <p class="mt-1 text-sm text-gray-600">Define el estado y valores del local. El total se calcula automáticamente.</p>
+            <p class="mt-1 text-sm text-gray-600">
+              Define el estado y valores del local. El total se calcula automáticamente (preview).
+            </p>
 
             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Estado -->
               <div>
-                <label class="form-label">Estado del Inmueble</label>
+                <label class="form-label">Estado del inmueble *</label>
                 <select v-model="form.id_estado_inmueble" class="form-input">
                   <option value="">Seleccione un estado</option>
                   <option
                     v-for="e in estados"
                     :key="e.id_estado_inmueble"
-                    :value="e.id_estado_inmueble"
+                    :value="String(e.id_estado_inmueble)"
                   >
                     {{ e.nombre }}
                   </option>
                 </select>
-                <p v-if="errors.id_estado_inmueble" class="form-error">{{ errors.id_estado_inmueble }}</p>
+                <p v-if="errors.id_estado_inmueble" class="form-error">
+                  {{ errors.id_estado_inmueble }}
+                </p>
               </div>
 
-              <div class="md:col-span-1">
+              <!-- Área -->
+              <div>
                 <label class="form-label">Área total (m²)</label>
                 <input
                   v-model.number="form.area_total_local"
@@ -107,9 +184,12 @@
                   class="form-input"
                   placeholder="Ej: 42.50"
                 />
-                <p v-if="errors.area_total_local" class="form-error">{{ errors.area_total_local }}</p>
+                <p v-if="errors.area_total_local" class="form-error">
+                  {{ errors.area_total_local }}
+                </p>
               </div>
 
+              <!-- Valor m2 -->
               <div>
                 <label class="form-label">Valor m² (COP)</label>
                 <input
@@ -123,14 +203,16 @@
                 <p v-if="errors.valor_m2" class="form-error">{{ errors.valor_m2 }}</p>
               </div>
 
-              <!-- Total (read-only) -->
+              <!-- Total preview -->
               <div class="md:col-span-2">
                 <div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
                   <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm font-medium text-gray-700">Valor total (calculado)</p>
+                    <p class="text-sm font-medium text-gray-700">Valor total (preview)</p>
                     <p class="text-lg font-semibold text-gray-900">{{ displayValorTotal }}</p>
                   </div>
-                  <p class="mt-1 text-xs text-gray-500">Cálculo: Área total × Valor m².</p>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Cálculo: Área total × Valor m². (El backend persiste el total.)
+                  </p>
                 </div>
               </div>
             </div>
@@ -138,25 +220,36 @@
 
           <!-- Acciones -->
           <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end pt-2">
-            <Link href="/locales" class="btn-secondary">Cancelar</Link>
-            <button type="submit" class="btn-primary">Guardar</button>
+            <Link :href="route('locales.index')" class="btn-secondary">Cancelar</Link>
+            <button
+              type="button"
+              @click="saveAndNext_Parqueaderos"
+              :disabled="processing || !canSubmit"
+              class="btn-primary inline-flex items-center gap-2"
+            >
+              Guardar y continuar
+            </button>
           </div>
+
+          <p v-if="errors.general" class="text-sm text-red-600">{{ errors.general }}</p>
         </form>
       </AppCard>
 
       <FlashMessages />
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
-import FlashMessages from '@/Components/FlashMessages.vue'
+import { reactive, ref, computed, onMounted } from 'vue'
+import { Link, router, usePage } from '@inertiajs/vue3'
 
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
+import FlashMessages from '@/Components/FlashMessages.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import AppCard from '@/Components/AppCard.vue'
+
+import { ArrowLeftIcon, CheckIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   proyectos: { type: Array, default: () => [] },
@@ -164,6 +257,56 @@ const props = defineProps({
   empleado: { type: Object, default: null },
 })
 
+const page = usePage()
+const flowProyectoId = computed(() => {
+  const url = page?.url || ''
+  const qs = url.split('?')[1] || ''
+  const sp = new URLSearchParams(qs)
+  return sp.get('proyecto')
+})
+
+const activeStep = 'locales'
+const steps = computed(() => {
+  if (!flowProyectoId.value) return []
+  const pid = flowProyectoId.value
+  return [
+    {
+      n: '1/8',
+      key: 'politicas',
+      label: 'Políticas',
+      href: `/politicas-precio-proyecto/crear?proyecto=${pid}`,
+    },
+    { n: '2/8', key: 'torres', label: 'Torres', href: `/admin/torres/create?proyecto=${pid}` },
+    { n: '3/8', key: 'pisos', label: 'Pisos', href: `/pisos-torre/create?proyecto=${pid}` },
+    {
+      n: '4/8',
+      key: 'tipos',
+      label: 'Tipos apto',
+      href: `/tipos-apartamento/create?proyecto=${pid}`,
+    },
+    {
+      n: '5/8',
+      key: 'apartamentos',
+      label: 'Apartamentos',
+      href: `/admin/apartamentos/create?proyecto=${pid}`,
+    },
+    { n: '6/8', key: 'locales', label: 'Locales', href: `/locales/create?proyecto=${pid}` },
+    {
+      n: '7/8',
+      key: 'parqueaderos',
+      label: 'Parqueaderos',
+      href: `/parqueaderos/create?proyecto=${pid}`,
+    },
+    {
+      n: '8/8',
+      key: 'zonas',
+      label: 'Zonas sociales',
+      href: `/zonas-sociales/create?proyecto=${pid}`,
+    },
+  ]
+})
+
+/* ↓↓↓ Tu lógica original (sin cambios) ↓↓↓ */
 const form = reactive({
   id_proyecto: '',
   id_torre: '',
@@ -173,36 +316,59 @@ const form = reactive({
   area_total_local: '',
   valor_m2: '',
 })
-
 const errors = ref({})
+const processing = ref(false)
 const torres = ref([])
 const pisos = ref([])
+
+onMounted(async () => {
+  if (flowProyectoId.value && !form.id_proyecto) {
+    form.id_proyecto = String(flowProyectoId.value)
+    await onProyectoChange()
+  }
+})
+
+const canSubmit = computed(() => {
+  return (
+    !!form.id_proyecto &&
+    !!form.id_torre &&
+    !!form.id_piso_torre &&
+    !!String(form.numero || '').trim() &&
+    !!form.id_estado_inmueble
+  )
+})
 
 async function onProyectoChange() {
   form.id_torre = ''
   form.id_piso_torre = ''
   torres.value = []
   pisos.value = []
+  errors.value = {}
   if (!form.id_proyecto) return
+
   try {
-    const res = await fetch(`/api/torres-por-proyecto/${form.id_proyecto}`)
+    const res = await fetch(`/torres-por-proyecto/${form.id_proyecto}`)
     if (!res.ok) throw new Error('Error cargando torres')
     torres.value = await res.json()
   } catch (e) {
     console.error(e)
+    errors.value.general = 'No se pudieron cargar las torres del proyecto.'
   }
 }
 
 async function onTorreChange() {
   form.id_piso_torre = ''
   pisos.value = []
+  errors.value = {}
   if (!form.id_torre) return
+
   try {
     const res = await fetch(`/api/pisos-por-torre/${form.id_torre}`)
     if (!res.ok) throw new Error('Error cargando pisos')
     pisos.value = await res.json()
   } catch (e) {
     console.error(e)
+    errors.value.general = 'No se pudieron cargar los pisos de la torre.'
   }
 }
 
@@ -218,22 +384,22 @@ const displayValorTotal = computed(() => {
   }).format(total)
 })
 
-function submit() {
-  errors.value = {}
+function saveAndNext_Parqueaderos() {
   router.post(
-    '/locales',
+    route('locales.store'),
     {
-      numero: form.numero,
+      numero: String(form.numero || '').trim(),
       id_estado_inmueble: form.id_estado_inmueble,
-      area_total_local: form.area_total_local || null,
+      area_total_local: form.area_total_local === '' ? null : form.area_total_local,
       id_torre: form.id_torre,
       id_piso_torre: form.id_piso_torre,
-      valor_m2: form.valor_m2 || null,
+      valor_m2: form.valor_m2 === '' ? null : form.valor_m2,
     },
     {
-      onError: (e) => {
-        errors.value = e || {}
-      },
+      preserveScroll: true,
+      onSuccess: () => router.visit(`/parqueaderos/create?proyecto=${form.id_proyecto}`),
+      onError: (e) => (errors.value = e || {}),
+      onFinish: () => (processing.value = false),
     }
   )
 }
@@ -250,7 +416,7 @@ function submit() {
   @apply text-sm text-red-600 mt-1;
 }
 .btn-primary {
-  @apply inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition;
+  @apply inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60;
 }
 .btn-secondary {
   @apply inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition;

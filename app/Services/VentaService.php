@@ -63,6 +63,15 @@ class VentaService
 
             unset($data['inmueble_tipo'], $data['inmueble_id']);
 
+            $existeOperacion = Venta::whereIn('tipo_operacion', ['venta', 'separacion'])
+                ->when($data['id_apartamento'] ?? null, fn($q) => $q->where('id_apartamento', $data['id_apartamento']))
+                ->when($data['id_local'] ?? null, fn($q) => $q->where('id_local', $data['id_local']))
+                ->exists();
+
+            if ($existeOperacion) {
+                throw new \RuntimeException('Ya existe una operación para este inmueble.');
+            }
+
             // 6. Crear venta/separación
             /** @var \App\Models\Venta $venta */
             $venta = Venta::create($data);
@@ -83,7 +92,7 @@ class VentaService
             }
 
             // 9. Recalcular precios de inmuebles disponibles del proyecto según políticas
-            $this->pricingService->recalcPreciosProyecto($proyecto->id_proyecto);
+            app(\App\Services\PriceEngine::class)->recalcularProyecto($proyecto);
 
             session([
                 'debug_venta' => [
@@ -99,7 +108,7 @@ class VentaService
         });
     }
 
-    protected function validarVenta(array $data, Proyecto $proyecto): void
+    public function validarVenta(array $data, Proyecto $proyecto): void
     {
         $valorTotal = (float)($data['valor_total'] ?? 0);
         $cuotaInicial = (float)($data['cuota_inicial'] ?? 0);
@@ -115,6 +124,13 @@ class VentaService
             $plazoMeses > $proyecto->plazo_max_cuota_inicial_meses
         ) {
             throw new \RuntimeException('El plazo de cuota inicial excede el máximo permitido para el proyecto.');
+        }
+
+        $frecuencia = (int)($data['frecuencia_cuota_inicial_meses'] ?? 1);
+        if ($frecuencia < 1) $frecuencia = 1;
+
+        if ($plazoMeses > 0 && $frecuencia > $plazoMeses) {
+            throw new \RuntimeException('La frecuencia no puede ser mayor al plazo de cuota inicial.');
         }
     }
 
@@ -152,14 +168,19 @@ class VentaService
 
     protected function generarPlanCuotaInicial(Venta $venta, Proyecto $proyecto): void
     {
-        $plazo = $venta->plazo_cuota_inicial_meses ?: 0;
+        $plazo = (int)($venta->plazo_cuota_inicial_meses ?? 0);
         $monto = (float)($venta->cuota_inicial ?? 0);
+        $frecuencia = (int)($venta->frecuencia_cuota_inicial_meses ?? 1);
 
-        if ($plazo <= 0 || $monto <= 0) {
-            return;
-        }
+        if ($plazo <= 0 || $monto <= 0) return;
+        if ($frecuencia < 1) $frecuencia = 1;
+        if ($frecuencia > $plazo) $frecuencia = $plazo;
 
         $fechaInicio = $venta->fecha_venta ?? now();
+
+        // número de pagos según frecuencia (ej: 12 meses cada 3 => 4 pagos)
+        $numPagos = (int) ceil($plazo / $frecuencia);
+        if ($numPagos < 1) $numPagos = 1;
 
         $plan = PlanAmortizacionVenta::create([
             'id_venta' => $venta->id_venta,
@@ -167,31 +188,51 @@ class VentaService
             'valor_interes_anual' => 0,
             'plazo_meses' => $plazo,
             'fecha_inicio' => $fechaInicio,
-            'observacion' => 'Plan de amortización de cuota inicial',
+            'observacion' => "Plan cuota inicial (cada {$frecuencia} mes(es))",
         ]);
 
-        $cuotaBase = floor($monto / $plazo);
-        $residuo = $monto - ($cuotaBase * $plazo);
+        $cuotaBase = (int) floor($monto / $numPagos);
+        $residuo = $monto - ($cuotaBase * $numPagos);
 
-        for ($i = 1; $i <= $plazo; $i++) {
+        for ($i = 1; $i <= $numPagos; $i++) {
             $valorCuota = $cuotaBase;
 
-            // La última cuota absorbe diferencia residual
-            if ($i === $plazo) {
+            // última cuota absorbe residuo
+            if ($i === $numPagos) {
                 $valorCuota += $residuo;
             }
 
-            $saldo = $monto - ($cuotaBase * ($i - 1)) - $valorCuota;
+            $pagadoHastaAhora = ($cuotaBase * ($i - 1));
+            $saldo = $monto - $pagadoHastaAhora - $valorCuota;
             $saldo = max($saldo, 0);
+
+            // vencimientos: 0, frecuencia, 2*frecuencia, ...
+            $mesOffset = ($i - 1) * $frecuencia;
 
             PlanAmortizacionCuota::create([
                 'id_plan' => $plan->id_plan,
                 'numero_cuota' => $i,
-                'fecha_cuota' => Carbon::parse($fechaInicio)->addMonths($i - 1),
+                'fecha_vencimiento' => Carbon::parse($fechaInicio)->addMonths($mesOffset),
                 'valor_cuota' => $valorCuota,
+                'valor_interes' => 0,
+                'valor_capital' => $valorCuota,
                 'saldo' => $saldo,
                 'estado' => 'Pendiente',
             ]);
         }
+    }
+
+    public function regenerarPlanCuotaInicial(Venta $venta): void
+    {
+        $proyecto = Proyecto::find($venta->id_proyecto);
+        if (!$proyecto) return;
+
+        $plan = $venta->planAmortizacion;
+        if ($plan) {
+            $plan->cuotas()->delete();
+            $plan->delete();
+        }
+
+        $this->generarPlanCuotaInicial($venta, $proyecto);
     }
 }

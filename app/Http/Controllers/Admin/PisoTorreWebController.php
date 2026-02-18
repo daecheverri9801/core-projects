@@ -149,7 +149,7 @@ class PisoTorreWebController extends Controller
 
         return RedirectBackTo::respond(
             $request,
-            'pisostorre.index',
+            'tipos-apartamento.create',
             [],
             'Pisos creados exitosamente'
         );

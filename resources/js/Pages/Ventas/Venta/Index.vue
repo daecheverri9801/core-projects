@@ -446,6 +446,7 @@ function clearFilters() {
                 <th class="px-5 py-3 text-left">Fecha</th>
                 <th class="px-5 py-3 text-left">Tipo</th>
                 <th class="px-5 py-3 text-left">Valor</th>
+                <th class="px-5 py-3 text-left">Frecuencia Pagos</th>
                 <th class="px-5 py-3 text-left">Cuotas (CI)</th>
                 <th class="px-5 py-3 text-left">Estado</th>
                 <th class="px-5 py-3 text-right">Acciones</th>
@@ -458,7 +459,6 @@ function clearFilters() {
                 :key="venta.id_venta"
                 class="hover:bg-gray-50 transition"
               >
-
                 <td class="px-5 py-4">
                   <div class="flex items-center gap-3">
                     <div
@@ -511,7 +511,11 @@ function clearFilters() {
                 </td>
 
                 <td class="px-5 py-4 text-sm text-gray-700">
-                  {{ venta.plazo_cuota_inicial_meses ?? '—' }}
+                  {{ venta.frecuencia_cuota_inicial_meses ?? '—' }} meses
+                </td>
+
+                <td class="px-5 py-4 text-sm text-gray-700">
+                  {{ venta.plazo_cuota_inicial_meses ?? '—' }} meses
                 </td>
 
                 <td class="px-5 py-4">

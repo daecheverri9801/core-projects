@@ -19,8 +19,6 @@ class ProyectoPricingService
                 ->lockForUpdate()
                 ->findOrFail($idProyecto);
 
-            \Log::info("=== Recalculo Proyecto {$proyecto->id_proyecto} ===");
-
             /* ============================================================
          * 1. Obtener ventas activas (venta + separación)
          * ============================================================ */
@@ -28,14 +26,11 @@ class ProyectoPricingService
                 ->whereIn('tipo_operacion', ['venta', 'separacion'])
                 ->count();
 
-            \Log::info("Ventas activas = $ventasActivas");
-
-
             /* ============================================================
          * 2. Calcular cuántos bloques *deberían* estar activos
          * ============================================================ */
             $politicas = $proyecto->politicasPrecio()
-                ->orderBy('id_politica')
+                ->orderBy('id_politica_precio')
                 ->get();
 
             $ventasRestantes = $ventasActivas;
@@ -49,16 +44,9 @@ class ProyectoPricingService
                     break;
                 }
             }
-
-            \Log::info("Bloques que deberían estar activos = $bloquesShould");
-            \Log::info("Bloques ya aplicados = {$proyecto->bloques_aplicados}");
-
             $newBlocks = $bloquesShould - $proyecto->bloques_aplicados;
 
-            \Log::info("Nuevos bloques por aplicar = $newBlocks");
-
             if ($newBlocks <= 0) {
-                \Log::info("No hay bloques nuevos. Finaliza proceso.");
                 return;
             }
 
@@ -83,14 +71,11 @@ class ProyectoPricingService
 
                 $incremento = $bloque->porcentaje_aumento / 100;
 
-                \Log::info("Aplicando bloque ID {$bloque->id_politica} incremento = {$bloque->porcentaje_aumento}%");
 
                 foreach ($apartamentos as $apto) {
 
                     $old = $apto->valor_final;
                     $new = round($old * (1 + $incremento));
-
-                    \Log::info("Apto {$apto->id_apartamento}: $old → $new");
 
                     $apto->update([
                         'valor_final' => $new,
@@ -101,7 +86,6 @@ class ProyectoPricingService
                 $proyecto->increment('bloques_aplicados');
             }
 
-            \Log::info("Total bloques aplicados ahora = {$proyecto->bloques_aplicados}");
         });
     }
 }

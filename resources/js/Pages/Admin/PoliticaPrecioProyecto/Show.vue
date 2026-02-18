@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/PoliticasPrecioProyecto/Show.vue -->
 <template>
-  <SidebarBannerLayout :empleado="empleado">
+  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
     <div class="space-y-6">
       <PageHeader
         title="Detalle de política de precio"
@@ -123,14 +123,14 @@
         </div>
       </div>
     </div>
-  </SidebarBannerLayout>
+  </TopBannerLayout>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
-import SidebarBannerLayout from '@/Components/SidebarBannerLayout.vue'
+import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import SectionHeader from '@/Components/SectionHeader.vue'

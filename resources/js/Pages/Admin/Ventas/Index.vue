@@ -321,11 +321,6 @@ function eliminar(id) {
                 <th
                   class="px-4 md:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                 >
-                  ID
-                </th>
-                <th
-                  class="px-4 md:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
-                >
                   Documento
                 </th>
                 <th
@@ -351,6 +346,11 @@ function eliminar(id) {
                 <th
                   class="px-4 md:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
                 >
+                  Frecuencia Pago (meses)
+                </th>
+                <th
+                  class="px-4 md:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Plazo (meses)
                 </th>
                 <th
@@ -372,8 +372,6 @@ function eliminar(id) {
                 :key="venta.id_venta"
                 class="hover:bg-gray-50/70 transition"
               >
-                <td class="px-4 md:px-6 py-3 text-sm text-gray-600">{{ venta.id_venta }}</td>
-
                 <td class="px-4 md:px-6 py-3 text-sm text-gray-900">
                   {{ venta.documento_cliente ?? '—' }}
                 </td>
@@ -408,6 +406,10 @@ function eliminar(id) {
 
                 <td class="px-4 md:px-6 py-3 text-sm font-semibold text-gray-900">
                   {{ formatCurrency(venta.valor_total ?? 0) }}
+                </td>
+
+                <td class="px-4 md:px-6 py-3 text-sm text-gray-700">
+                  {{ venta.frecuencia_cuota_inicial_meses ?? '—' }}
                 </td>
 
                 <td class="px-4 md:px-6 py-3 text-sm text-gray-700">
