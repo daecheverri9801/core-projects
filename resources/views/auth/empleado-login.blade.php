@@ -1,4 +1,3 @@
-<!-- resources/views/auth/empleado-login.blade.php -->
 <!DOCTYPE html>
 <html lang="es">
 

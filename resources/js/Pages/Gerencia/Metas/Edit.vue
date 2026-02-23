@@ -18,6 +18,23 @@ const form = useForm({
   id_empleado: props.meta.id_empleado || '',
 })
 
+const MESES = [
+  { value: 1, label: 'Enero' },
+  { value: 2, label: 'Febrero' },
+  { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Mayo' },
+  { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' },
+  { value: 11, label: 'Noviembre' },
+  { value: 12, label: 'Diciembre' },
+]
+
+form.mes = Number(form.mes || 1)
+
 function submit() {
   form.put(`/gerencia/metas/${props.meta.id_meta}`)
 }
@@ -67,8 +84,10 @@ function submit() {
 
         <div>
           <label class="text-slate-400 text-sm mb-1 block">Mes</label>
-          <select v-model="form.mes" class="w-full bg-slate-800 text-slate-100 rounded p-2">
-            <option v-for="m in 12" :key="m" :value="m">{{ m }}</option>
+          <select v-model.number="form.mes" class="w-full bg-slate-800 text-slate-100 rounded p-2">
+            <option v-for="m in MESES" :key="m.value" :value="m.value">
+              {{ m.label }}
+            </option>
           </select>
         </div>
 

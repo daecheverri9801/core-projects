@@ -17,6 +17,7 @@ import {
 
 const props = defineProps({
   venta: Object,
+  empleado: Object,
   imagenTipoAptoUrl: String,
 })
 
@@ -41,12 +42,14 @@ function formatDateISO(date) {
   }
 }
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('es-CO', {
+const formatCurrency = (value) => {
+  const num = Math.ceil(Number(value || 0))
+  return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
-  }).format(value || 0)
+  }).format(num)
+}
 
 /* =========================
    HELPERS
@@ -155,12 +158,14 @@ async function exportVentaPDF() {
   // =========================
   // Helpers
   // =========================
-  const formatMoney = (value) =>
-    new Intl.NumberFormat('es-CO', {
+  const formatMoney = (value) => {
+    const num = Math.ceil(Number(value || 0))
+    return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       maximumFractionDigits: 0,
-    }).format(Number(value || 0))
+    }).format(num)
+  }
 
   const formatDate = (date) => {
     if (!date) return '—'
@@ -262,6 +267,7 @@ async function exportVentaPDF() {
 
   const cuotaSep = Number(proyecto?.valor_min_separacion || 0)
   const cuotaInicial = Number(v.cuota_inicial || 0)
+  const cuotaMensual = Number(valorCuotaMensual.value || 0)
   const saldoCuotaInicial = Math.max(0, cuotaInicial - cuotaSep)
   const valorTotal = Number(v.valor_total || 0)
   const valorRestante = Number(v.valor_restante || Math.max(0, valorTotal - cuotaInicial) || 0)
@@ -269,6 +275,7 @@ async function exportVentaPDF() {
   const desglose = [
     ['Valor total', formatMoney(valorTotal)],
     ['Cuota inicial', formatMoney(cuotaInicial)],
+    ['Valor Cuota Mensual', formatMoney(cuotaMensual)],
     ['Cuota separación (proyecto)', formatMoney(cuotaSep)],
     ['Saldo cuota inicial', formatMoney(saldoCuotaInicial)],
     ['Plazo cuota inicial (meses)', safe(v.plazo_cuota_inicial_meses)],
@@ -492,7 +499,7 @@ async function exportVentaPDF() {
 </script>
 
 <template>
-  <VentasLayout>
+  <VentasLayout :empleado="empleado">
     <Head title="Detalle de Operación" />
 
     <div class="flex justify-between items-center mb-6">

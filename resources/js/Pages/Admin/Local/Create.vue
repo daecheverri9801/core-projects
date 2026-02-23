@@ -1,7 +1,7 @@
 <!-- resources/js/Pages/Admin/Local/Create.vue -->
 <!-- Ajuste: integra Banner Flujo (6/8) y corrige links a orden final -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Crear local"
@@ -151,7 +151,7 @@
           <div class="border-t border-gray-200 pt-6">
             <h3 class="text-sm font-semibold text-gray-900">Datos comerciales</h3>
             <p class="mt-1 text-sm text-gray-600">
-              Define el estado y valores del local. El total se calcula automáticamente (preview).
+              Define el estado y valores del local. El total se calcula automáticamente.
             </p>
 
             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -175,7 +175,7 @@
 
               <!-- Área -->
               <div>
-                <label class="form-label">Área total (m²)</label>
+                <label class="form-label">Área total (m²) *</label>
                 <input
                   v-model.number="form.area_total_local"
                   type="number"
@@ -207,11 +207,11 @@
               <div class="md:col-span-2">
                 <div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
                   <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-sm font-medium text-gray-700">Valor total (preview)</p>
+                    <p class="text-sm font-medium text-gray-700">Valor total</p>
                     <p class="text-lg font-semibold text-gray-900">{{ displayValorTotal }}</p>
                   </div>
                   <p class="mt-1 text-xs text-gray-500">
-                    Cálculo: Área total × Valor m². (El backend persiste el total.)
+                    Cálculo: Área total × Valor m².
                   </p>
                 </div>
               </div>

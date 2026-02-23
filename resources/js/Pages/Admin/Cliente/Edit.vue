@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Ventas/Clientes/Edit.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Editar cliente" />
 
     <div class="space-y-6">
@@ -31,7 +31,7 @@
           </div>
         </template>
 
-        <ClienteForm
+        <ClienteFormAdmin
           :form="form"
           :tipos-cliente="tiposCliente"
           :tipos-documento="tiposDocumento"
@@ -54,10 +54,10 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import VentasCard from '@/Components/VentasCard.vue'
 import VentasPageHeader from '@/Components/VentasPageHeader.vue'
-import ClienteForm from '@/Components/ClienteForm.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
 import { PencilSquareIcon } from '@heroicons/vue/24/outline'
+import ClienteFormAdmin from '@/Components/ClienteFormAdmin.vue'
 
 const props = defineProps({
   cliente: { type: Object, required: true },

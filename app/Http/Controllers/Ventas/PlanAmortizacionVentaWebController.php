@@ -11,11 +11,12 @@ use Inertia\Inertia;
 
 class PlanAmortizacionVentaWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         return Inertia::render('Ventas/Amortizacion/Index', [
             'proyectos' => Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get(),
             'clientes' => Cliente::select('documento', 'nombre')->orderBy('nombre')->get(),
+            'empleado' => $request->user()->load('cargo'),
         ]);
     }
 

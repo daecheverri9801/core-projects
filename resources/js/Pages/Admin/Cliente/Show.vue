@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Ventas/Clientes/Show.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Detalle del cliente" />
 
     <div class="space-y-6">

@@ -1,5 +1,7 @@
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrativo">
+  <TopBannerLayout :empleado="empleado">
+    <Head title="Inicio" />
+
     <div class="space-y-6">
       <!-- HERO (se conserva) -->
       <section class="rounded-2xl border border-brand-300/60 bg-white shadow-sm overflow-hidden">
@@ -24,14 +26,6 @@
                 {{ cargoNombre }}
               </span>
             </div>
-
-            <Link
-              href="/perfil"
-              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-700 active:bg-brand-800 transition"
-            >
-              <UserIcon class="w-4 h-4" />
-              Mi perfil
-            </Link>
           </div>
         </div>
 
@@ -76,7 +70,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { Link } from '@inertiajs/vue3'
+import { Link, Head } from '@inertiajs/vue3'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AdminTile from '@/Components/AdminTile.vue'
 

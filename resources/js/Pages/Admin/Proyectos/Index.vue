@@ -1,5 +1,5 @@
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Proyectos"

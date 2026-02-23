@@ -262,6 +262,10 @@
                   Ver Detalles
                 </span>
               </div>
+              <div>
+                <span class="font-medium">Valor Cuota Inicial:</span>
+                {{ formatCurrency(inmueble.cuota_inicial) }}
+              </div>
             </div>
           </Link>
         </div>
@@ -382,11 +386,13 @@ function setTabProyecto(id) {
 }
 
 function formatCurrency(value) {
+  const num = Number(value || 0)
+  const roundedUp = Math.ceil(num)
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
-  }).format(Number(value || 0))
+  }).format(roundedUp)
 }
 
 function projectTabClasses(id) {

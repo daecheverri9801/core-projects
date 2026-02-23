@@ -67,8 +67,39 @@ const form = useForm({
   valor_separacion: props.venta?.valor_separacion,
   fecha_limite_separacion: inicializarFecha(props.venta?.fecha_limite_separacion),
   plazo_cuota_inicial_meses: props.venta?.plazo_cuota_inicial_meses || '',
-  frecuencia_cuota_inicial_meses: props.venta?.frecuencia_cuota_inicial_meses ?? 1,
+  frecuencia_cuota_inicial_meses: props.venta?.frecuencia_cuota_inicial_meses ?? '',
 })
+
+const FRECUENCIAS = [
+  { valor: 1, etiqueta: 'Mensual (cada 1 mes)' },
+  { valor: 2, etiqueta: 'Bimestral (cada 2 meses)' },
+  { valor: 3, etiqueta: 'Trimestral (cada 3 meses)' },
+  { valor: 4, etiqueta: 'Cada 4 meses' },
+  { valor: 6, etiqueta: 'Semestral (cada 6 meses)' },
+  { valor: 12, etiqueta: 'Anual (cada 12 meses)' },
+]
+
+const opcionesFrecuencia = computed(() => {
+  const plazo = Number(form.plazo_cuota_inicial_meses)
+  if (!plazo) return []
+  return FRECUENCIAS.filter((f) => plazo % f.valor === 0)
+})
+
+watch(
+  () => form.plazo_cuota_inicial_meses,
+  (nuevoPlazo) => {
+    if (nuevoPlazo) {
+      const plazoNum = Number(nuevoPlazo)
+      const valoresValidos = FRECUENCIAS.map((f) => f.valor).filter((v) => plazoNum % v === 0)
+      if (!valoresValidos.includes(Number(form.frecuencia_cuota_inicial_meses))) {
+        form.frecuencia_cuota_inicial_meses = valoresValidos.length > 0 ? valoresValidos[0] : ''
+      }
+    } else {
+      form.frecuencia_cuota_inicial_meses = ''
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   form.valor_total = Number(form.valor_total || 0)
@@ -331,7 +362,7 @@ function submit() {
 </script>
 
 <template>
-  <TopBannerLayout :empleado="empleadoAuth" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleadoAuth">
     <Head title="Editar venta / separación" />
 
     <div class="space-y-6">
@@ -522,27 +553,21 @@ function submit() {
                 <FormField label="Frecuencia de pago cuota inicial">
                   <select
                     v-model="form.frecuencia_cuota_inicial_meses"
-                    :disabled="!form.plazo_cuota_inicial_meses"
-                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    :disabled="!form.plazo_cuota_inicial_meses || opcionesFrecuencia.length === 0"
+                    class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option :value="1">Mensual (cada 1 mes)</option>
-                    <option :value="2" v-if="Number(form.plazo_cuota_inicial_meses) >= 2">
-                      Bimestral (cada 2 meses)
-                    </option>
-                    <option :value="3" v-if="Number(form.plazo_cuota_inicial_meses) >= 3">
-                      Trimestral (cada 3 meses)
-                    </option>
-                    <option :value="4" v-if="Number(form.plazo_cuota_inicial_meses) >= 4">
-                      Cada 4 meses
-                    </option>
-                    <option :value="6" v-if="Number(form.plazo_cuota_inicial_meses) >= 6">
-                      Semestral (cada 6 meses)
-                    </option>
-                    <option :value="12" v-if="Number(form.plazo_cuota_inicial_meses) >= 12">
-                      Anual (cada 12 meses)
+                    <option value="">Seleccione…</option>
+                    <option v-for="f in opcionesFrecuencia" :key="f.valor" :value="f.valor">
+                      {{ f.etiqueta }}
                     </option>
                   </select>
-                  <template #hint> Ej: plazo 12 meses, trimestral => 4 pagos. </template>
+                  <template #hint>
+                    {{
+                      opcionesFrecuencia.length === 0 && form.plazo_cuota_inicial_meses
+                        ? 'No hay frecuencias que dividan exactamente este plazo.'
+                        : 'Solo se muestran frecuencias que dividen exactamente el plazo.'
+                    }}
+                  </template>
                 </FormField>
               </div>
 

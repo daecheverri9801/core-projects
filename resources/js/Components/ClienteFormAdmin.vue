@@ -1,9 +1,6 @@
 <template>
-  <!-- Wrapper para usar dentro de un modal: altura máxima + scroll interno -->
   <form @submit.prevent="$emit('submit')" class="flex flex-col max-h-[80vh]">
-    <!-- Contenido scrolleable -->
     <div class="flex-1 overflow-y-auto px-1 pr-2 space-y-6">
-      <!-- Información Básica -->
       <VentasCard>
         <template #header>
           <h3 class="text-lg font-semibold text-gray-900">Información Básica</h3>
@@ -226,7 +223,7 @@ defineProps({
   tiposDocumento: { type: Array, default: () => [] },
   isEdit: { type: Boolean, default: false },
   submitText: { type: String, default: 'Guardar' },
-  cancelUrl: { type: String, default: '/clientes' },
+  cancelUrl: { type: String, default: '/admin/clientes' },
   processing: { type: Boolean, default: false },
 })
 

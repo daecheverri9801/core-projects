@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Configuracion/Estados.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Gestión de Estados" />
 
     <div class="space-y-6">
@@ -318,11 +318,14 @@
       </div>
 
       <!-- Modal confirmación eliminación -->
-      <ConfirmDeleteModal
-        v-if="showConfirmDelete"
-        :message="deleteMessage"
-        @confirm="deleteItem"
+      <ConfirmDialog
+        :open="showConfirmDelete"
+        title="Confirmar eliminación"
+        message="¿Estás seguro de eliminar este estado de inmueble? Esta acción no se puede deshacer."
+        cancel-text="Cancelar"
+        confirm-text="Eliminar"
         @cancel="cancelDelete"
+        @confirm="deleteItem"
       />
     </div>
   </TopBannerLayout>
@@ -338,7 +341,7 @@ import AppCard from '@/Components/AppCard.vue'
 import FormField from '@/Components/FormField.vue'
 import TextInput from '@/Components/TextInput.vue'
 import TextArea from '@/Components/TextArea.vue'
-import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 
 const page = usePage()
 const empleado = computed(() => page.props.auth?.empleado || null)

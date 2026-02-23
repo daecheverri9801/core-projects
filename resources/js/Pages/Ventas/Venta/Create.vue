@@ -60,7 +60,7 @@ const form = useForm({
   valor_separacion: 0,
   fecha_limite_separacion: '',
   plazo_cuota_inicial_meses: '',
-  frecuencia_cuota_inicial_meses: 1,
+  frecuencia_cuota_inicial_meses: '',
 })
 
 const proyectoSeleccionado = computed(() =>
@@ -77,6 +77,41 @@ const erroresForm = reactive({
   valor_separacion: '',
   fecha_limite_separacion: '',
 })
+
+// Todas las frecuencias posibles (en meses)
+const frecuenciasDisponibles = [
+  { valor: 1, etiqueta: 'Mensual (cada 1 mes)' },
+  { valor: 2, etiqueta: 'Bimestral' },
+  { valor: 3, etiqueta: 'Trimestral' },
+  { valor: 4, etiqueta: 'Cada 4 meses' },
+  { valor: 6, etiqueta: 'Semestral' },
+  { valor: 12, etiqueta: 'Anual' },
+]
+
+// Opciones válidas para el plazo actual (filtradas por divisibilidad)
+const opcionesFrecuencia = computed(() => {
+  const plazo = Number(form.plazo_cuota_inicial_meses)
+  if (!plazo) return []
+  return frecuenciasDisponibles.filter((f) => plazo % f.valor === 0)
+})
+
+watch(
+  () => form.plazo_cuota_inicial_meses,
+  (nuevoPlazo) => {
+    if (nuevoPlazo) {
+      const plazoNum = Number(nuevoPlazo)
+      const valoresValidos = frecuenciasDisponibles
+        .map((f) => f.valor)
+        .filter((v) => plazoNum % v === 0)
+      if (!valoresValidos.includes(Number(form.frecuencia_cuota_inicial_meses))) {
+        form.frecuencia_cuota_inicial_meses = valoresValidos.length > 0 ? valoresValidos[0] : ''
+      }
+    } else {
+      form.frecuencia_cuota_inicial_meses = ''
+    }
+  },
+  { immediate: true }
+)
 
 function formatearMoneda(valor) {
   if (valor === null || valor === undefined || valor === '') return ''
@@ -756,27 +791,26 @@ function submit() {
                     <label :class="labelClass()">Frecuencia de pago cuota inicial</label>
                     <select
                       v-model="form.frecuencia_cuota_inicial_meses"
-                      :disabled="!form.plazo_cuota_inicial_meses"
-                      :class="inputClass(false, !form.plazo_cuota_inicial_meses)"
+                      :disabled="!form.plazo_cuota_inicial_meses || opcionesFrecuencia.length === 0"
+                      :class="
+                        inputClass(
+                          false,
+                          !form.plazo_cuota_inicial_meses || opcionesFrecuencia.length === 0
+                        )
+                      "
                     >
-                      <option :value="1">Mensual (cada 1 mes)</option>
-                      <option :value="2" v-if="Number(form.plazo_cuota_inicial_meses) >= 2">
-                        Bimestral
-                      </option>
-                      <option :value="3" v-if="Number(form.plazo_cuota_inicial_meses) >= 3">
-                        Trimestral
-                      </option>
-                      <option :value="4" v-if="Number(form.plazo_cuota_inicial_meses) >= 4">
-                        Cada 4 meses
-                      </option>
-                      <option :value="6" v-if="Number(form.plazo_cuota_inicial_meses) >= 6">
-                        Semestral
-                      </option>
-                      <option :value="12" v-if="Number(form.plazo_cuota_inicial_meses) >= 12">
-                        Anual
+                      <option value="">Seleccione...</option>
+                      <option v-for="f in opcionesFrecuencia" :key="f.valor" :value="f.valor">
+                        {{ f.etiqueta }}
                       </option>
                     </select>
-                    <p :class="hintClass()">Ej: plazo 12 meses, trimestral => 4 pagos.</p>
+                    <p :class="hintClass()">
+                      {{
+                        opcionesFrecuencia.length === 0 && form.plazo_cuota_inicial_meses
+                          ? 'No hay frecuencias que dividan exactamente este plazo.'
+                          : 'Solo se muestran frecuencias que dividen exactamente el plazo.'
+                      }}
+                    </p>
                   </div>
 
                   <div>

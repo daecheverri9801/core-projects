@@ -22,6 +22,7 @@ import {
 /** ===== Props ===== */
 const props = defineProps({
   ventas: { type: Array, default: () => [] },
+  empleado: Object,
 
   // DEBUG
   debug_proyecto: Object,
@@ -198,7 +199,7 @@ function clearFilters() {
 </script>
 
 <template>
-  <VentasLayout>
+  <VentasLayout :empleado="empleado">
     <Head title="Ventas" />
 
     <!-- DEBUG -->

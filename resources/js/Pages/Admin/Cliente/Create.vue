@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Ventas/Clientes/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Registrar cliente" />
 
     <div class="space-y-6">
@@ -21,7 +21,7 @@
             </div>
 
             <Link
-              href="/clientes"
+              href="/admin/clientes"
               class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition whitespace-nowrap"
             >
               Volver
@@ -29,7 +29,7 @@
           </div>
         </template>
 
-        <ClienteForm
+        <ClienteFormAdmin
           :form="form"
           :tipos-cliente="tiposCliente"
           :tipos-documento="tiposDocumento"
@@ -51,7 +51,7 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import VentasCard from '@/Components/VentasCard.vue'
 import VentasPageHeader from '@/Components/VentasPageHeader.vue'
-import ClienteForm from '@/Components/ClienteForm.vue'
+import ClienteFormAdmin from '@/Components/ClienteFormAdmin.vue'
 import FlashMessages from '@/Components/FlashMessages.vue'
 
 import { UserPlusIcon } from '@heroicons/vue/24/outline'

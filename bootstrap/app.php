@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        // Redirigir invitados (no autenticados) a la raíz
+        $middleware->redirectGuestsTo('/');
+
         // Middleware global para el grupo api (si tienes)
         $middleware->api(append: [
             // Agrega middlewares globales para API si los tienes
@@ -29,9 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.cargo' => \App\Http\Middleware\CheckCargo::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
-        //
-    })->withSchedule(function (Schedule $schedule) {
+    ->withExceptions(function (Exceptions $exceptions): void {})->withSchedule(function (Schedule $schedule) {
         // ✅ AQUÍ VA TU CÓDIGO DE SCHEDULING
         $schedule->command('ventas:caducar-separaciones')->dailyAt('02:00');
     })

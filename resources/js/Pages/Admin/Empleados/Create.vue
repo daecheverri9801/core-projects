@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Empleados/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Crear empleado" />
 
     <div class="space-y-6">
@@ -71,7 +71,7 @@
                   label="Contraseña"
                   required
                   :error="form.errors.password"
-                  hint="Mín. 8 caracteres (según tu validación en backend)"
+                  hint="Mín. 8 caracteres"
                 >
                   <div class="relative">
                     <TextInput

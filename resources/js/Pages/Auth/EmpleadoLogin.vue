@@ -6,7 +6,7 @@
         <Logo class="w-10 h-10" />
         <div>
           <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
-          <p class="text-sm text-slate-600">Panel de Proyectos — Administración</p>
+          <p class="text-sm text-slate-600">Panel de Proyectos</p>
         </div>
       </div>
     </header>

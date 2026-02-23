@@ -11,23 +11,27 @@ use Inertia\Inertia;
 
 class ClienteWebController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $clientes = Cliente::with(['tipoCliente', 'tipoDocumento', 'ventas'])
             ->orderBy('nombre')
             ->get();
 
         return Inertia::render('Ventas/Cliente/Index', [
             'clientes' => $clientes,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
 
         return Inertia::render('Ventas/Cliente/Create', [
+            'empleado' => $empleado,
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
         ]);
@@ -64,19 +68,22 @@ class ClienteWebController extends Controller
             ->with('new_cliente_documento', $cliente->documento);
     }
 
-    public function show($documento)
+    public function show(Request $request, $documento)
     {
+        $empleado = $request->user()->load('cargo');
         $cliente = Cliente::with(['tipoCliente', 'tipoDocumento', 'ventas'])
             ->where('documento', $documento)
             ->firstOrFail();
 
         return Inertia::render('Ventas/Cliente/Show', [
             'cliente' => $cliente,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($documento)
+    public function edit(Request $request, $documento)
     {
+        $empleado = $request->user()->load('cargo');
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
@@ -85,6 +92,7 @@ class ClienteWebController extends Controller
             'cliente' => $cliente,
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
+            'empleado' => $empleado,
         ]);
     }
 

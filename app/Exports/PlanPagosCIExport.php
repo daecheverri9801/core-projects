@@ -37,6 +37,7 @@ class PlanPagosCIExport implements FromArray, WithHeadings, WithStyles
                 $f['proyecto'],
                 $f['inmueble'],
                 $f['cliente'],
+                $f['documento_cliente']
             ];
 
             foreach ($this->encabezados as $m) {

@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Empleados/Edit.vue -->
 <template>
-  <TopBannerLayout :empleado="userEmpleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="userEmpleado">
     <Head title="Editar empleado" />
 
     <div class="space-y-6">

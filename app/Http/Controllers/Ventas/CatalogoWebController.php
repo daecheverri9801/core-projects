@@ -90,7 +90,6 @@ class CatalogoWebController extends Controller
                 });
             })
 
-            // ORDEN: número incremental (Postgres)
             ->orderByRaw("
                 CASE
                   WHEN numero ~ '^[0-9]+$' THEN LPAD(numero, 10, '0')
@@ -120,6 +119,9 @@ class CatalogoWebController extends Controller
                     'direccion' => $apto->torre->proyecto->ubicacion->direccion,
                     'estado' => $apto->estadoInmueble->nombre,
                     'tiene_parqueadero' => ((int) $apto->parqueaderos_count) > 0,
+                    'cuota_inicial' => $apto->torre->proyecto->porcentaje_cuota_inicial_min
+                        ? $apto->valor_final * ($apto->torre->proyecto->porcentaje_cuota_inicial_min / 100)
+                        : 0,
                 ];
             });
 
@@ -177,11 +179,14 @@ class CatalogoWebController extends Controller
                     'habitaciones' => null,
                     'banos' => null,
                     'valor' => $local->valor_total ?? 0,
-                    'valor_final' => $local->valor_total,
+                    'valor_final' => $local->valor_final,
                     'valor_comercial' => $local->valor_comercial,
                     'ubicacion' => $local->torre->proyecto->ubicacion->ciudad->nombre,
                     'direccion' => $local->torre->proyecto->ubicacion->direccion,
                     'estado' => $local->estadoInmueble->nombre,
+                    'cuota_inicial' => $local->torre->proyecto->porcentaje_cuota_inicial_min
+                    ? $local->valor_total * ($local->torre->proyecto->porcentaje_cuota_inicial_min / 100)
+                    : 0,
                     'tiene_parqueadero' => false,
                 ];
             });

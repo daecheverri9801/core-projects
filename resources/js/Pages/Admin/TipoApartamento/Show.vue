@@ -1,5 +1,5 @@
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <template #title>Detalle Tipo de Apartamento</template>
 
     <div class="space-y-6">

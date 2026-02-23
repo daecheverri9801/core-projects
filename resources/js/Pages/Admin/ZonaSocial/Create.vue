@@ -1,7 +1,7 @@
 <!-- resources/js/Pages/Admin/ZonaSocial/Create.vue -->
 <!-- Ajuste: integra Banner Flujo (8/8) y preselección por ?proyecto -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Nueva zona social"

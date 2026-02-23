@@ -194,9 +194,6 @@ class VentaAdminController extends Controller
         return range(1, $restantes);
     }
 
-
-
-
     /* ===========================================================
      *  STORE
      * =========================================================== */
@@ -250,11 +247,10 @@ class VentaAdminController extends Controller
             $venta = $this->ventaService->crearOperacion($validated);
 
             return redirect()
-                ->route('ventas.show', $venta->id_venta)
+                ->route('admin.ventas.index', $venta->id_venta)
                 ->with('success', 'Operación registrada exitosamente.');
         });
     }
-
 
     /* ===========================================================
      *  EDIT / UPDATE

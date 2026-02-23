@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/PoliticasPrecioProyecto/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Nueva política de precio"
@@ -99,7 +99,7 @@
               </FormField>
 
               <!-- % Aumento -->
-              <FormField label="% Aumento" :error="form.errors.porcentaje_aumento" hint="Ej: 5.5">
+              <FormField label="% Aumento" required :error="form.errors.porcentaje_aumento" hint="Ej: 5.5">
                 <TextInput
                   v-model.number="form.porcentaje_aumento"
                   type="number"
@@ -168,7 +168,6 @@
                 <ul class="mt-2 space-y-2 text-sm text-gray-700 list-disc pl-5">
                   <li>Define primero el proyecto al que aplica.</li>
                   <li>Usa “Aplica desde” para controlar la vigencia.</li>
-                  <li>Puedes dejar ventas/escalón y % aumento vacíos si tu backend lo permite.</li>
                 </ul>
               </div>
             </div>

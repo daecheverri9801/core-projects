@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Proyecto;
 use App\Models\Empleado;
 use App\Models\EstadoInmueble;
+use App\Models\Cargo;
 use App\Services\GerenciaEstadisticasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,6 +26,12 @@ class GerenciaDashboardWebController extends Controller
             'estado_inmueble' => $request->query('estado_inmueble'),
         ];
 
+        $cargo = Cargo::where('nombre', 'Asesora Comercial')->first();
+
+        $Mempleados = $cargo ? Empleado::where('id_cargo', $cargo->id_cargo)
+            ->select('id_empleado', 'nombre', 'apellido')
+            ->get() : collect();
+
         [$desde, $hasta] = $service->rangoFechas($filtros);
 
         $planPagosCI = $service->planPagosCI($filtros, $desde, $hasta);
@@ -32,7 +39,7 @@ class GerenciaDashboardWebController extends Controller
 
         return Inertia::render('Gerencia/Dashboard/Index', array_merge($dashboard, [
             'proyectos'       => Proyecto::orderBy('nombre')->get(),
-            'empleados'       => Empleado::orderBy('nombre')->get(),
+            'empleados'       => $Mempleados,
             'estadosInmueble' => EstadoInmueble::orderBy('nombre')->get(),
             'filtros'         => $filtros,
             'planPagosCI'     => $planPagosCI,

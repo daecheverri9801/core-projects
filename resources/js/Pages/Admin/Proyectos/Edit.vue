@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Proyectos/Edit.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <!-- Header -->
       <PageHeader

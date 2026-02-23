@@ -144,10 +144,6 @@
                   <p class="text-sm text-blue-200">Torre - Piso</p>
                   <p class="font-semibold">{{ inmueble.torre }} - Piso {{ inmueble.piso }}</p>
                 </div>
-                <div class="pt-4 border-t border-blue-400">
-                  <p class="text-sm text-blue-200">Valor por m²</p>
-                  <p class="text-xl font-bold">{{ formatCurrency(inmueble.valor_m2) }}</p>
-                </div>
               </div>
 
               <!-- Botón de Acción -->
@@ -163,18 +159,6 @@
                 class="mt-3 w-full bg-[#1e3a5f] text-white py-3 rounded-lg font-bold text-center hover:bg-[#2c5282] transition-colors flex items-center justify-center"
               >
                 Simular Cuotas
-              </Link>
-            </div>
-
-            <!-- Información del Proyecto -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">Sobre el Proyecto</h3>
-              <Link
-                :href="`/proyectos/${inmueble.id_proyecto}`"
-                class="text-[#1e3a5f] hover:text-[#2c5282] font-medium flex items-center"
-              >
-                Ver detalles del proyecto
-                <ArrowLeftIcon class="h-4 w-4 ml-2 rotate-180" />
               </Link>
             </div>
           </div>
@@ -203,12 +187,14 @@ const props = defineProps({
 })
 
 // Formatear moneda
-const formatCurrency = (value) => {
+function formatCurrency(value) {
+  const num = Number(value || 0)
+  const roundedUp = Math.ceil(num)
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
-  }).format(value)
+  }).format(roundedUp)
 }
 
 // Características del inmueble

@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Torres/Edit.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Editar torre"

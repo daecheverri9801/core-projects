@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Torres/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Crear torres"
@@ -158,7 +158,7 @@
                   </FormField>
 
                   <FormField
-                    label="Número de pisos"
+                    label="Número de pisos" required
                     :error="err(`torres.${idx}.numero_pisos`)"
                     hint="Entero (mín. 1)"
                   >

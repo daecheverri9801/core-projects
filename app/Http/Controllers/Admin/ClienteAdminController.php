@@ -11,25 +11,29 @@ use Inertia\Inertia;
 
 class ClienteAdminController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $clientes = Cliente::with(['tipoCliente', 'tipoDocumento', 'ventas'])
             ->orderBy('nombre')
             ->get();
 
         return Inertia::render('Admin/Cliente/Index', [
             'clientes' => $clientes,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
 
         return Inertia::render('Admin/Cliente/Create', [
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -50,18 +54,20 @@ class ClienteAdminController extends Controller
         return redirect()->route('admin.clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
 
-    public function show($documento)
+    public function show($documento, Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $cliente = Cliente::with(['tipoCliente', 'tipoDocumento', 'ventas'])
             ->where('documento', $documento)
             ->firstOrFail();
 
         return Inertia::render('Admin/Cliente/Show', [
             'cliente' => $cliente,
+            'empleado' => $empleado,
         ]);
     }
 
-    public function edit($documento)
+    public function edit($documento, Request $request)
     {
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
@@ -71,6 +77,7 @@ class ClienteAdminController extends Controller
             'cliente' => $cliente,
             'tiposCliente' => $tiposCliente,
             'tiposDocumento' => $tiposDocumento,
+            'empleado' => $request->user()->load('cargo'),
         ]);
     }
 

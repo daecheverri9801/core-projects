@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Proyectos/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <!-- Header -->
       <PageHeader
@@ -48,15 +48,27 @@
               <FormField label="Estado" required :error="form.errors.id_estado">
                 <SelectInput v-model="form.id_estado" placeholder="Seleccione un estado">
                   <option value="" disabled>Seleccione un estado</option>
-                  <option v-for="estado in estados" :key="estado.id_estado" :value="estado.id_estado">
+                  <option
+                    v-for="estado in estados"
+                    :key="estado.id_estado"
+                    :value="estado.id_estado"
+                  >
                     {{ estado.nombre }}
                   </option>
                 </SelectInput>
               </FormField>
 
               <div class="md:col-span-2">
-                <FormField label="Descripción" :error="form.errors.descripcion" hint="Opcional. Máx. 500 caracteres.">
-                  <TextArea v-model="form.descripcion" rows="3" placeholder="Describe brevemente el proyecto…" />
+                <FormField
+                  label="Descripción"
+                  :error="form.errors.descripcion"
+                  hint="Opcional. Máx. 500 caracteres."
+                >
+                  <TextArea
+                    v-model="form.descripcion"
+                    rows="3"
+                    placeholder="Describe brevemente el proyecto…"
+                  />
                 </FormField>
               </div>
             </div>
@@ -66,22 +78,26 @@
           <AppCard padding="md">
             <SectionHeader
               title="Fechas del proyecto"
-              subtitle="Define el rango estimado para seguimiento."
+              subtitle="Define el rango estimado."
               icon="CalendarDaysIcon"
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Fecha inicio" :error="form.errors.fecha_inicio">
+              <FormField label="Fecha inicio" required :error="form.errors.fecha_inicio">
                 <TextInput v-model="form.fecha_inicio" type="date" />
               </FormField>
 
-              <FormField label="Fecha finalización" :error="form.errors.fecha_finalizacion">
+              <FormField
+                label="Fecha finalización"
+                required
+                :error="form.errors.fecha_finalizacion"
+              >
                 <TextInput v-model="form.fecha_finalizacion" type="date" />
               </FormField>
             </div>
           </AppCard>
 
-          <!-- Presupuesto y métricas -->
+          <!-- Presupuesto y métricas
           <AppCard padding="md">
             <SectionHeader
               title="Presupuesto y métricas"
@@ -98,11 +114,11 @@
                 <TextInput v-model="form.presupuesto_final" type="number" step="0.01" min="0" placeholder="0" />
               </FormField>
 
-              <FormField label="Metros construidos" :error="form.errors.metros_construidos" hint="m²">
+              <FormField label="Metros construidos" required :error="form.errors.metros_construidos" hint="m²">
                 <TextInput v-model="form.metros_construidos" type="number" step="0.01" min="0" placeholder="0" />
               </FormField>
             </div>
-          </AppCard>
+          </AppCard> -->
 
           <!-- Cantidades -->
           <AppCard padding="md">
@@ -113,20 +129,47 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <FormField label="Cantidad locales" :error="form.errors.cantidad_locales">
+              <FormField label="Cantidad locales" required :error="form.errors.cantidad_locales">
                 <TextInput v-model="form.cantidad_locales" type="number" min="0" placeholder="0" />
               </FormField>
 
-              <FormField label="Cantidad apartamentos" :error="form.errors.cantidad_apartamentos">
-                <TextInput v-model="form.cantidad_apartamentos" type="number" min="0" placeholder="0" />
+              <FormField
+                label="Cantidad apartamentos"
+                required
+                :error="form.errors.cantidad_apartamentos"
+              >
+                <TextInput
+                  v-model="form.cantidad_apartamentos"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Parqueaderos vehículo" :error="form.errors.cantidad_parqueaderos_vehiculo">
-                <TextInput v-model="form.cantidad_parqueaderos_vehiculo" type="number" min="0" placeholder="0" />
+              <FormField
+                label="Parqueaderos vehículo"
+                required
+                :error="form.errors.cantidad_parqueaderos_vehiculo"
+              >
+                <TextInput
+                  v-model="form.cantidad_parqueaderos_vehiculo"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Parqueaderos moto" :error="form.errors.cantidad_parqueaderos_moto">
-                <TextInput v-model="form.cantidad_parqueaderos_moto" type="number" min="0" placeholder="0" />
+              <FormField
+                label="Parqueaderos moto"
+                required
+                :error="form.errors.cantidad_parqueaderos_moto"
+              >
+                <TextInput
+                  v-model="form.cantidad_parqueaderos_moto"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
             </div>
           </AppCard>
@@ -140,15 +183,15 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField label="Estrato" :error="form.errors.estrato" hint="1 a 6">
+              <FormField label="Estrato" required :error="form.errors.estrato" hint="1 a 6">
                 <TextInput v-model="form.estrato" type="number" min="1" max="6" placeholder="3" />
               </FormField>
 
-              <FormField label="Número de pisos" :error="form.errors.numero_pisos">
+              <FormField label="Número de pisos" required :error="form.errors.numero_pisos">
                 <TextInput v-model="form.numero_pisos" type="number" min="1" placeholder="1" />
               </FormField>
 
-              <FormField label="Número de torres" :error="form.errors.numero_torres">
+              <FormField label="Número de torres" required :error="form.errors.numero_torres">
                 <TextInput v-model="form.numero_torres" type="number" min="1" placeholder="1" />
               </FormField>
             </div>
@@ -163,7 +206,12 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <FormField label="% Cuota inicial mínima" :error="form.errors.porcentaje_cuota_inicial_min" hint="0–100">
+              <FormField
+                label="% Pago de Cuota Inicial"
+                required
+                :error="form.errors.porcentaje_cuota_inicial_min"
+                hint="0–100"
+              >
                 <TextInput
                   v-model="form.porcentaje_cuota_inicial_min"
                   type="number"
@@ -174,16 +222,47 @@
                 />
               </FormField>
 
-              <FormField label="Valor mínimo separación" :error="form.errors.valor_min_separacion" hint="COP">
-                <TextInput v-model="form.valor_min_separacion" type="number" min="0" step="0.01" placeholder="0" />
+              <FormField
+                label="Valor Mínimo Separación"
+                required
+                :error="form.errors.valor_min_separacion"
+                hint="COP"
+              >
+                <TextInput
+                  v-model="form.valor_min_separacion"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Plazo cuota inicial (meses)" :error="form.errors.plazo_cuota_inicial_meses">
-                <TextInput v-model="form.plazo_cuota_inicial_meses" type="number" min="1" placeholder="1" />
+              <FormField
+                label="Plazo Cuota Inicial (meses)"
+                required
+                :error="form.errors.plazo_cuota_inicial_meses"
+              >
+                <TextInput
+                  v-model="form.plazo_cuota_inicial_meses"
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                />
               </FormField>
 
-              <FormField label="Plazo máximo separación (días)" :error="form.errors.plazo_max_separacion_dias" hint="1–365">
-                <TextInput v-model="form.plazo_max_separacion_dias" type="number" min="1" max="365" placeholder="30" />
+              <FormField
+                label="Plazo Separación(días)"
+                required
+                :error="form.errors.plazo_max_separacion_dias"
+                hint="1–365"
+              >
+                <TextInput
+                  v-model="form.plazo_max_separacion_dias"
+                  type="number"
+                  min="1"
+                  max="365"
+                  placeholder="30"
+                />
               </FormField>
             </div>
           </AppCard>
@@ -197,7 +276,12 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Prima altura base" :error="form.errors.prima_altura_base" hint="COP">
+              <FormField
+                label="Prima altura base"
+                required
+                :error="form.errors.prima_altura_base"
+                hint="COP"
+              >
                 <TextInput
                   v-model.number="form.prima_altura_base"
                   type="number"
@@ -207,7 +291,12 @@
                 />
               </FormField>
 
-              <FormField label="Incremento por piso" :error="form.errors.prima_altura_incremento" hint="COP">
+              <FormField
+                label="Incremento por piso"
+                required
+                :error="form.errors.prima_altura_incremento"
+                hint="COP"
+              >
                 <TextInput
                   v-model.number="form.prima_altura_incremento"
                   type="number"
@@ -284,8 +373,6 @@
               <div class="min-w-0">
                 <p class="font-semibold text-gray-900">Recomendaciones</p>
                 <ul class="mt-2 space-y-2 text-sm text-gray-700 list-disc pl-5">
-                  <li>Completa primero “Información general” y “Ubicación”.</li>
-                  <li>Los valores financieros pueden ajustarse más adelante.</li>
                   <li>Si activas prima altura, define base e incremento.</li>
                 </ul>
               </div>
@@ -297,6 +384,12 @@
             <div class="mt-3 space-y-2 text-sm">
               <InlineStatus :ok="!!form.nombre" label="Nombre" />
               <InlineStatus :ok="!!form.id_estado" label="Estado" />
+              <InlineStatus :ok="!!form.fecha_inicio" label="Fecha inicio" />
+              <InlineStatus :ok="!!form.fecha_finalizacion" label="Fecha finalización" />
+              <InlineStatus :ok="!!form.porcentaje_cuota_inicial_min" label="% Cuota Inicial" />
+              <InlineStatus :ok="!!form.valor_min_separacion" label="Valor Separación" />
+              <InlineStatus :ok="!!form.plazo_cuota_inicial_meses" label="Plazo Cuota Inicial" />
+              <InlineStatus :ok="!!form.plazo_max_separacion_dias" label="Plazo Separación" />
               <InlineStatus :ok="!!form.id_ubicacion" label="Ubicación" />
             </div>
           </AppCard>
@@ -308,7 +401,11 @@
         <form @submit.prevent="submitUbicacion" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="País" required :error="errorsUbicacion.id_pais">
-              <SelectInput v-model="selectedPais" @change="onPaisChange" :disabled="loadingJerarquia">
+              <SelectInput
+                v-model="selectedPais"
+                @change="onPaisChange"
+                :disabled="loadingJerarquia"
+              >
                 <option value="" disabled>Seleccione un país</option>
                 <option v-for="pais in paises" :key="pais.id_pais" :value="pais.id_pais">
                   {{ pais.nombre }}
@@ -335,9 +432,16 @@
 
             <div class="md:col-span-2">
               <FormField label="Ciudad" required :error="errorsUbicacion.id_ciudad">
-                <SelectInput v-model="selectedCiudad" :disabled="!selectedDepartamento || loadingJerarquia">
+                <SelectInput
+                  v-model="selectedCiudad"
+                  :disabled="!selectedDepartamento || loadingJerarquia"
+                >
                   <option value="" disabled>Seleccione una ciudad</option>
-                  <option v-for="ciudad in ciudadesFiltradas" :key="ciudad.id_ciudad" :value="ciudad.id_ciudad">
+                  <option
+                    v-for="ciudad in ciudadesFiltradas"
+                    :key="ciudad.id_ciudad"
+                    :value="ciudad.id_ciudad"
+                  >
                     {{ ciudad.nombre }}
                   </option>
                 </SelectInput>
@@ -350,7 +454,11 @@
 
             <div class="md:col-span-2">
               <FormField label="Dirección" required :error="errorsUbicacion.direccion">
-                <TextInput v-model="formUbicacion.direccion" maxlength="300" placeholder="Ej: Calle 10 # 12-34" />
+                <TextInput
+                  v-model="formUbicacion.direccion"
+                  maxlength="300"
+                  placeholder="Ej: Calle 10 # 12-34"
+                />
               </FormField>
             </div>
           </div>

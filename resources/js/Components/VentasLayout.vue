@@ -15,7 +15,7 @@
               </div>
               <div>
                 <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>
-                <p class="text-xs text-gray-500">Módulo de Ventas</p>
+                <!-- <p class="text-xs text-gray-500">Módulo de Ventas</p> -->
               </div>
             </div>
 
@@ -50,13 +50,7 @@
                     <p class="text-sm font-semibold text-gray-900">{{ empleadoCompleto }}</p>
                     <p class="text-xs text-gray-500 mt-1">{{ empleado?.correo || cargoNombre }}</p>
                   </div>
-                  <Link
-                    href="/perfil"
-                    class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    <UserIcon class="w-5 h-5 text-gray-400" />
-                    Mi Perfil
-                  </Link>
+
                   <button
                     @click="logout"
                     class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
@@ -111,12 +105,23 @@
       </div>
     </footer>
   </div>
+  <ConfirmDialog
+    :open="showLogoutModal"
+    title="Cerrar sesión"
+    message="¿Está seguro que desea cerrar sesión?"
+    confirm-text="Sí, cerrar sesión"
+    cancel-text="Cancelar"
+    @cancel="showLogoutModal = false"
+    @confirm="handleLogoutConfirm"
+  />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount,  } from 'vue'
-import { Link, usePage, router,  } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { Link, usePage, router } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
 import Logo from '@/Components/Logo.vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+// import { useIdleTimer } from '@/composables/useIdleTimer'
 import {
   UserGroupIcon,
   ShoppingCartIcon,
@@ -130,6 +135,8 @@ import {
   Squares2X2Icon,
 } from '@heroicons/vue/24/outline'
 
+// useIdleTimer(10)
+
 const props = defineProps({
   empleado: { type: Object, default: null },
   cliente: { type: Object, default: null },
@@ -142,16 +149,11 @@ const props = defineProps({
 
 const page = usePage()
 
-// ✅ CORREGIDO: Acceso seguro a las props en v0.6.0
 const empleado = computed(() => {
-  // Primero usar la prop directa
   if (props.empleado) return props.empleado
-
-  // Luego intentar con page.props.value
   if (page.props && page.props.value) {
     return page.props.auth?.empleado || page.props.empleado || null
   }
-
   return null
 })
 
@@ -174,7 +176,7 @@ const modulos = [
     href: '/clientes',
     icon: UserGroupIcon,
   },
-  { name: 'Catálogo', href: '/catalogo', icon: Squares2X2Icon  },
+  { name: 'Catálogo', href: '/catalogo', icon: Squares2X2Icon },
   {
     name: 'Ventas',
     href: '/ventas',
@@ -194,7 +196,7 @@ const modulos = [
   //   name: 'Plan Amortización Cuota',
   //   href: '/plan-amortizacion-cuota',
   //   icon: ClipboardDocumentListIcon,
-  // },   
+  // },
   {
     name: 'Pagos',
     href: '/pagos',
@@ -203,7 +205,6 @@ const modulos = [
 ]
 
 function isActive(href) {
-  // ✅ CORREGIDO: Acceso seguro a page.url en v0.6.0
   const currentPath = page.url && page.url.value ? page.url.value : window.location.pathname
   return currentPath.startsWith(href)
 }
@@ -230,10 +231,15 @@ function getInitials(name) {
     : name.substring(0, 2).toUpperCase()
 }
 
+const showLogoutModal = ref(false)
+
 function logout() {
-  if (confirm('¿Está seguro que desea cerrar sesión?')) {
-    router.post('/logout') // ✅ Usar Inertia directamente
-  }
+  showLogoutModal.value = true
+}
+
+function handleLogoutConfirm() {
+  router.post('/logout')
+  showLogoutModal.value = false // opcional, el post redirigirá
 }
 
 onMounted(() => {

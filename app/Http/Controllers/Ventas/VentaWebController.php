@@ -30,8 +30,9 @@ class VentaWebController extends Controller
      *  INDEX
      * =========================================================== */
 
-    public function index()
+    public function index(Request $request)
     {
+        $empleado = $request->user()->load('cargo');
         $proyecto = Proyecto::first(); // temporal para debug, escoger el proyecto real
 
         $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
@@ -61,6 +62,7 @@ class VentaWebController extends Controller
 
         return Inertia::render('Ventas/Venta/Index', [
             'ventas' => $ventas,
+            'empleado' => $empleado,
             // Debug ProyectoPricingService
             'debug_proyecto' => [
                 'nombre' => $proyecto->nombre ?? null,
@@ -261,8 +263,9 @@ class VentaWebController extends Controller
      *  SHOW
      * =========================================================== */
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $venta = Venta::with([
             'cliente',
             'empleado',
@@ -301,6 +304,7 @@ class VentaWebController extends Controller
         return Inertia::render('Ventas/Venta/Show', [
             'venta' => $venta,
             'imagenTipoAptoUrl' => $imagenTipoAptoUrl,
+            'empleado' => $empleado,
         ]);
     }
 
@@ -309,8 +313,9 @@ class VentaWebController extends Controller
      *  EDIT / UPDATE
      * =========================================================== */
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
+        $empleado = $request->user()->load('cargo');
         $venta = Venta::with(['apartamento', 'local', 'proyecto'])
             ->findOrFail($id);
 
@@ -327,6 +332,7 @@ class VentaWebController extends Controller
             'formasPago' => FormaPago::all(),
             'estadosInmueble' => EstadoInmueble::all(),
             'plazos_disponibles' => $plazos,
+            'empleado' => $empleado,
         ]);
     }
 

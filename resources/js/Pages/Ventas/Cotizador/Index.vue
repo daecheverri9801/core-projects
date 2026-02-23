@@ -307,7 +307,7 @@ async function generarPDF() {
 </script>
 
 <template>
-  <VentasLayout>
+  <VentasLayout :empleado="empleado">
     <div class="p-6 space-y-6">
       <h1 class="text-3xl font-bold">Cotizador</h1>
 

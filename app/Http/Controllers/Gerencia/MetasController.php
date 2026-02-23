@@ -7,6 +7,7 @@ use App\Models\Meta;
 use App\Models\Proyecto;
 use App\Models\Empleado;
 use App\Models\Venta;
+use App\Models\Cargo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ class MetasController extends Controller
 {
     public function index(Request $request)
     {
+        $cargo = Cargo::where('nombre', 'Asesora Comercial')->first();
         $ano = (int)($request->query('ano', now()->year));
         $mesDesde = (int)($request->query('mes_desde', 1));
         $mesHasta = (int)($request->query('mes_hasta', 12));
@@ -23,7 +25,9 @@ class MetasController extends Controller
         $fEmpleado = $request->query('id_empleado', null);
 
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
-        $empleados = Empleado::select('id_empleado', 'nombre', 'apellido')->orderBy('nombre')->get();
+        $empleados = $cargo ? Empleado::where('id_cargo', $cargo->id_cargo)
+            ->select('id_empleado', 'nombre', 'apellido')
+            ->get() : collect();
 
         $metasQuery = Meta::with(['proyecto', 'empleado'])
             ->where('ano', $ano)
@@ -209,12 +213,17 @@ class MetasController extends Controller
 
     public function edit($id)
     {
+        $cargo = Cargo::where('nombre', 'Asesora Comercial')->first();
         $meta = Meta::with(['proyecto', 'empleado'])->findOrFail($id);
+
+        $empleados = $cargo ? Empleado::where('id_cargo', $cargo->id_cargo)
+            ->select('id_empleado', 'nombre', 'apellido')
+            ->get() : collect();
 
         return Inertia::render('Gerencia/Metas/Edit', [
             'meta' => $meta,
             'proyectos' => Proyecto::select('id_proyecto', 'nombre')->get(),
-            'empleados' => Empleado::select('id_empleado', 'nombre', 'apellido')->get(),
+            'empleados' => $empleados,
         ]);
     }
 

@@ -25,17 +25,27 @@ const ValueLabelsPlugin = {
     const { ctx } = chart
     const type = chart.config.type
 
-    // Solo para chartjs v3/4
     if (!ctx) return
 
-    // Helpers de formato
     const formatCompactMoney = (v) => {
       const n = Number(v || 0)
-      // compact COP: 1,2M / 850k, etc.
       const abs = Math.abs(n)
-      if (abs >= 1_000_000_000) return `${Math.round(n / 1_000_000_000)}B`
-      if (abs >= 1_000_000) return `${Math.round(n / 1_000_000)}M`
-      if (abs >= 1_000) return `${Math.round(n / 1_000)}k`
+
+      if (abs >= 1_000 && abs < 1_000_000) {
+        const val = n / 1_000
+        return `${val.toFixed(abs >= 10_000 ? 0 : 1)}k`
+      }
+
+      if (abs >= 1_000_000 && abs < 1_000_000_000) {
+        const val = n / 1_000_000
+        return `${val.toFixed(abs >= 100_000_000 ? 0 : 1)}MM`
+      }
+
+      if (abs >= 1_000_000_000) {
+        const val = n / 1_000_000_000
+        return `${val.toFixed(abs >= 10_000_000_000 ? 0 : 2)} Mil M`
+      }
+
       return `${Math.round(n)}`
     }
     const formatInt = (v) => `${Math.round(Number(v || 0))}`
@@ -163,6 +173,7 @@ ChartJS.register(
 )
 
 const props = defineProps({
+  empleado: Object,
   resumenGlobal: Object,
   ventasPorProyecto: Array,
   proyeccionVsReal: Array,
@@ -310,7 +321,7 @@ const ventasProyectoTabla = computed(() => {
 ============================== */
 const proyectoInventarioSeleccionado = ref('')
 
-const INVENTARIO_ESTADOS = ['Disponible', 'Vendido', 'Separado', 'No Disponible', 'Congelado']
+const INVENTARIO_ESTADOS = ['Disponible', 'Vendido', 'Separado', 'Bloqueado', 'Congelado']
 
 const inventarioOptions = computed(() => {
   const base = [{ value: '', label: 'Todos los proyectos' }]
@@ -570,10 +581,40 @@ const absorcionTabla = computed(() => {
     .map(([mes, total]) => ({ mes, total }))
     .sort((a, b) => (a.mes > b.mes ? 1 : -1))
 })
+
+const inventarioProyectosOrdenado = computed(() => {
+  return (props.inventarioProyectos || []).map((p) => {
+    const inmueblesOrdenados = [...(p.inmuebles || [])].sort((a, b) => {
+      // Solo ordenar por apartamentos (si no es apartamento, lo mandamos al final)
+      const aIsApto = String(a.tipo || '').toLowerCase() === 'apartamento'
+      const bIsApto = String(b.tipo || '').toLowerCase() === 'apartamento'
+
+      if (aIsApto && !bIsApto) return -1
+      if (!aIsApto && bIsApto) return 1
+
+      // Extrae número (ej: "Apto 302" => 302, "302" => 302, "A-302" => 302)
+      const getNum = (x) => {
+        const raw = String(x?.etiqueta ?? x?.numero ?? '').trim()
+        const m = raw.match(/\d+/) // primer bloque numérico
+        return m ? Number(m[0]) : Number.POSITIVE_INFINITY
+      }
+
+      const na = getNum(a)
+      const nb = getNum(b)
+
+      if (na !== nb) return na - nb
+
+      // desempate estable
+      return String(a.etiqueta || '').localeCompare(String(b.etiqueta || ''))
+    })
+
+    return { ...p, inmuebles: inmueblesOrdenados }
+  })
+})
 </script>
 
 <template>
-  <GerenciaLayout>
+  <GerenciaLayout :empleado="empleado">
     <Head title="Panel de Gerencia" />
 
     <!-- KPIs -->
@@ -729,7 +770,7 @@ const absorcionTabla = computed(() => {
           Proyectos / Inventario
         </button>
 
-        <button
+        <!-- <button
           type="button"
           :class="[
             'px-4 py-2 border-b-2',
@@ -740,7 +781,7 @@ const absorcionTabla = computed(() => {
           @click="activeTab = 'proyeccion'"
         >
           Proyección de Ingresos
-        </button>
+        </button> -->
 
         <button
           type="button"
@@ -1103,7 +1144,7 @@ const absorcionTabla = computed(() => {
       </h2>
 
       <div
-        v-for="proyecto in inventarioProyectos"
+        v-for="proyecto in inventarioProyectosOrdenado"
         :key="proyecto.id_proyecto"
         class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
       >
@@ -1171,7 +1212,7 @@ const absorcionTabla = computed(() => {
     </div>
 
     <!-- TAB: PROYECCIÓN DE INGRESOS -->
-    <div v-else-if="activeTab === 'proyeccion'" class="space-y-4">
+    <!-- <div v-else-if="activeTab === 'proyeccion'" class="space-y-4">
       <h2 class="text-sm font-semibold text-slate-100">
         Proyección de ingresos vs ventas reales (mes actual)
       </h2>
@@ -1224,7 +1265,7 @@ const absorcionTabla = computed(() => {
           </table>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- TAB: VENTAS / SEPARACIONES POR ASESOR Y PROYECTO -->
     <div v-else-if="activeTab === 'asesores'" class="space-y-4">

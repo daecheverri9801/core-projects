@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/Proyectos/Show.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <template #title>Detalle del Proyecto</template>
 
     <div class="space-y-6">

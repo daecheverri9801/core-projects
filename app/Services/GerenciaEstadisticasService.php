@@ -459,7 +459,7 @@ class GerenciaEstadisticasService
 
                     $items[] = [
                         'tipo'            => 'Local',
-                        'etiqueta'        => 'Local ' . $loc->numero,
+                        'etiqueta'        => '' . $loc->numero,
                         'precio_base'     => (float) ($loc->valor_total ?? 0),
                         'precio_vigente'  => (float) ($loc->valor_total ?? 0),
                         'estado'          => $estadoNombre,
@@ -554,7 +554,7 @@ class GerenciaEstadisticasService
                     'Disponible'    => 0,
                     'Vendido'       => 0,
                     'Separado'      => 0,
-                    'No Disponible' => 0,
+                    'Bloqueado'     => 0,
                     'Congelado'     => 0,
                 ];
 
@@ -675,10 +675,11 @@ class GerenciaEstadisticasService
         foreach ($ventas as $v) {
             $proyectoNombre = $v->proyecto?->nombre ?? ('Proyecto ' . ($v->id_proyecto ?? '—'));
             $clienteNombre  = $v->cliente?->nombre ?? '—';
+            $clienteDocumento = $v->documento_cliente ?? '';
 
             $inmueble = $v->apartamento?->numero
                 ? 'Apto ' . $v->apartamento->numero
-                : ($v->local?->numero ? 'Local ' . $v->local->numero : '—');
+                : ($v->local?->numero ? '' . $v->local->numero : '—');
 
             $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
             $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
@@ -750,6 +751,7 @@ class GerenciaEstadisticasService
                 'proyecto' => $proyectoNombre,
                 'inmueble' => $inmueble,
                 'cliente'  => $clienteNombre,
+                'documento_cliente' => $clienteDocumento,
                 'meses'    => $mesesRow,
             ];
         }

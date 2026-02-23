@@ -1,9 +1,9 @@
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Empleados" />
 
     <div class="space-y-6">
-      <PageHeader title="Empleados" subtitle="Consulta, filtra y administra los empleados registrados.">
+      <PageHeader title="Empleados" subtitle="Consulta y administra los empleados registrados.">
         <template #actions>
           <Link
             href="/empleados/create"
@@ -78,22 +78,34 @@
           <table class="min-w-[900px] w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Nombre
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Apellido
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Email
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Cargo
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Dependencia
                 </th>
-                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Acciones
                 </th>
               </tr>
@@ -163,11 +175,13 @@
         </div>
 
         <!-- Footer paginación -->
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 md:px-6 py-4 border-t bg-gray-50">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 md:px-6 py-4 border-t bg-gray-50"
+        >
           <p class="text-xs text-gray-600">
-            Página <span class="font-semibold text-gray-900">{{ empleados.current_page }}</span>
-            de <span class="font-semibold text-gray-900">{{ empleados.last_page }}</span>
-            · Total <span class="font-semibold text-gray-900">{{ empleados.total }}</span>
+            Página <span class="font-semibold text-gray-900">{{ empleados.current_page }}</span> de
+            <span class="font-semibold text-gray-900">{{ empleados.last_page }}</span> · Total
+            <span class="font-semibold text-gray-900">{{ empleados.total }}</span>
           </p>
 
           <div class="flex items-center gap-2 justify-end">
@@ -191,7 +205,15 @@
       </div>
 
       <!-- Modal confirmación eliminación -->
-      <ConfirmDeleteModal v-if="showConfirmDelete" @confirm="deleteEmpleado" @cancel="cancelDelete" />
+      <ConfirmDialog
+        :open="showConfirmDelete"
+        title="Confirmar eliminación"
+        message="¿Estás seguro de eliminar este empleado? Esta acción no se puede deshacer."
+        cancel-text="Cancelar"
+        confirm-text="Eliminar"
+        @cancel="cancelDelete"
+        @confirm="deleteEmpleado"
+      />
     </div>
   </TopBannerLayout>
 </template>
@@ -199,9 +221,15 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref, reactive } from 'vue'
-import { EyeIcon, PencilIcon, TrashIcon, PlusIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import {
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  PlusIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/vue/24/outline'
 
-import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 

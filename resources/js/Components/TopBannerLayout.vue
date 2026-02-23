@@ -51,14 +51,6 @@
               </div>
 
               <div class="py-2">
-                <Link
-                  href="/perfil"
-                  class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
-                >
-                  <IdentificationIcon class="w-5 h-5 text-brand-700" />
-                  Perfil
-                </Link>
-
                 <button
                   type="button"
                   @click="logout"
@@ -167,12 +159,24 @@
       <slot />
     </main>
   </div>
+  <ConfirmDialog
+    :open="showLogoutModal"
+    title="Cerrar sesión"
+    message="¿Está seguro que desea cerrar sesión?"
+    confirm-text="Sí, cerrar sesión"
+    cancel-text="Cancelar"
+    @cancel="showLogoutModal = false"
+    @confirm="handleLogoutConfirm"
+  />
+
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+// import { useIdleTimer } from '@/composables/useIdleTimer'
 
 import {
   UserIcon,
@@ -187,11 +191,13 @@ import {
   CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 
+// useIdleTimer(10)
+
 const props = defineProps({
   empleado: Object,
   panelName: {
     type: String,
-    default: 'Panel administrativo',
+    default: '',
   },
 })
 
@@ -200,7 +206,7 @@ const empleadoCompleto = computed(() => {
   if (!props.empleado) return 'Usuario'
   return [props.empleado.nombre, props.empleado.apellido].filter(Boolean).join(' ')
 })
-const cargoNombre = computed(() => props.empleado?.cargo?.nombre || 'Cargo')
+const cargoNombre = computed(() => props.empleado?.cargo?.nombre || 'Administrador')
 
 /** Dropdown */
 const menuOpen = ref(false)
@@ -219,8 +225,15 @@ function handleClickOutside(event) {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
 
+const showLogoutModal = ref(false)
+
 function logout() {
+  showLogoutModal.value = true
+}
+
+function handleLogoutConfirm() {
   router.post('/logout')
+  showLogoutModal.value = false
 }
 
 /** Active tab detection (by URL) */

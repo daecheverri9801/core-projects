@@ -23,6 +23,26 @@ const filtros = ref({
   id_empleado: props.filtros.id_empleado || '',
 })
 
+const MESES = [
+  { value: 1, label: 'Enero' },
+  { value: 2, label: 'Febrero' },
+  { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Mayo' },
+  { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' },
+  { value: 11, label: 'Noviembre' },
+  { value: 12, label: 'Diciembre' },
+]
+
+function mesLabel(m) {
+  const n = Number(m)
+  return MESES.find((x) => x.value === n)?.label || String(m ?? '—')
+}
+
 function aplicarFiltros() {
   router.get('/gerencia/metas', { ...filtros.value }, { preserveState: true, replace: true })
 }
@@ -152,20 +172,20 @@ const metasOrdenadas = computed(() =>
         <div>
           <label class="text-slate-400 text-xs mb-1 block">Mes desde</label>
           <select
-            v-model="filtros.mes_desde"
+            v-model.number="filtros.mes_desde"
             class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
           >
-            <option v-for="m in 12" :key="m" :value="m">{{ m }}</option>
+            <option v-for="m in MESES" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
 
         <div>
           <label class="text-slate-400 text-xs mb-1 block">Mes hasta</label>
           <select
-            v-model="filtros.mes_hasta"
+            v-model.number="filtros.mes_hasta"
             class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
           >
-            <option v-for="m in 12" :key="m" :value="m">{{ m }}</option>
+            <option v-for="m in MESES" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
         </div>
 
@@ -364,7 +384,7 @@ const metasOrdenadas = computed(() =>
             <tbody>
               <tr v-for="m in metasOrdenadas" :key="m.id_meta" class="odd:bg-slate-900/60">
                 <td class="p-2 border border-slate-800 text-center">{{ m.ano }}</td>
-                <td class="p-2 border border-slate-800 text-center">{{ m.mes }}</td>
+                <td class="p-2 border border-slate-800 text-center">{{ mesLabel(m.mes) }}</td>
                 <td class="p-2 border border-slate-800">{{ m.proyecto || '—' }}</td>
                 <td class="p-2 border border-slate-800">{{ m.empleado || '—' }}</td>
                 <td class="p-2 border border-slate-800 text-right">
@@ -443,11 +463,11 @@ const metasOrdenadas = computed(() =>
           <div>
             <label class="text-slate-400 text-xs mb-1 block">Mes</label>
             <select
-              v-model="form.mes"
+              v-model.number="form.mes"
               class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
             >
               <option value="">Seleccione...</option>
-              <option v-for="m in 12" :key="m" :value="m">{{ m }}</option>
+              <option v-for="m in MESES" :key="m.value" :value="m.value">{{ m.label }}</option>
             </select>
           </div>
 
@@ -512,7 +532,7 @@ const metasOrdenadas = computed(() =>
                 <td class="p-2 border border-slate-800">{{ m.tipo }}</td>
                 <td class="p-2 border border-slate-800">{{ m.proyecto || '—' }}</td>
                 <td class="p-2 border border-slate-800">{{ m.empleado || '—' }}</td>
-                <td class="p-2 border border-slate-800 text-center">{{ m.mes }}</td>
+                <td class="p-2 border border-slate-800 text-center">{{ mesLabel(m.mes) }}</td>
                 <td class="p-2 border border-slate-800 text-center">{{ m.ano }}</td>
                 <td class="p-2 border border-slate-800 text-right">
                   {{ formatMoney(m.meta_valor) }}

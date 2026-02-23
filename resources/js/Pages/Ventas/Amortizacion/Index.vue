@@ -7,6 +7,7 @@ import autoTable from 'jspdf-autotable'
 const props = defineProps({
   proyectos: Array,
   clientes: Array,
+  empleado: Object,
 })
 
 const proyectoId = ref('')
@@ -285,7 +286,7 @@ function exportPDF() {
 </script>
 
 <template>
-  <VentasLayout>
+  <VentasLayout :empleado="empleado">
     <div class="p-6 space-y-6">
       <h1 class="text-3xl font-bold text-brand-900">Plan de Amortización</h1>
 

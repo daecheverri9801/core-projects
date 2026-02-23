@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Admin/TipoApartamento/Create.vue -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Crear tipos de apartamento"
@@ -130,8 +130,7 @@
               <div class="min-w-0">
                 <p class="text-sm font-semibold text-gray-900">Detalle de tipos</p>
                 <p class="mt-1 text-sm text-gray-600">
-                  Solo <span class="font-semibold">Nombre</span> es obligatorio. El sistema calcula
-                  el valor estimado.
+                  El sistema calcula el valor estimado.
                 </p>
               </div>
 
@@ -184,7 +183,7 @@
                   </div>
 
                   <FormField
-                    label="Área construida"
+                    label="Área construida" required
                     :error="fieldError(idx, 'area_construida')"
                     hint="m²"
                   >
@@ -198,7 +197,7 @@
                   </FormField>
 
                   <FormField
-                    label="Área privada"
+                    label="Área privada" required
                     :error="fieldError(idx, 'area_privada')"
                     hint="m²"
                   >
@@ -211,7 +210,7 @@
                     />
                   </FormField>
 
-                  <FormField label="Habitaciones" :error="fieldError(idx, 'cantidad_habitaciones')">
+                  <FormField label="Habitaciones" required :error="fieldError(idx, 'cantidad_habitaciones')">
                     <TextInput
                       v-model.number="t.cantidad_habitaciones"
                       type="number"
@@ -221,7 +220,7 @@
                     />
                   </FormField>
 
-                  <FormField label="Baños" :error="fieldError(idx, 'cantidad_banos')">
+                  <FormField label="Baños" required :error="fieldError(idx, 'cantidad_banos')">
                     <TextInput
                       v-model.number="t.cantidad_banos"
                       type="number"
@@ -231,7 +230,7 @@
                     />
                   </FormField>
 
-                  <FormField label="Valor m²" :error="fieldError(idx, 'valor_m2')" hint="COP">
+                  <FormField label="Valor m²" required :error="fieldError(idx, 'valor_m2')" hint="COP">
                     <TextInput
                       v-model.number="t.valor_m2"
                       type="number"
@@ -266,9 +265,6 @@
                       <p class="mt-1 text-sm text-gray-700">
                         Área construida × Valor m² =
                         <span class="font-semibold text-gray-900">{{ previewEstimado(t) }}</span>
-                      </p>
-                      <p class="mt-1 text-xs text-gray-500">
-                        Nota: el cálculo final lo realiza el backend.
                       </p>
                     </div>
                   </div>

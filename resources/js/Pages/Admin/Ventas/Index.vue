@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import AppCard from '@/Components/AppCard.vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 
 import {
   EyeIcon,
@@ -157,22 +158,39 @@ function resetFiltros() {
   hasta.value = ''
 }
 
-function eliminar(id) {
-  if (confirm('¿Desea eliminar esta venta?')) {
-    router.delete(`/admin/ventas/${id}`, { preserveScroll: true })
-  }
+const ventaAEliminar = ref(null)
+const showConfirmDelete = ref(false)
+
+function askDelete(id) {
+  ventaAEliminar.value = id
+  showConfirmDelete.value = true
+}
+
+function cancelarEliminar() {
+  showConfirmDelete.value = false
+  ventaAEliminar.value = null
+}
+
+function confirmarEliminar() {
+  if (!ventaAEliminar.value) return
+  router.delete(`/admin/ventas/${ventaAEliminar.value}`, {
+    onFinish: () => {
+      showConfirmDelete.value = false
+      ventaAEliminar.value = null
+    },
+  })
 }
 </script>
 
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="empleado">
     <Head title="Ventas" />
 
     <div class="space-y-6">
       <PageHeader title="Ventas" subtitle="Consulta, filtra y administra las ventas registradas.">
         <template #actions>
           <Link
-            href="/ventas/create"
+            href="/admin/ventas/create"
             class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
           >
             <PlusIcon class="h-5 w-5" />
@@ -436,7 +454,7 @@ function eliminar(id) {
 
                     <button
                       type="button"
-                      @click="eliminar(venta.id_venta)"
+                      @click="askDelete(venta.id_venta)"
                       class="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 p-2 hover:bg-red-100 transition"
                       title="Eliminar"
                     >
@@ -456,11 +474,15 @@ function eliminar(id) {
           </table>
         </div>
       </AppCard>
-
-      <!-- DEBUG (opcional, limpio) -->
-      <AppCard v-if="debugEnabled" padding="md">
-        <pre class="text-xs overflow-auto">{{ debug }}</pre>
-      </AppCard>
+      <ConfirmDialog
+        :open="showConfirmDelete"
+        title="Confirmar eliminación"
+        message="¿Estás seguro de eliminar esta venta? Esta acción no se puede deshacer."
+        cancel-text="Cancelar"
+        confirm-text="Eliminar"
+        @cancel="cancelarEliminar"
+        @confirm="confirmarEliminar"
+      />
     </div>
   </TopBannerLayout>
 </template>

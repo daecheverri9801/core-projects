@@ -1,6 +1,6 @@
 <!-- resources/js/Pages/Empleados/Show.vue -->
 <template>
-  <TopBannerLayout :empleado="userEmpleado" panel-name="Panel administrador">
+  <TopBannerLayout :empleado="userEmpleado">
     <Head title="Detalle empleado" />
 
     <div class="space-y-6">
@@ -30,7 +30,6 @@
       </PageHeader>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Main -->
         <div class="lg:col-span-8 space-y-6">
           <AppCard padding="md">
             <SectionHeader
@@ -40,12 +39,44 @@
             />
 
             <dl class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoItem label="Nombre" :value="empleado.nombre" />
-              <InfoItem label="Apellido" :value="empleado.apellido" />
-              <InfoItem label="Email" :value="empleado.email" class="md:col-span-2" />
-              <InfoItem label="Teléfono" :value="empleado.telefono || '—'" />
-              <InfoItem label="Cargo" :value="empleado.cargo?.nombre || '—'" />
-              <InfoItem label="Dependencia" :value="empleado.dependencia?.nombre || '—'" />
+              <div>
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Nombre</dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">{{ empleado.nombre || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Apellido
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">
+                  {{ empleado.apellido || '—' }}
+                </dd>
+              </div>
+              <div class="md:col-span-2">
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Email</dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">{{ empleado.email || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Teléfono
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">
+                  {{ empleado.telefono || '—' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Cargo</dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">
+                  {{ empleado.cargo?.nombre || '—' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Dependencia
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 break-words">
+                  {{ empleado.dependencia?.nombre || '—' }}
+                </dd>
+              </div>
               <div class="md:col-span-2">
                 <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Estado</dt>
                 <dd class="mt-1">
@@ -117,27 +148,8 @@ const props = defineProps({
   empleado: { type: Object, required: true },
 })
 
-/**
- * Empleado autenticado (para TopBannerLayout).
- * Ajusta según tu app si lo mandas con otro nombre.
- */
 const page = usePage()
 const userEmpleado = computed(() => page.props?.empleado ?? null)
 
-/**
- * Pequeño "InfoItem" local (sin depender de otro componente).
- * Si ya tienes un componente InfoItem global, puedes reemplazarlo.
- */
-const InfoItem = {
-  props: {
-    label: { type: String, required: true },
-    value: { type: [String, Number], default: '—' },
-  },
-  template: `
-    <div>
-      <dt class="text-xs font-semibold text-gray-600 uppercase tracking-wide">{{ label }}</dt>
-      <dd class="mt-1 text-sm text-gray-900 break-words">{{ value }}</dd>
-    </div>
-  `,
-}
+console.log('empleado prop:', props.empleado)
 </script>

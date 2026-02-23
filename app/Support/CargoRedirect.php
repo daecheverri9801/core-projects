@@ -11,6 +11,7 @@ class CargoRedirect
             'Directora Comercial' => route('catalogo.index'),
             'Asesora Comercial'   => route('catalogo.index'),
             'Administrador' => route('dashboard'),
+            'Contador'      => route('contabilidad.ventas.index'),
             default          => route('home'),
         };
     }

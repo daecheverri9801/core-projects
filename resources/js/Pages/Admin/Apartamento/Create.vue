@@ -1,8 +1,5 @@
-<!-- resources/js/Pages/Admin/Apartamento/Create.vue -->
-<!-- Ajuste: integra Banner Flujo (5/8) y corrige links del flujo al orden: Políticas → Torres → Pisos → Tipos → Apartamentos → Locales → Parqueaderos → Zonas -->
-<!-- (Se mantiene tu lógica actual, solo se corrigen URLs del flujo) -->
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Crear apartamentos"
@@ -113,8 +110,7 @@
               <div class="min-w-0">
                 <p class="text-sm font-semibold text-gray-900">Apartamentos a crear</p>
                 <p class="mt-1 text-sm text-gray-600">
-                  Cada fila define Piso, Tipo, Estado y Número. El backend calcula política y
-                  valores finales.
+                  Cada fila define Piso, Tipo, Estado y Número.
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -141,19 +137,19 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Piso
+                      Piso *
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Tipo
+                      Tipo *
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Estado
+                      Estado *
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Número
+                      Número *
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Preview valor
+                      Preview valor 
                     </th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
                       Acción
@@ -232,7 +228,7 @@
                         {{ formatCurrency(previewTotal(row)) }}
                       </div>
                       <div class="text-xs text-gray-500 mt-1">
-                        Tipo (estimado) + prima altura (preview). Política se calcula al guardar.
+                        Tipo + Prima Altura
                       </div>
                     </td>
                     <!-- Acción -->
@@ -323,7 +319,6 @@
             <ul class="mt-2 space-y-2 text-sm text-gray-700 list-disc pl-5">
               <li>El número debe ser único dentro de la torre.</li>
               <li>El piso debe pertenecer a la torre seleccionada.</li>
-              <li>El cálculo final (política + prima) se consolida en backend.</li>
             </ul>
           </AppCard>
         </div>

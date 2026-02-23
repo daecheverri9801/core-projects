@@ -41,7 +41,7 @@ use App\Http\Controllers\Gerencia\GerenciaDashboardWebController;
 use App\Http\Controllers\Gerencia\MetasController;
 use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
 
-
+use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login');
@@ -433,19 +433,37 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
         ->name('gerencia.plan_pagos_ci.export');
 });
 
+Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->group(function () {
+    // Index general
+    Route::get('/ventas', [ContabilidadVentasWebController::class, 'index'])
+        ->name('contabilidad.ventas.index');
+
+    // Detalle
+    Route::get('/ventas/{id}', [ContabilidadVentasWebController::class, 'show'])
+        ->name('contabilidad.ventas.show');
+
+    // Consolidado Plan Pagos CI
+    Route::get('/reportes/plan-pagos-ci', [ContabilidadVentasWebController::class, 'planPagosCI'])
+        ->name('contabilidad.reportes.plan_ci');
+
+    // Export Excel
+    Route::get('/reportes/plan-pagos-ci/export', [ContabilidadVentasWebController::class, 'exportPlanPagosCI'])
+        ->name('contabilidad.reportes.plan_ci.export');
+});
+
 
 // Ruta para cualquier empleado autenticado
-Route::middleware(['auth'])->group(function () {
-    Route::get('/perfil', function () {
-        return "Tu perfil, " . Auth::user()->nombre;
-    })->name('perfil');
-});
+// Route::middleware(['auth'])->group(function () {
+//     Route::get('/perfil', function () {
+//         return "Tu perfil, " . Auth::user()->nombre;
+//     })->name('perfil');
+// });
 
-Route::get('/test-email', function () {
-    Mail::raw('Este es un correo de prueba', function ($message) {
-        $message->to('daniel.arango20125@ucaldas.edu.co')
-            ->subject('Correo de prueba');
-    });
+// Route::get('/test-email', function () {
+//     Mail::raw('Este es un correo de prueba', function ($message) {
+//         $message->to('daniel.arango20125@ucaldas.edu.co')
+//             ->subject('Correo de prueba');
+//     });
 
-    return 'Correo enviado';
-});
+//     return 'Correo enviado';
+// });

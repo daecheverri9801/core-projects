@@ -1,12 +1,40 @@
 <script setup>
 import { Head, Link, usePage, router } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
+import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+// import { useIdleTimer } from '@/composables/useIdleTimer'
+
+// useIdleTimer(10)
+
+const props = defineProps({
+  empleado: { type: Object, default: null },
+})
 
 const page = usePage()
-const user = page.props.auth?.user || null
+
+const showLogoutModal = ref(false)
 
 function logout() {
-  router.post('/logout')
+  showLogoutModal.value = true
 }
+
+function handleLogoutConfirm() {
+  router.post('/logout')
+  showLogoutModal.value = false
+}
+
+const empleado = computed(() => {
+  if (props.empleado) return props.empleado
+  return page.props.auth?.empleado || page.props.empleado || null
+})
+
+const empleadoCompleto = computed(() => {
+  const emp = empleado.value
+  if (!emp) return 'Usuario'
+  return [emp.nombre, emp.apellido].filter(Boolean).join(' ') || 'Usuario'
+})
+
+const cargoNombre = computed(() => empleado.value?.cargo?.nombre || 'Gerente')
 </script>
 
 <template>
@@ -21,15 +49,14 @@ function logout() {
         <div class="flex items-center gap-3">
           <img src="/images/logo-ayc.png" class="h-8" alt="Logo" />
           <div>
-            <div class="text-xs uppercase tracking-[0.2em] text-slate-400">Panel estratégico</div>
             <div class="font-semibold text-slate-50">Constructora A&amp;C · Gerencia</div>
           </div>
         </div>
 
         <div class="flex items-center gap-4 text-sm">
           <div class="text-right">
-            <div class="text-slate-300 font-medium">{{ user?.name ?? 'Usuario' }}</div>
-            <div class="text-slate-500 text-xs">Gerencia</div>
+            <div class="text-slate-300 font-medium">{{ empleadoCompleto }}</div>
+            <div class="text-slate-500 text-xs">{{ empleado?.correo || cargoNombre }}</div>
           </div>
           <Link
             href="/ventas"
@@ -49,13 +76,12 @@ function logout() {
           >
             Dashboard
           </Link>
-          <Link
-            href="#"
-            @click.prevent="logout"
+          <button
+            @click="logout"
             class="px-3 py-1.5 rounded-lg border border-red-600 text-xs uppercase tracking-wide text-red-400 hover:bg-red-700"
           >
             Logout
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -64,5 +90,14 @@ function logout() {
     <main class="max-w-7xl mx-auto px-4 py-6" style="overflow-x: hidden; overflow-y: auto">
       <slot />
     </main>
+    <ConfirmDialog
+      :open="showLogoutModal"
+      title="Cerrar sesión"
+      message="¿Está seguro que desea cerrar sesión?"
+      confirm-text="Sí, cerrar sesión"
+      cancel-text="Cancelar"
+      @cancel="showLogoutModal = false"
+      @confirm="handleLogoutConfirm"
+    />
   </div>
 </template>

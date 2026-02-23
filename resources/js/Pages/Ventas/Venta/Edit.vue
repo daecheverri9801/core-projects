@@ -9,6 +9,7 @@ const empleado = computed(() => page.props.auth?.empleado || null)
 
 const props = defineProps({
   venta: Object,
+  empleado: Object,
   clientes: Array,
   proyectos: Array,
   apartamentos: Array,
@@ -64,6 +65,41 @@ onMounted(() => {
 
 const proyectoSeleccionado = computed(() =>
   props.proyectos.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
+)
+
+// Todas las frecuencias posibles (en meses)
+const frecuenciasDisponibles = [
+  { valor: 1, etiqueta: 'Mensual (cada 1 mes)' },
+  { valor: 2, etiqueta: 'Bimestral' },
+  { valor: 3, etiqueta: 'Trimestral' },
+  { valor: 4, etiqueta: 'Cada 4 meses' },
+  { valor: 6, etiqueta: 'Semestral' },
+  { valor: 12, etiqueta: 'Anual' },
+]
+
+// Opciones válidas para el plazo actual (filtradas por divisibilidad)
+const opcionesFrecuencia = computed(() => {
+  const plazo = Number(form.plazo_cuota_inicial_meses)
+  if (!plazo) return []
+  return frecuenciasDisponibles.filter((f) => plazo % f.valor === 0)
+})
+
+watch(
+  () => form.plazo_cuota_inicial_meses,
+  (nuevoPlazo) => {
+    if (nuevoPlazo) {
+      const plazoNum = Number(nuevoPlazo)
+      const valoresValidos = frecuenciasDisponibles
+        .map((f) => f.valor)
+        .filter((v) => plazoNum % v === 0)
+      if (!valoresValidos.includes(Number(form.frecuencia_cuota_inicial_meses))) {
+        form.frecuencia_cuota_inicial_meses = valoresValidos.length > 0 ? valoresValidos[0] : ''
+      }
+    } else {
+      form.frecuencia_cuota_inicial_meses = ''
+    }
+  },
+  { immediate: true }
 )
 
 function cargarInmueblesDelProyecto(proyectoId) {
@@ -320,7 +356,9 @@ const camposCompletos = computed(
 
 function formatearMoneda(valor) {
   if (valor === null || valor === undefined || valor === '') return ''
-  return Number(valor).toLocaleString('es-CO', {
+  const num = Number(valor)
+  const redondeado = Math.ceil(num) // Redondea hacia arriba al entero más cercano
+  return redondeado.toLocaleString('es-CO', {
     style: 'currency',
     currency: 'COP',
     maximumFractionDigits: 0,

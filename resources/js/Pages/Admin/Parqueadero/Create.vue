@@ -1,5 +1,5 @@
 <template>
-  <TopBannerLayout :empleado="empleado" panel-name="Proyectos">
+  <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
         title="Crear Parqueaderos"
@@ -130,10 +130,10 @@
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Número
+                    Número *
                   </th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                    Tipo
+                    Tipo *
                   </th>
                   <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                     Precio (opcional)
@@ -185,7 +185,6 @@
                       placeholder="Ej: 25000000"
                       :disabled="!base.id_torre"
                     />
-                    <p class="text-xs text-gray-500 mt-1">Vacío → NULL.</p>
                     <p v-if="rowErrors[idx]?.precio" class="form-error">
                       {{ rowErrors[idx].precio }}
                     </p>
