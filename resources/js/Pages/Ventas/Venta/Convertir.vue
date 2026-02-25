@@ -30,6 +30,7 @@ const props = defineProps({
   plazos_disponibles: Array,
   tiposCliente: Array,
   tiposDocumento: Array,
+  parqueaderos: { type: Array, default: () => [] },
 })
 
 /** ========= Helpers ========= */
@@ -98,42 +99,23 @@ const estadoVendidoId = computed(
  * - cuota_separacion: es el valor mínimo del proyecto (valor_min_separacion) (para desglose)
  */
 const form = useForm({
-  // operación fija
   tipo_operacion: 'venta',
-
-  // datos base (se precargan)
   id_empleado: empleado.value?.id_empleado || props.venta?.id_empleado || null,
   documento_cliente: props.venta?.documento_cliente || '',
-
-  // fecha fija hoy (no editable)
   fecha_venta: todayISO(),
-
-  // proyecto + inmueble (bloqueados)
   id_proyecto: String(props.venta?.id_proyecto || ''),
   inmueble_tipo: inmuebleTipo.value,
   inmueble_id: inmuebleId.value ? String(inmuebleId.value) : '',
-
-  // forma pago (editable)
   id_forma_pago: props.venta?.id_forma_pago ? String(props.venta.id_forma_pago) : '',
-
-  // estado (Vendido)
   id_estado_inmueble: estadoVendidoId.value,
-
-  // valores
   valor_total: 0,
   cuota_inicial: 0,
   cuota_inicial_raw: 0,
   valor_restante: 0,
-
-  // cuota separación NO se envía al backend para venta (solo se muestra en UI)
-  // valor_separacion: ...
-  // fecha_limite_separacion: ...
-
-  // plan cuota inicial
   plazo_cuota_inicial_meses: '',
   frecuencia_cuota_inicial_meses: 1,
-
   descripcion: props.venta?.descripcion || '',
+  id_parqueadero: props.venta?.id_parqueadero ? String(props.venta.id_parqueadero) : '',
 })
 
 /** ========= Reglas de cálculo ========= */
@@ -148,11 +130,17 @@ const cuotaSeparacionProyecto = computed(() =>
 const valorTotalInmueble = computed(() => {
   const inm = inmuebleSeparacion.value
   if (!inm) return 0
-
-  // Preferir valor_final si existe (apartamento recalculado), si no valor_total
   const v = Number(inm.valor_final ?? inm.valor_total ?? 0)
   return Number.isFinite(v) ? v : 0
 })
+
+watch(
+  () => form.id_parqueadero,
+  () => {
+    form.valor_total = valorTotalInmueble.value + Number(precioParqueaderoSeleccionado.value || 0)
+    recalcularCuotaInicialYRestante()
+  }
+)
 
 function recalcularCuotaInicialYRestante() {
   const total = Number(form.valor_total || 0)
@@ -168,6 +156,27 @@ function recalcularCuotaInicialYRestante() {
 /** ========= Validación UI ========= */
 const erroresForm = reactive({
   cuota_inicial: '',
+})
+
+const parqueaderosDisponibles = ref([])
+
+watch(
+  () => form.id_proyecto,
+  (pid) => {
+    const id = Number(pid || 0)
+    parqueaderosDisponibles.value = (props.parqueaderos || [])
+      .filter((p) => Number(p.id_proyecto) === id)
+      .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
+  },
+  { immediate: true }
+)
+
+const precioParqueaderoSeleccionado = computed(() => {
+  if (!form.id_parqueadero) return 0
+  const p = parqueaderosDisponibles.value.find(
+    (x) => x.id_parqueadero === Number(form.id_parqueadero)
+  )
+  return p ? Number(p.precio || 0) : 0
 })
 
 watch(
@@ -229,7 +238,7 @@ onMounted(() => {
   form.id_estado_inmueble = estadoVendidoId.value
 
   // Valor total desde inmueble
-  form.valor_total = valorTotalInmueble.value
+  form.valor_total = valorTotalInmueble.value + Number(precioParqueaderoSeleccionado.value || 0)
 
   // Calcular cuota inicial con % del proyecto
   recalcularCuotaInicialYRestante()
@@ -271,6 +280,7 @@ function submit() {
     plazo_cuota_inicial_meses: form.plazo_cuota_inicial_meses,
     frecuencia_cuota_inicial_meses: form.frecuencia_cuota_inicial_meses,
     descripcion: form.descripcion,
+    id_parqueadero: form.id_parqueadero || null,
   })
 }
 
@@ -475,6 +485,25 @@ function submitClienteInline() {
                   <input type="hidden" v-model="form.inmueble_tipo" />
                 </div>
 
+                <div>
+                  <label :class="labelClass()">Parqueadero adicional (opcional)</label>
+                  <select
+                    v-model="form.id_parqueadero"
+                    :disabled="form.inmueble_tipo !== 'apartamento'"
+                    :class="inputClass(false, form.inmueble_tipo !== 'apartamento')"
+                  >
+                    <option value="">Sin parqueadero adicional</option>
+                    <option
+                      v-for="p in parqueaderosDisponibles"
+                      :key="p.id_parqueadero"
+                      :value="String(p.id_parqueadero)"
+                    >
+                      {{ p.numero }} · {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
+                    </option>
+                  </select>
+                  <p :class="hintClass()">Se suma al valor total y recalcula cuota inicial.</p>
+                </div>
+
                 <!-- Forma pago -->
                 <div>
                   <label :class="labelClass()">Forma de pago *</label>
@@ -535,9 +564,9 @@ function submitClienteInline() {
                   <input
                     type="text"
                     :value="formatearMoneda(form.cuota_inicial_raw)"
+                    readonly
                     @input="onCuotaInicialInput($event.target.value)"
                     :class="inputClass(Boolean(erroresForm.cuota_inicial), false)"
-                    placeholder="Ingresa el valor de la cuota inicial"
                   />
                   <p v-if="erroresForm.cuota_inicial" :class="errorClass()">
                     {{ erroresForm.cuota_inicial }}
@@ -681,6 +710,7 @@ function submitClienteInline() {
                 </div>
 
                 <div class="pt-3 border-t border-gray-200">
+                  
                   <div class="flex items-center justify-between">
                     <span class="text-gray-600">Valor total</span>
                     <span class="font-extrabold text-[#1e3a5f]">

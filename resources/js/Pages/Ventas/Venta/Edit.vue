@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted } from 'vue'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/solid'
 import VentasLayout from '@/Components/VentasLayout.vue'
@@ -18,18 +18,15 @@ const props = defineProps({
   estadosInmueble: Array,
   empleados: Array,
   plazos_disponibles: Array,
+  parqueaderos: { type: Array, default: () => [] }, // ✅ nuevo
 })
 
 const plazosDisponibles = ref([])
-
 const inmueblesDisponibles = ref([])
+const parqueaderosDisponibles = ref([])
 
-// ✅ INICIALIZAR CORRECTAMENTE LA FECHA
 const inicializarFecha = (fechaDesdeBD) => {
-  if (fechaDesdeBD) {
-    // Si viene fecha de la BD, formatearla correctamente para el input date
-    return new Date(fechaDesdeBD).toISOString().split('T')[0]
-  }
+  if (fechaDesdeBD) return new Date(fechaDesdeBD).toISOString().split('T')[0]
   return null
 }
 
@@ -45,61 +42,22 @@ const form = useForm({
   id_forma_pago: props.venta.id_forma_pago,
   id_estado_inmueble:
     props.venta.apartamento?.id_estado_inmueble || props.venta.local?.id_estado_inmueble,
-  valor_base: props.venta.valor_base,
+  valor_base: Number(props.venta.valor_base || 0),
   iva: props.venta.iva,
-  valor_total: props.venta.valor_total,
-  cuota_inicial: props.venta.cuota_inicial,
+  valor_total: Number(props.venta.valor_total || 0),
+  id_parqueadero: props.venta.id_parqueadero ? String(props.venta.id_parqueadero) : '', // ✅ nuevo
+  cuota_inicial: Number(props.venta.cuota_inicial || 0),
   cuota_inicial_raw: Number(props.venta.cuota_inicial || 0),
-  valor_restante: props.venta.valor_restante,
+  valor_restante: Number(props.venta.valor_restante || 0),
   descripcion: props.venta.descripcion,
   valor_separacion: props.venta.valor_separacion,
   fecha_limite_separacion: inicializarFecha(props.venta.fecha_limite_separacion),
   plazo_cuota_inicial_meses: props.venta.plazo_cuota_inicial_meses || '',
-})
-
-onMounted(() => {
-  form.valor_total = Number(form.valor_total || 0)
-  form.cuota_inicial = Number(form.cuota_inicial || 0)
-  form.valor_restante = Number(form.valor_restante || 0)
+  frecuencia_cuota_inicial_meses: props.venta.frecuencia_cuota_inicial_meses || 1,
 })
 
 const proyectoSeleccionado = computed(() =>
   props.proyectos.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
-)
-
-// Todas las frecuencias posibles (en meses)
-const frecuenciasDisponibles = [
-  { valor: 1, etiqueta: 'Mensual (cada 1 mes)' },
-  { valor: 2, etiqueta: 'Bimestral' },
-  { valor: 3, etiqueta: 'Trimestral' },
-  { valor: 4, etiqueta: 'Cada 4 meses' },
-  { valor: 6, etiqueta: 'Semestral' },
-  { valor: 12, etiqueta: 'Anual' },
-]
-
-// Opciones válidas para el plazo actual (filtradas por divisibilidad)
-const opcionesFrecuencia = computed(() => {
-  const plazo = Number(form.plazo_cuota_inicial_meses)
-  if (!plazo) return []
-  return frecuenciasDisponibles.filter((f) => plazo % f.valor === 0)
-})
-
-watch(
-  () => form.plazo_cuota_inicial_meses,
-  (nuevoPlazo) => {
-    if (nuevoPlazo) {
-      const plazoNum = Number(nuevoPlazo)
-      const valoresValidos = frecuenciasDisponibles
-        .map((f) => f.valor)
-        .filter((v) => plazoNum % v === 0)
-      if (!valoresValidos.includes(Number(form.frecuencia_cuota_inicial_meses))) {
-        form.frecuencia_cuota_inicial_meses = valoresValidos.length > 0 ? valoresValidos[0] : ''
-      }
-    } else {
-      form.frecuencia_cuota_inicial_meses = ''
-    }
-  },
-  { immediate: true }
 )
 
 function cargarInmueblesDelProyecto(proyectoId) {
@@ -124,240 +82,89 @@ function cargarInmueblesDelProyecto(proyectoId) {
   ]
 }
 
-watch(
-  () => form.tipo_operacion,
-  (tipo) => {
-    if (!proyectoSeleccionado.value) return
+function cargarParqueaderosDelProyecto(proyectoId) {
+  const pid = Number(proyectoId || 0)
+  parqueaderosDisponibles.value = (props.parqueaderos || [])
+    .filter((p) => Number(p.id_proyecto) === pid)
+    .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
+}
 
-    if (tipo === 'venta') {
-      const estado = props.estadosInmueble.find((e) => e.nombre === 'Vendido')
-      if (estado) form.id_estado_inmueble = estado.id_estado_inmueble
-    } else {
-      const estado = props.estadosInmueble.find((e) => e.nombre === 'Separado')
-      if (estado) form.id_estado_inmueble = estado.id_estado_inmueble
-    }
-  }
-)
-
-const erroresLocales = ref({
-  cuota_inicial: '',
-  valor_separacion: '',
-  fecha_limite: '',
+const precioParqueaderoSeleccionado = computed(() => {
+  if (!form.id_parqueadero) return 0
+  const p = parqueaderosDisponibles.value.find(
+    (x) => x.id_parqueadero === Number(form.id_parqueadero)
+  )
+  return p ? Number(p.precio || 0) : 0
 })
 
-watch(
-  () => form.cuota_inicial,
-  (nuevo) => {
-    if (form.tipo_operacion === 'venta') {
-      const total = Number(form.valor_total) || 0
-      const inicial = Number(nuevo) || 0
-      form.valor_restante = total - inicial
-    }
+function recalcularEconomia() {
+  const total = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
+  form.valor_total = total
+
+  if (form.tipo_operacion === 'venta' && proyectoSeleccionado.value) {
+    const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
+    const raw = total * (porcentaje / 100)
+    form.cuota_inicial_raw = raw
+    form.cuota_inicial = raw
+    form.valor_restante = total - raw
+  } else {
+    form.cuota_inicial_raw = 0
+    form.cuota_inicial = 0
+    form.valor_restante = 0
   }
-)
-
-watch(
-  () => form.valor_separacion,
-  (nuevo) => {
-    erroresLocales.value.valor_separacion = ''
-
-    if (form.tipo_operacion !== 'separacion') return
-    if (!proyectoSeleccionado.value) return
-
-    const minimo = proyectoSeleccionado.value.valor_min_separacion
-
-    if (nuevo < minimo) {
-      erroresLocales.value.valor_separacion = `El valor mínimo de separación es ${formatearMoneda(minimo)}`
-    }
-  }
-)
-
-// Fecha mínima = hoy
-const fechaMinimaSeparacion = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
-
-// Fecha máxima = hoy + plazo permitido por el proyecto
-const fechaMaximaSeparacion = computed(() => {
-  if (!proyectoSeleccionado.value) return null
-
-  const dias = Number(proyectoSeleccionado.value.plazo_max_separacion_dias || 0)
-  const fecha = new Date()
-  fecha.setDate(fecha.getDate() + dias)
-  return fecha.toISOString().split('T')[0]
-})
-
-const estadoActualNombre = computed(() => {
-  const estado = props.estadosInmueble.find((e) => e.id_estado_inmueble === form.id_estado_inmueble)
-  return estado ? estado.nombre : '—'
-})
-
-watch(
-  () => form.fecha_limite_separacion,
-  (nuevaFecha) => {
-    erroresLocales.value.fecha_limite = ''
-
-    if (form.tipo_operacion !== 'separacion') return
-    if (!proyectoSeleccionado.value) return
-    if (!nuevaFecha) return
-
-    const diasMax = proyectoSeleccionado.value.plazo_max_separacion_dias
-    if (!diasMax) return
-
-    const fechaVenta = new Date(form.fecha_venta)
-    const fechaLimite = new Date(nuevaFecha)
-
-    const diffMs = fechaLimite.getTime() - fechaVenta.getTime()
-    const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffDias > diasMax) {
-      erroresLocales.value.fecha_limite = `La fecha máxima permitida es ${diasMax} días desde la fecha de venta`
-    }
-  }
-)
-
-onMounted(() => {
-  if (form.id_proyecto) {
-    cargarInmueblesDelProyecto(form.id_proyecto)
-  }
-})
+}
 
 watch(
   () => form.id_proyecto,
   (nuevoProyecto) => {
     if (nuevoProyecto) {
       cargarInmueblesDelProyecto(nuevoProyecto)
+      cargarParqueaderosDelProyecto(nuevoProyecto)
     } else {
       inmueblesDisponibles.value = []
+      parqueaderosDisponibles.value = []
     }
-  }
+  },
+  { immediate: true }
 )
 
 watch(
   () => form.inmueble_id,
   (nuevoInmueble) => {
     const inmueble = inmueblesDisponibles.value.find((i) => i.id === parseInt(nuevoInmueble))
-    if (!inmueble || !proyectoSeleccionado.value) return
+    if (!inmueble) return
 
     form.inmueble_tipo = inmueble.tipo
-    form.valor_total = Number(inmueble.valor || 0)
+    form.valor_base = Number(inmueble.valor || 0)
 
-    if (form.tipo_operacion === 'venta') {
-      const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-      const raw = form.valor_total * (porcentaje / 100)
-
-      form.cuota_inicial_raw = raw
-      form.cuota_inicial = raw
-      form.valor_restante = form.valor_total - raw
-    } else {
-      form.cuota_inicial_raw = 0
-      form.cuota_inicial = 0
-      form.valor_restante = 0
+    if (form.inmueble_tipo !== 'apartamento') {
+      form.id_parqueadero = ''
     }
+
+    recalcularEconomia()
   }
 )
 
 watch(
-  () => form.tipo_operacion,
-  (tipo) => {
-    if (tipo === 'venta') {
-      if (proyectoSeleccionado.value) {
-        const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-        const raw = form.valor_total * (porcentaje / 100)
-
-        form.cuota_inicial_raw = raw
-        form.cuota_inicial = raw
-        form.valor_restante = form.valor_total - raw
-      }
-      form.valor_separacion = 0
-    } else {
-      form.cuota_inicial_raw = 0
-      form.cuota_inicial = 0
-      form.valor_restante = 0
-
-      const minimo = Number(proyectoSeleccionado.value?.valor_min_separacion || 0)
-      form.valor_separacion = minimo
-    }
-  }
-)
-
-watch(
-  () => form.cuota_inicial_raw,
+  () => form.id_parqueadero,
   () => {
-    if (form.tipo_operacion === 'venta') {
-      const total = Number(form.valor_total) || 0
-      const inicial = Number(form.cuota_inicial_raw) || 0
-      form.valor_restante = total - inicial
-    }
-  }
-)
-
-watch(
-  () => form.tipo_operacion,
-  (tipo) => {
-    if (!proyectoSeleccionado.value) return
-
-    if (tipo === 'separacion') {
-      // Precargar el valor mínimo de separación del proyecto
-      const minimo = Number(proyectoSeleccionado.value.valor_min_separacion || 0)
-      form.valor_separacion = minimo
-
-      // Limpiar campos de venta
-      form.cuota_inicial = 0
-      form.valor_restante = 0
-    } else if (tipo === 'venta') {
-      // Recalcular cuota inicial y valor restante
-      const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-      form.cuota_inicial = porcentaje ? form.valor_total * (porcentaje / 100) : 0
-      form.valor_restante = form.valor_total - form.cuota_inicial
-
-      // Limpiar separación
-      form.valor_separacion = 0
-      form.fecha_limite_separacion = null
-    }
-  }
-)
-
-onMounted(() => {
-  if (form.tipo_operacion === 'separacion' && proyectoSeleccionado.value) {
-    const minimo = Number(proyectoSeleccionado.value.valor_min_separacion || 0)
-    form.valor_separacion = minimo
-  }
-})
-
-watch(
-  () => form.id_proyecto,
-  (nuevoProyecto) => {
-    const p = proyectoSeleccionado.value
-    if (!p) {
-      plazosDisponibles.value = []
+    if (form.inmueble_tipo !== 'apartamento') {
+      form.id_parqueadero = ''
       return
     }
-
-    const plazos = calcularPlazosProyecto(p)
-    plazosDisponibles.value = plazos
-
-    // Si el valor guardado ya no existe, lo mantenemos visible
-    if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
-      plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
-    }
-  },
-  { immediate: true }
+    recalcularEconomia()
+  }
 )
 
-const camposCompletos = computed(
-  () =>
-    form.documento_cliente &&
-    form.id_proyecto &&
-    form.inmueble_id &&
-    form.id_forma_pago &&
-    form.id_estado_inmueble
+watch(
+  () => form.tipo_operacion,
+  () => recalcularEconomia()
 )
 
 function formatearMoneda(valor) {
   if (valor === null || valor === undefined || valor === '') return ''
   const num = Number(valor)
-  const redondeado = Math.ceil(num) // Redondea hacia arriba al entero más cercano
+  const redondeado = Math.ceil(num)
   return redondeado.toLocaleString('es-CO', {
     style: 'currency',
     currency: 'COP',
@@ -368,25 +175,6 @@ function formatearMoneda(valor) {
 function parseMoneda(valorStr) {
   if (!valorStr) return 0
   return Number(valorStr.replace(/\./g, '').replace(/[^0-9]/g, ''))
-}
-
-function calcularPlazosProyecto(proyecto) {
-  if (!proyecto) return []
-
-  const inicio = proyecto.fecha_inicio
-  const plazoTotal = proyecto.plazo_cuota_inicial_meses
-
-  if (!inicio || !plazoTotal) return []
-
-  const start = new Date(inicio)
-  const now = new Date()
-
-  const diffMonths =
-    (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
-
-  const plazosRestantes = Math.max(plazoTotal - diffMonths, 0)
-
-  return Array.from({ length: plazosRestantes }, (_, i) => i + 1)
 }
 
 function onCuotaInicialInput(value) {
@@ -401,28 +189,18 @@ function onCuotaInicialInput(value) {
   }
 }
 
+const camposCompletos = computed(
+  () =>
+    form.documento_cliente &&
+    form.id_proyecto &&
+    form.inmueble_id &&
+    form.id_forma_pago &&
+    form.id_estado_inmueble
+)
+
 function submit() {
-  console.log('🔍 DEBUG - Datos antes de enviar:')
-  console.log('Plazo cuota inicial meses:', form.plazo_cuota_inicial_meses)
-  console.log('Cuota inicial raw:', form.cuota_inicial_raw)
-  console.log('Todos los datos:', { ...form })
-
-  // ✅ SOLUCIÓN: Asignar directamente y usar put
   form.cuota_inicial = form.cuota_inicial_raw
-
-  form.put(`/ventas/${props.venta.id_venta}`, {
-    onError: (errors) => {
-      console.log('❌ Errores del servidor:', errors)
-      // Mostrar errores al usuario
-      if (errors.plazo_cuota_inicial_meses) {
-        alert('Error en plazo: ' + errors.plazo_cuota_inicial_meses)
-      }
-    },
-    onSuccess: () => {
-      console.log('✅ Venta actualizada exitosamente')
-      console.log('Plazo guardado:', form.plazo_cuota_inicial_meses)
-    },
-  })
+  form.put(`/ventas/${props.venta.id_venta}`)
 }
 </script>
 
@@ -444,7 +222,6 @@ function submit() {
       class="bg-white rounded-xl shadow p-6 space-y-6 border border-gray-200"
     >
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Tipo de operación -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Operación</label>
           <select v-model="form.tipo_operacion" class="w-full border-gray-300 rounded-lg shadow-sm">
@@ -453,7 +230,6 @@ function submit() {
           </select>
         </div>
 
-        <!-- Cliente -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
           <select
@@ -466,7 +242,6 @@ function submit() {
           </select>
         </div>
 
-        <!-- Empleado (no editable) -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Empleado</label>
           <input
@@ -477,7 +252,6 @@ function submit() {
           />
         </div>
 
-        <!-- Proyecto -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Proyecto</label>
           <select v-model="form.id_proyecto" class="w-full border-gray-300 rounded-lg shadow-sm">
@@ -487,7 +261,6 @@ function submit() {
           </select>
         </div>
 
-        <!-- Inmueble -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Inmueble</label>
           <select
@@ -510,7 +283,28 @@ function submit() {
           </div>
         </div>
 
-        <!-- Forma Pago -->
+        <!-- ✅ Parqueadero adicional -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Parqueadero adicional (opcional)</label
+          >
+          <select
+            v-model="form.id_parqueadero"
+            :disabled="!form.id_proyecto || form.inmueble_tipo !== 'apartamento'"
+            class="w-full border-gray-300 rounded-lg shadow-sm"
+          >
+            <option value="">Sin parqueadero adicional</option>
+            <option
+              v-for="p in parqueaderosDisponibles"
+              :key="p.id_parqueadero"
+              :value="String(p.id_parqueadero)"
+            >
+              {{ p.numero }} · {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
+            </option>
+          </select>
+          <p class="text-xs text-gray-500 mt-1">Solo aplica para apartamentos.</p>
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Forma de Pago</label>
           <select v-model="form.id_forma_pago" class="w-full border-gray-300 rounded-lg shadow-sm">
@@ -520,28 +314,12 @@ function submit() {
           </select>
         </div>
 
-        <!-- Estado -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Estado del Inmueble *</label>
-          <input
-            type="text"
-            :value="estadoActualNombre"
-            readonly
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        <!-- Bloque económico / separación -->
         <template v-if="form.tipo_operacion === 'venta'">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Valor Total</label>
             <input
               type="text"
-              :value="
-                form.valor_total
-                  ? `$${parseFloat(form.valor_total).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                  : '-'
-              "
+              :value="form.valor_total ? formatearMoneda(form.valor_total) : '-'"
               readonly
               class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
             />
@@ -555,17 +333,12 @@ function submit() {
               @input="onCuotaInicialInput($event.target.value)"
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
-            <p v-if="erroresLocales.cuota_inicial" class="text-red-600 text-sm mt-1">
-              {{ erroresLocales.cuota_inicial }}
-            </p>
           </div>
 
-          <!-- Plazo cuota inicial -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Plazo Cuota Inicial (meses)
-            </label>
-
+            <label class="block text-sm font-medium text-gray-700 mb-1"
+              >Plazo Cuota Inicial (meses)</label
+            >
             <select
               v-model="form.plazo_cuota_inicial_meses"
               class="w-full border-gray-300 rounded-lg shadow-sm"
@@ -581,11 +354,7 @@ function submit() {
             <label class="block text-sm font-medium text-gray-700 mb-1">Valor Restante</label>
             <input
               type="text"
-              :value="
-                form.valor_total
-                  ? `$${parseFloat(form.valor_restante).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-                  : '-'
-              "
+              :value="form.valor_total ? formatearMoneda(form.valor_restante) : '-'"
               readonly
               class="w-full border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-semibold"
             />
@@ -598,16 +367,9 @@ function submit() {
             <input
               type="text"
               :value="formatearMoneda(form.valor_separacion)"
-              @input="
-                (e) => {
-                  form.valor_separacion = parseMoneda(e.target.value)
-                }
-              "
+              @input="(e) => (form.valor_separacion = parseMoneda(e.target.value))"
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
-            <p v-if="erroresLocales.valor_separacion" class="text-red-600 text-sm mt-1">
-              {{ erroresLocales.valor_separacion }}
-            </p>
           </div>
 
           <div>
@@ -617,18 +379,12 @@ function submit() {
             <input
               type="date"
               v-model="form.fecha_limite_separacion"
-              :min="fechaMinimaSeparacion"
-              :max="fechaMaximaSeparacion"
               class="w-full border-gray-300 rounded-lg shadow-sm"
             />
-            <p v-if="erroresLocales.fecha_limite" class="text-red-600 text-sm mt-1">
-              {{ erroresLocales.fecha_limite }}
-            </p>
           </div>
         </template>
       </div>
 
-      <!-- Descripción -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
         <textarea

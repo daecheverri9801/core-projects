@@ -256,6 +256,7 @@ async function exportVentaPDF() {
           `${safe(v.apartamento?.tipo_apartamento?.area_privada || v.apartamento?.tipoApartamento?.area_privada)} m²`,
         ],
         ['Parqueadero', parqueaderoTexto],
+        ['Parqueadero adicional', v.parqueadero ? 'Sí' : 'No'],
       ]
     : [
         ['Tipo', 'Local Comercial'],
@@ -273,6 +274,8 @@ async function exportVentaPDF() {
   const valorRestante = Number(v.valor_restante || Math.max(0, valorTotal - cuotaInicial) || 0)
 
   const desglose = [
+    ['Valor apartamento', formatMoney(v.valor_base)],
+    ['Valor parqueadero', formatMoney(v.parqueadero?.precio)],
     ['Valor total', formatMoney(valorTotal)],
     ['Cuota inicial', formatMoney(cuotaInicial)],
     ['Valor Cuota Mensual', formatMoney(cuotaMensual)],
@@ -619,6 +622,17 @@ async function exportVentaPDF() {
               <span class="text-gray-600">Parqueadero</span>
               <span class="font-semibold text-gray-900">{{ parqueaderoInfo.texto }}</span>
             </div>
+
+            <div class="flex justify-between bg-gray-50 rounded-lg px-4 py-3">
+              <span class="text-gray-600">Parqueadero Adicional</span>
+              <div v-if="venta?.parqueadero" class="mt-2 text-sm text-gray-900">
+                <span class="font-semibold text-gray-900">
+                  {{ venta.parqueadero.tipo }}
+                </span>
+              </div>
+
+              <div v-else class="mt-2 text-sm text-gray-500">No aplica.</div>
+            </div>
           </div>
         </div>
 
@@ -626,6 +640,16 @@ async function exportVentaPDF() {
           <h2 class="text-lg font-bold text-gray-900 mb-3">Desglose Económico</h2>
 
           <ul class="space-y-2">
+            <li class="flex justify-between text-gray-700">
+              <span>Valor Apartamento:</span>
+              <span class="font-semibold">{{ formatCurrency(venta.valor_base) }}</span>
+            </li>
+
+            <li class="flex justify-between text-gray-700">
+              <span>Valor Parqueadero:</span>
+              <span class="font-semibold">{{ formatCurrency(venta.parqueadero.precio) }}</span>
+            </li>
+
             <li class="flex justify-between text-gray-700">
               <span>Valor Total:</span>
               <span class="font-semibold">{{ formatCurrency(venta.valor_total) }}</span>
@@ -683,10 +707,6 @@ async function exportVentaPDF() {
               <span>{{ formatDate(venta.fecha_limite_separacion) }}</span>
             </li>
           </ul>
-
-          <p v-if="cuotasPlan.length" class="text-xs text-gray-500 mt-3">
-            Datos de cuotas tomados del plan de amortización (#{{ plan?.id_plan ?? '—' }}).
-          </p>
         </div>
 
         <div v-if="venta.descripcion" class="pt-4 border-t border-gray-200">

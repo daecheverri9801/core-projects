@@ -39,6 +39,7 @@ class Venta extends Model
         'valor_separacion',
         'fecha_limite_separacion',
         'frecuencia_cuota_inicial_meses',
+        'id_parqueadero',
     ];
 
     protected $casts = [
@@ -98,6 +99,11 @@ class Venta extends Model
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'id_venta', 'id_venta');
+    }
+
+    public function parqueadero()
+    {
+        return $this->belongsTo(Parqueadero::class, 'id_parqueadero', 'id_parqueadero');
     }
 
     // Helpers

@@ -11,6 +11,7 @@ use App\Models\Local;
 use App\Models\Proyecto;
 use App\Models\FormaPago;
 use App\Models\EstadoInmueble;
+use App\Models\Parqueadero;
 use App\Services\VentaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,11 +19,10 @@ use Illuminate\Support\Facades\DB;
 
 class VentaAdminController extends Controller
 {
-
     public function __construct(
         protected VentaService $ventaService
     ) {}
-    
+
     /* ===========================================================
      *  INDEX
      * =========================================================== */
@@ -32,21 +32,20 @@ class VentaAdminController extends Controller
         $empleado = $request->user()->load('cargo');
         $proyecto = Proyecto::first();
 
-        $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
+        $ventasActivas = $proyecto
+            ? Venta::where('id_proyecto', $proyecto->id_proyecto)
             ->whereIn('tipo_operacion', ['venta', 'separacion'])
-            ->count();
+            ->count()
+            : 0;
 
         // PriceEngine
         $pe = new \App\Services\PriceEngine();
-        $peBloque = $pe->obtenerBloqueActual($proyecto);
-        $peFactor = $pe->calcularFactorAumento($proyecto, $peBloque);
-        $pePoliticas = $proyecto->politicasPrecio()->get()->toArray();
+        $peBloque = $proyecto ? $pe->obtenerBloqueActual($proyecto) : null;
+        $peFactor = $proyecto ? $pe->calcularFactorAumento($proyecto, $peBloque) : null;
+        $pePoliticas = $proyecto ? $proyecto->politicasPrecio()->get()->toArray() : [];
 
-        // ProyectoPricingService
-        $pps = new \App\Services\ProyectoPricingService();
-        $bloque = $peBloque;
-        $factor = $peFactor;
-        $politicas = $proyecto->politicasPrecio()->get();
+        // ProyectoPricingService (debug)
+        $politicas = $proyecto ? $proyecto->politicasPrecio()->get() : collect();
 
         $ventas = Venta::with([
             'cliente',
@@ -55,17 +54,18 @@ class VentaAdminController extends Controller
             'local.estadoInmueble',
             'proyecto',
             'formaPago',
+            'parqueadero', // ✅ nuevo
         ])->orderBy('fecha_venta', 'desc')->get();
 
         return Inertia::render('Admin/Ventas/Index', [
             'empleado' => $empleado,
             'ventas' => $ventas,
-            // Debug ProyectoPricingService
+
             'debug_proyecto' => [
                 'nombre' => $proyecto->nombre ?? null,
                 'ventas_activas' => $ventasActivas ?? null,
-                'bloque_actual' => $bloque ?? null,
-                'factor' => $factor ?? null,
+                'bloque_actual' => $peBloque ?? null,
+                'factor' => $peFactor ?? null,
                 'politicas' => $politicas->map(function ($p) {
                     return [
                         'id' => $p->id_politica_precio,
@@ -76,14 +76,12 @@ class VentaAdminController extends Controller
                 }),
             ],
 
-            // Debug PriceEngine
             'debug_priceengine' => [
                 'bloque' => $peBloque ?? null,
                 'factor' => $peFactor ?? null,
                 'politicas' => $pePoliticas ?? null,
             ],
 
-            // Debug VentaService (solo si hubo venta)
             'debug_venta' => session('debug_venta', null),
         ]);
     }
@@ -98,7 +96,6 @@ class VentaAdminController extends Controller
         $clientes = Cliente::orderBy('nombre')->get();
         $empleados = Empleado::orderBy('nombre')->get();
 
-        // Solo disponibles
         $apartamentos = Apartamento::with(['torre.proyecto', 'estadoInmueble'])
             ->whereHas('estadoInmueble', fn($q) => $q->where('nombre', 'Disponible'))
             ->get();
@@ -111,11 +108,25 @@ class VentaAdminController extends Controller
         $formasPago = FormaPago::orderBy('forma_pago')->get();
         $estadosInmueble = EstadoInmueble::orderBy('nombre')->get();
 
+        // ✅ Parqueaderos adicionales disponibles:
+        // - adicionales: id_apartamento NULL
+        // - y no reservados por otra operación (ventas.id_parqueadero)
+        $parqueaderos = Parqueadero::query()
+            ->select('id_parqueadero', 'numero', 'tipo', 'id_proyecto', 'id_torre', 'precio')
+            ->whereNull('id_apartamento')
+            ->whereNotIn('id_parqueadero', function ($q) {
+                $q->select('id_parqueadero')
+                    ->from('ventas')
+                    ->whereNotNull('id_parqueadero')
+                    ->whereIn('tipo_operacion', ['venta', 'separacion']);
+            })
+            ->orderBy('numero')
+            ->get();
+
         $inmueblePrecargado = null;
         $tipo = null;
 
         if ($request->has('inmueble_tipo') && $request->has('inmueble_id')) {
-
             $tipo = $request->inmueble_tipo;
 
             if ($tipo === 'apartamento') {
@@ -125,30 +136,9 @@ class VentaAdminController extends Controller
                 $inmueblePrecargado = Local::with(['torre.proyecto', 'estadoInmueble'])
                     ->find($request->inmueble_id);
             }
-
-            // if ($inmueblePrecargado) {
-
-            //     // Validar bloqueo previo
-            //     $bloqueado = BloqueoInmueble::where('id_inmueble', $request->inmueble_id)
-            //         ->where('inmueble_tipo', $tipo)
-            //         ->whereNull('released_at')
-            //         ->where('expires_at', '>', now())
-            //         ->first();
-
-            //     if ($bloqueado && $bloqueado->id_empleado !== auth()->user()->empleado) {
-            //         return back()->withErrors([
-            //             'inmueble' => 'El inmueble está siendo operado por otro asesor.'
-            //         ]);
-            //     }
-
-            //     // Congelar
-            //     $this->congelarInmueble($inmueblePrecargado, $tipo, auth()->user()->empleado);
-            // }
         }
 
-
         $plazos = [];
-
         if ($inmueblePrecargado) {
             $proyecto = $inmueblePrecargado->torre->proyecto;
             $plazos = $this->calcularPlazosDisponibles($proyecto);
@@ -163,10 +153,10 @@ class VentaAdminController extends Controller
             'proyectos' => $proyectos,
             'formasPago' => $formasPago,
             'estadosInmueble' => $estadosInmueble,
+            'parqueaderos' => $parqueaderos, // ✅ nuevo
             'inmueblePrecargado' => $inmueblePrecargado,
             'plazos_disponibles' => $plazos,
 
-            // DEBUG directo para Vue
             'debug_plazos' => [
                 'proyectos' => $proyectos->map(fn($p) => [
                     'id' => $p->id_proyecto,
@@ -180,7 +170,6 @@ class VentaAdminController extends Controller
 
     private function calcularPlazosDisponibles(Proyecto $proyecto)
     {
-
         if (!$proyecto->fecha_inicio || !$proyecto->plazo_cuota_inicial_meses) {
             return [];
         }
@@ -214,10 +203,10 @@ class VentaAdminController extends Controller
                 'inmueble_id'       => 'required|integer',
 
                 'id_forma_pago'     => 'required|exists:formas_pago,id_forma_pago',
-
-                // Nota: el service decide el estado final del inmueble (Vendido/Separado).
-                // Puedes dejarlo opcional si no quieres enviarlo desde el front.
                 'id_estado_inmueble' => 'nullable|exists:estados_inmueble,id_estado_inmueble',
+
+                // ✅ Parqueadero adicional opcional
+                'id_parqueadero'    => 'nullable|exists:parqueaderos,id_parqueadero',
 
                 'cuota_inicial'     => 'nullable|numeric|min:0',
                 'valor_separacion'  => 'nullable|numeric|min:0',
@@ -231,7 +220,6 @@ class VentaAdminController extends Controller
                 'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
             ]);
 
-            // Defaults coherentes
             if (($validated['tipo_operacion'] ?? null) === 'venta') {
                 $validated['frecuencia_cuota_inicial_meses'] = (int)($validated['frecuencia_cuota_inicial_meses'] ?? 1);
             } else {
@@ -240,20 +228,17 @@ class VentaAdminController extends Controller
                 $validated['cuota_inicial'] = null;
             }
 
-            // Si no quieres manejar estados desde el front:
-            // $validated['id_estado_inmueble'] = null;
-
-            // Delegar al servicio (genera plan, cambia estado inmueble, recalcula precios)
+            // ✅ Delegar al service (recalcula valor_total = inmueble + parqueadero y asigna parqueadero.id_apartamento)
             $venta = $this->ventaService->crearOperacion($validated);
 
             return redirect()
-                ->route('admin.ventas.index', $venta->id_venta)
+                ->route('admin.ventas.index')
                 ->with('success', 'Operación registrada exitosamente.');
         });
     }
 
     /* ===========================================================
-     *  EDIT / UPDATE
+     *  EDIT
      * =========================================================== */
 
     public function edit(Request $request, $id)
@@ -265,6 +250,36 @@ class VentaAdminController extends Controller
         $proyecto = $venta->proyecto;
         $plazos = $this->calcularPlazosDisponibles($proyecto);
 
+        // ✅ Parqueaderos para edit:
+        // - libres (id_apartamento NULL)
+        // - o el parqueadero actual de la venta (aunque ya tenga id_apartamento)
+        // - y no reservados por otras ventas/separaciones (excluye esta venta)
+        $idParqueaderoActual = $venta->id_parqueadero;
+
+        $parqueaderos = Parqueadero::query()
+            ->select('id_parqueadero', 'numero', 'tipo', 'id_proyecto', 'id_torre', 'precio')
+            ->where(function ($q) use ($idParqueaderoActual) {
+                $q->whereNull('id_apartamento');
+                if ($idParqueaderoActual) {
+                    $q->orWhere('id_parqueadero', $idParqueaderoActual);
+                }
+            })
+            ->where(function ($q) use ($venta, $idParqueaderoActual) {
+                $q->whereNotIn('id_parqueadero', function ($sq) use ($venta) {
+                    $sq->select('id_parqueadero')
+                        ->from('ventas')
+                        ->whereNotNull('id_parqueadero')
+                        ->whereIn('tipo_operacion', ['venta', 'separacion'])
+                        ->where('id_venta', '!=', $venta->id_venta);
+                });
+
+                if ($idParqueaderoActual) {
+                    $q->orWhere('id_parqueadero', $idParqueaderoActual);
+                }
+            })
+            ->orderBy('numero')
+            ->get();
+
         return Inertia::render('Admin/Ventas/Edit', [
             'venta' => $venta,
             'clientes' => Cliente::all(),
@@ -274,20 +289,26 @@ class VentaAdminController extends Controller
             'proyectos' => Proyecto::all(),
             'formasPago' => FormaPago::all(),
             'estadosInmueble' => EstadoInmueble::all(),
+            'parqueaderos' => $parqueaderos, // ✅ nuevo
             'plazos_disponibles' => $plazos,
             'empleado' => $empleado,
         ]);
     }
 
+    /* ===========================================================
+     *  UPDATE
+     * =========================================================== */
+
     public function update(Request $request, $id)
     {
         return DB::transaction(function () use ($request, $id) {
 
-            $venta = Venta::findOrFail($id);
+            $venta = Venta::lockForUpdate()->findOrFail($id);
 
-            /* --------------------
-         *  VALIDACIÓN COMPLETA
-         * -------------------- */
+            // Guardar estado anterior para liberar/asignar parqueadero.id_apartamento
+            $oldParqueaderoId = $venta->id_parqueadero ? (int)$venta->id_parqueadero : null;
+            $oldApartamentoId = $venta->id_apartamento ? (int)$venta->id_apartamento : null;
+
             $validated = $request->validate([
                 'tipo_operacion'    => 'required|in:venta,separacion',
                 'id_empleado'       => 'required|exists:empleados,id_empleado',
@@ -298,77 +319,144 @@ class VentaAdminController extends Controller
                 'inmueble_id'       => 'required|integer',
                 'id_forma_pago'     => 'required|exists:formas_pago,id_forma_pago',
                 'id_estado_inmueble' => 'required|exists:estados_inmueble,id_estado_inmueble',
+
+                // ✅ Parqueadero adicional opcional
+                'id_parqueadero'    => 'nullable|exists:parqueaderos,id_parqueadero',
+
                 'valor_total'       => 'nullable|numeric|min:0',
                 'cuota_inicial'     => 'nullable|numeric|min:0',
                 'valor_restante'    => 'nullable|numeric|min:0',
                 'descripcion'       => 'nullable|string|max:300',
                 'valor_separacion'  => 'nullable|numeric|min:0',
                 'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
-                'plazo_cuota_inicial_meses' => 'nullable|integer|min:0', // ✅ CAMBIAR a nullable
+                'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
                 'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
             ]);
 
-            // ✅ DEBUG: Verificar qué datos llegan
-            \Log::info('Actualizando venta ID: ' . $id, [
-                'plazo_cuota_inicial_meses' => $request->plazo_cuota_inicial_meses,
-                'todos_los_datos' => $request->all()
-            ]);
-
-            /* --------------------
-         *  RESOLVER INMUEBLE NUEVO
-         * -------------------- */
+            // Resolver inmueble nuevo (lock)
             $tipo = $validated['inmueble_tipo'];
 
             if ($tipo === 'apartamento') {
-                $nuevo = Apartamento::with('torre.proyecto')->findOrFail($validated['inmueble_id']);
+                $nuevo = Apartamento::with('torre.proyecto')->lockForUpdate()->findOrFail($validated['inmueble_id']);
                 $validated['id_apartamento'] = $nuevo->id_apartamento;
                 $validated['id_local'] = null;
             } else {
-                $nuevo = Local::with('torre.proyecto')->findOrFail($validated['inmueble_id']);
+                $nuevo = Local::with('torre.proyecto')->lockForUpdate()->findOrFail($validated['inmueble_id']);
                 $validated['id_local'] = $nuevo->id_local;
                 $validated['id_apartamento'] = null;
+
+                // No se permite parqueadero en local
+                $validated['id_parqueadero'] = null;
             }
 
             unset($validated['inmueble_tipo'], $validated['inmueble_id']);
 
-            /* --------------------
-         *  DEFINIR ESTADO SEGÚN TIPO DE OPERACIÓN
-         * -------------------- */
-            $estadoDestino = $validated['tipo_operacion'] === 'venta'
-                ? 'Vendido'
-                : 'Separado';
-
-            $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)
-                ->value('id_estado_inmueble');
-
-            // ✅ Asegurar que el estado del inmueble sea el correcto
+            // Estado destino según operación
+            $estadoDestino = $validated['tipo_operacion'] === 'venta' ? 'Vendido' : 'Separado';
+            $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)->value('id_estado_inmueble');
             $validated['id_estado_inmueble'] = $idEstadoDestino;
 
-            /* --------------------
-         *  ACTUALIZAR VENTA
-         * -------------------- */
-            // ✅ El plazo ya viene en $validated por la validación
+            // Validación y cálculo de parqueadero
+            $idParqueadero = $validated['id_parqueadero'] ?? null;
+            $precioParqueadero = 0.0;
+
+            if (!empty($idParqueadero)) {
+                if (!$validated['id_apartamento']) {
+                    throw new \RuntimeException('El parqueadero adicional solo aplica para apartamentos.');
+                }
+
+                $p = Parqueadero::where('id_parqueadero', $idParqueadero)->lockForUpdate()->firstOrFail();
+
+                // ✅ Permitir: libre (null) o asignado al MISMO apto de esta operación
+                if (!empty($p->id_apartamento) && (int)$p->id_apartamento !== (int)$validated['id_apartamento']) {
+                    throw new \RuntimeException('El parqueadero ya está asignado a otro apartamento.');
+                }
+
+                if (!empty($p->id_proyecto) && (int)$p->id_proyecto !== (int)$validated['id_proyecto']) {
+                    throw new \RuntimeException('El parqueadero no pertenece al proyecto.');
+                }
+
+                // Debe estar libre en otras operaciones
+                $ocupado = Venta::whereNotNull('id_parqueadero')
+                    ->where('id_parqueadero', $idParqueadero)
+                    ->where('id_venta', '!=', $venta->id_venta)
+                    ->whereIn('tipo_operacion', ['venta', 'separacion'])
+                    ->exists();
+
+                if ($ocupado) {
+                    throw new \RuntimeException('El parqueadero ya fue reservado en otra operación.');
+                }
+
+                $precioParqueadero = (float)($p->precio ?? 0);
+            }
+
+            // Recalcular valores backend
+            $valorBaseInmueble = (float)($nuevo->valor_final ?? $nuevo->valor_total ?? 0);
+            $validated['valor_base'] = $valorBaseInmueble;
+            $validated['valor_total'] = $valorBaseInmueble + $precioParqueadero;
+
+            if ($validated['tipo_operacion'] === 'venta') {
+                $validated['frecuencia_cuota_inicial_meses'] = (int)($validated['frecuencia_cuota_inicial_meses'] ?? 1);
+                $validated['valor_restante'] = max(0, (float)$validated['valor_total'] - (float)($validated['cuota_inicial'] ?? 0));
+            } else {
+                $validated['frecuencia_cuota_inicial_meses'] = null;
+                $validated['plazo_cuota_inicial_meses'] = null;
+                $validated['cuota_inicial'] = null;
+                $validated['valor_restante'] = null;
+            }
+
+            // Actualizar venta
             $venta->update($validated);
+            $venta->refresh();
 
-            /* --------------------
-         *  ACTUALIZAR EL INMUEBLE
-         * -------------------- */
-            $nuevo->update([
-                'id_estado_inmueble' => $idEstadoDestino
-            ]);
+            // Actualizar inmueble estado
+            $nuevo->update(['id_estado_inmueble' => $idEstadoDestino]);
 
-            /* --------------------
-         *  RECALCULAR PRECIOS DE BLOQUES
-         * -------------------- */
-            app(\App\Services\PriceEngine::class)
-                ->recalcularProyectoPorVenta($venta);
+            // ===== Asignar/Liberar parqueadero.id_apartamento =====
+            $newParqueaderoId = $venta->id_parqueadero ? (int)$venta->id_parqueadero : null;
+            $newApartamentoId = $venta->id_apartamento ? (int)$venta->id_apartamento : null;
+
+            // Si cambió o se quitó, liberar anterior
+            if ($oldParqueaderoId && $oldParqueaderoId !== $newParqueaderoId) {
+                Parqueadero::where('id_parqueadero', $oldParqueaderoId)
+                    ->when($oldApartamentoId, fn($q) => $q->where('id_apartamento', $oldApartamentoId))
+                    ->update(['id_apartamento' => null]);
+            }
+
+            // Si hay parqueadero actual, asignarlo al apartamento (idempotente)
+            if ($newParqueaderoId && $newApartamentoId) {
+                Parqueadero::where('id_parqueadero', $newParqueaderoId)
+                    ->where(function ($q) use ($newApartamentoId) {
+                        $q->whereNull('id_apartamento')
+                            ->orWhere('id_apartamento', $newApartamentoId);
+                    })
+                    ->update(['id_apartamento' => $newApartamentoId]);
+            }
+
+            // Seguridad: si quedó como local, limpiar parqueadero
+            if (!$venta->id_apartamento && $newParqueaderoId) {
+                Parqueadero::where('id_parqueadero', $newParqueaderoId)->update(['id_apartamento' => null]);
+                $venta->update(['id_parqueadero' => null]);
+            }
+
+            // Regenerar plan si es venta
+            if ($venta->tipo_operacion === 'venta') {
+                $plan = $venta->planAmortizacion;
+                if ($plan) {
+                    $plan->cuotas()->delete();
+                    $plan->delete();
+                }
+                app(\App\Services\VentaService::class)->regenerarPlanCuotaInicial($venta);
+            }
+
+            // Recalcular precios
+            app(\App\Services\PriceEngine::class)->recalcularProyectoPorVenta($venta);
 
             return redirect()
                 ->route('admin.ventas.index')
                 ->with('success', 'Operación actualizada correctamente.');
         });
     }
-
 
     /* ===========================================================
      *  DESTROY
@@ -378,10 +466,16 @@ class VentaAdminController extends Controller
     {
         return DB::transaction(function () use ($id) {
 
-            $venta = Venta::findOrFail($id);
+            $venta = Venta::lockForUpdate()->findOrFail($id);
 
-            // Identificar proyecto asociado ANTES de borrar la venta
             $proyectoAsociado = Proyecto::find($venta->id_proyecto);
+
+            // ✅ Liberar parqueadero adicional (si estaba asignado a este apto)
+            if ($venta->id_parqueadero) {
+                Parqueadero::where('id_parqueadero', (int)$venta->id_parqueadero)
+                    ->when($venta->id_apartamento, fn($q) => $q->where('id_apartamento', (int)$venta->id_apartamento))
+                    ->update(['id_apartamento' => null]);
+            }
 
             // Liberar inmueble
             if ($venta->id_apartamento) {
@@ -398,10 +492,8 @@ class VentaAdminController extends Controller
 
             $venta->delete();
 
-            // Recalcular precios tras reversión del bloque
             if ($proyectoAsociado) {
-                app(\App\Services\PriceEngine::class)
-                    ->recalcularProyecto($proyectoAsociado);
+                app(\App\Services\PriceEngine::class)->recalcularProyecto($proyectoAsociado);
             }
 
             return redirect()
@@ -410,68 +502,145 @@ class VentaAdminController extends Controller
         });
     }
 
+    /* ===========================================================
+     *  SEPARACIÓN: CANCELAR
+     * =========================================================== */
+
     public function cancelarSeparacion($id)
     {
-        $venta = Venta::with(['apartamento', 'local'])->findOrFail($id);
+        return DB::transaction(function () use ($id) {
 
-        if (!$venta->esSeparacion()) {
-            return back()->withErrors(['operacion' => 'Esta operación no es una separación.']);
-        }
+            $venta = Venta::with(['apartamento', 'local'])->lockForUpdate()->findOrFail($id);
 
-        $inmueble = $venta->id_apartamento ? $venta->apartamento : $venta->local;
-        $proyecto = Proyecto::find($venta->id_proyecto);
+            if (!$venta->esSeparacion()) {
+                return back()->withErrors(['operacion' => 'Esta operación no es una separación.']);
+            }
 
-        // Liberar
-        $estadoDisponible = EstadoInmueble::where('nombre', 'Disponible')->first();
+            $inmueble = $venta->id_apartamento ? $venta->apartamento : $venta->local;
+            $proyecto = Proyecto::find($venta->id_proyecto);
 
-        $inmueble->update([
-            'id_estado_inmueble' => $estadoDisponible->id_estado_inmueble
-        ]);
+            // ✅ Liberar parqueadero adicional (si estaba asignado a este apto)
+            if ($venta->id_parqueadero) {
+                Parqueadero::where('id_parqueadero', (int)$venta->id_parqueadero)
+                    ->when($venta->id_apartamento, fn($q) => $q->where('id_apartamento', (int)$venta->id_apartamento))
+                    ->update(['id_apartamento' => null]);
+            }
 
-        // Eliminar separación
-        $venta->delete();
+            // Liberar inmueble
+            $estadoDisponible = EstadoInmueble::where('nombre', 'Disponible')->first();
 
-        // Recalcular bloque/precios
-        if ($proyecto) {
-            app(\App\Services\PriceEngine::class)->recalcularProyecto($proyecto);
-        }
+            if ($inmueble && $estadoDisponible) {
+                $inmueble->update([
+                    'id_estado_inmueble' => $estadoDisponible->id_estado_inmueble
+                ]);
+            }
 
-        return back()->with('success', 'Separación cancelada correctamente.');
+            // Eliminar separación
+            $venta->delete();
+
+            // Recalcular bloque/precios
+            if ($proyecto) {
+                app(\App\Services\PriceEngine::class)->recalcularProyecto($proyecto);
+            }
+
+            return back()->with('success', 'Separación cancelada correctamente.');
+        });
     }
+
+    /* ===========================================================
+     *  CONVERTIR SEPARACIÓN A VENTA (ADMIN - rápido)
+     *  - Mantiene parqueadero (si existe)
+     *  - Recalcula total (inmueble + parqueadero)
+     *  - Regenera plan cuota inicial
+     * =========================================================== */
 
     public function convertirEnVenta($id)
     {
-        $venta = Venta::with(['apartamento', 'local'])->findOrFail($id);
+        return DB::transaction(function () use ($id) {
 
-        if (!$venta->esSeparacion()) {
-            return back()->withErrors(['operacion' => 'Esta operación no es una separación.']);
-        }
+            $venta = Venta::with(['apartamento', 'local'])->lockForUpdate()->findOrFail($id);
 
-        $proyecto = Proyecto::find($venta->id_proyecto);
-        $inmueble = $venta->id_apartamento ? $venta->apartamento : $venta->local;
+            if (!$venta->esSeparacion()) {
+                return back()->withErrors(['operacion' => 'Esta operación no es una separación.']);
+            }
 
-        $estadoVendido = EstadoInmueble::where('nombre', 'Vendido')->first();
+            $proyecto = Proyecto::findOrFail($venta->id_proyecto);
+            $inmueble = $venta->id_apartamento ? $venta->apartamento : $venta->local;
 
-        $inmueble->update([
-            'id_estado_inmueble' => $estadoVendido->id_estado_inmueble
-        ]);
+            if (!$inmueble) {
+                return back()->withErrors(['operacion' => 'No se encontró el inmueble asociado.']);
+            }
 
-        // Convertir tipo de operación
-        $venta->update([
-            'tipo_operacion' => 'venta',
-            'cuota_inicial' => $venta->valor_separacion,
-            'valor_separacion' => null,
-        ]);
+            $idEstadoVendido = EstadoInmueble::where('nombre', 'Vendido')->value('id_estado_inmueble');
+            if (!$idEstadoVendido) {
+                return back()->withErrors(['operacion' => 'No existe el estado "Vendido".']);
+            }
 
-        // Recalcular precios del proyecto
-        if ($proyecto) {
-            app(\App\Services\PriceEngine::class)
-                ->recalcularProyecto($proyecto);
-        }
+            // Total = valor inmueble + parqueadero (si existe)
+            $valorBase = (float)($inmueble->valor_final ?? $inmueble->valor_total ?? 0);
+            $precioParq = 0.0;
 
-        return redirect()
-            ->route('admin.ventas.index')
-            ->with('success', 'La separación ahora es una venta.');
+            if ($venta->id_parqueadero && $venta->id_apartamento) {
+                $p = Parqueadero::where('id_parqueadero', (int)$venta->id_parqueadero)->lockForUpdate()->first();
+
+                if ($p) {
+                    // permitir libre o asignado al mismo apto
+                    if (!empty($p->id_apartamento) && (int)$p->id_apartamento !== (int)$venta->id_apartamento) {
+                        return back()->withErrors(['operacion' => 'El parqueadero ya está asignado a otro apartamento.']);
+                    }
+                    $precioParq = (float)($p->precio ?? 0);
+                }
+            }
+
+            $valorTotal = $valorBase + $precioParq;
+
+            // Cuota inicial = lo pagado como separación
+            $cuotaInicial = (float)($venta->valor_separacion ?? 0);
+
+            // Validar reglas del proyecto con el total real
+            app(\App\Services\VentaService::class)->validarVenta([
+                'tipo_operacion' => 'venta',
+                'valor_total' => $valorTotal,
+                'cuota_inicial' => $cuotaInicial,
+                'plazo_cuota_inicial_meses' => (int)($venta->plazo_cuota_inicial_meses ?? 1),
+                'frecuencia_cuota_inicial_meses' => (int)($venta->frecuencia_cuota_inicial_meses ?? 1),
+            ], $proyecto);
+
+            $venta->update([
+                'tipo_operacion' => 'venta',
+                'fecha_venta' => now()->toDateString(),
+                'cuota_inicial' => $cuotaInicial,
+                'valor_base' => $valorBase,
+                'valor_total' => $valorTotal,
+                'valor_restante' => max(0, $valorTotal - $cuotaInicial),
+                'valor_separacion' => null,
+                'fecha_limite_separacion' => null,
+                'id_estado_inmueble' => $idEstadoVendido,
+            ]);
+
+            // Asegurar parqueadero.id_apartamento (si aplica)
+            if ($venta->id_parqueadero && $venta->id_apartamento) {
+                Parqueadero::where('id_parqueadero', (int)$venta->id_parqueadero)
+                    ->where(function ($q) use ($venta) {
+                        $q->whereNull('id_apartamento')
+                            ->orWhere('id_apartamento', (int)$venta->id_apartamento);
+                    })
+                    ->update(['id_apartamento' => (int)$venta->id_apartamento]);
+            }
+
+            // Actualizar inmueble a Vendido
+            $inmueble->update(['id_estado_inmueble' => $idEstadoVendido]);
+
+            // Regenerar plan cuota inicial
+            app(\App\Services\VentaService::class)->regenerarPlanCuotaInicial($venta);
+
+            // Recalcular precios del proyecto
+            app(\App\Services\PriceEngine::class)->recalcularProyecto($proyecto);
+
+            return redirect()
+                ->route('admin.ventas.index')
+                ->with('success', 'La separación ahora es una venta.');
+        });
     }
 
     public function getPlazosDisponibles(Proyecto $proyecto)

@@ -1,4 +1,4 @@
-<!-- resources/js/Pages/Ventas/Edit.vue -->
+<!-- resources/js/Pages/Admin/Ventas/Edit.vue -->
 <script setup>
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -35,10 +35,14 @@ const props = defineProps({
   estadosInmueble: Array,
   empleados: Array,
   plazos_disponibles: Array,
+
+  // ✅ nuevo: parqueaderos disponibles + actual (viene del controller)
+  parqueaderos: { type: Array, default: () => [] },
 })
 
 const plazosDisponibles = ref([])
 const inmueblesDisponibles = ref([])
+const parqueaderosDisponibles = ref([])
 
 const inicializarFecha = (fechaDesdeBD) => {
   if (!fechaDesdeBD) return null
@@ -57,14 +61,21 @@ const form = useForm({
   id_forma_pago: props.venta?.id_forma_pago,
   id_estado_inmueble:
     props.venta?.apartamento?.id_estado_inmueble || props.venta?.local?.id_estado_inmueble,
-  valor_base: props.venta?.valor_base,
-  iva: props.venta?.iva,
-  valor_total: props.venta?.valor_total,
-  cuota_inicial: props.venta?.cuota_inicial,
+
+  // valores (backend recalcula al guardar, pero UI los muestra)
+  valor_base: Number(props.venta?.valor_base || 0),
+  iva: Number(props.venta?.iva || 0),
+  valor_total: Number(props.venta?.valor_total || 0),
+
+  // ✅ parqueadero adicional
+  id_parqueadero: props.venta?.id_parqueadero ? String(props.venta.id_parqueadero) : '',
+
+  cuota_inicial: Number(props.venta?.cuota_inicial || 0),
   cuota_inicial_raw: Number(props.venta?.cuota_inicial || 0),
-  valor_restante: props.venta?.valor_restante,
+  valor_restante: Number(props.venta?.valor_restante || 0),
+
   descripcion: props.venta?.descripcion,
-  valor_separacion: props.venta?.valor_separacion,
+  valor_separacion: Number(props.venta?.valor_separacion || 0),
   fecha_limite_separacion: inicializarFecha(props.venta?.fecha_limite_separacion),
   plazo_cuota_inicial_meses: props.venta?.plazo_cuota_inicial_meses || '',
   frecuencia_cuota_inicial_meses: props.venta?.frecuencia_cuota_inicial_meses ?? '',
@@ -101,14 +112,6 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
-  form.valor_total = Number(form.valor_total || 0)
-  form.cuota_inicial = Number(form.cuota_inicial || 0)
-  form.valor_restante = Number(form.valor_restante || 0)
-
-  if (form.id_proyecto) cargarInmueblesDelProyecto(form.id_proyecto)
-})
-
 const proyectoSeleccionado = computed(() =>
   props.proyectos?.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
 )
@@ -135,22 +138,67 @@ function cargarInmueblesDelProyecto(proyectoId) {
   ]
 }
 
+function cargarParqueaderosDelProyecto(proyectoId) {
+  const pid = Number(proyectoId || 0)
+  parqueaderosDisponibles.value = (props.parqueaderos || [])
+    .filter((p) => Number(p.id_proyecto) === pid)
+    .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
+}
+
+const precioParqueaderoSeleccionado = computed(() => {
+  if (!form.id_parqueadero) return 0
+  const p = parqueaderosDisponibles.value.find(
+    (x) => Number(x.id_parqueadero) === Number(form.id_parqueadero)
+  )
+  return p ? Number(p.precio || 0) : 0
+})
+
+// ✅ recalcular totales en UI (el backend también recalcula)
+function recalcularEconomia() {
+  const total = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
+  form.valor_total = total
+
+  if (form.tipo_operacion === 'venta' && proyectoSeleccionado.value) {
+    const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
+    const raw = total * (porcentaje / 100)
+    form.cuota_inicial_raw = raw
+    form.cuota_inicial = raw
+    form.valor_restante = total - raw
+  } else {
+    form.cuota_inicial_raw = 0
+    form.cuota_inicial = 0
+    form.valor_restante = 0
+  }
+}
+
+onMounted(() => {
+  // Plazos
+  const p = proyectoSeleccionado.value
+  if (p) {
+    const plazos = calcularPlazosProyecto(p)
+    plazosDisponibles.value = plazos
+    if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
+      plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
+    }
+  }
+
+  if (form.id_proyecto) {
+    cargarInmueblesDelProyecto(form.id_proyecto)
+    cargarParqueaderosDelProyecto(form.id_proyecto)
+  }
+
+  // Si venía valor_base vacío, inicializar con el inmueble actual (si existe en lista)
+  const inm = inmueblesDisponibles.value.find((i) => i.id === parseInt(form.inmueble_id))
+  if (inm) form.valor_base = Number(inm.valor || 0)
+
+  recalcularEconomia()
+})
+
 const erroresLocales = ref({
   cuota_inicial: '',
   valor_separacion: '',
   fecha_limite: '',
 })
-
-watch(
-  () => form.cuota_inicial,
-  (nuevo) => {
-    if (form.tipo_operacion === 'venta') {
-      const total = Number(form.valor_total) || 0
-      const inicial = Number(nuevo) || 0
-      form.valor_restante = total - inicial
-    }
-  }
-)
 
 watch(
   () => form.valor_separacion,
@@ -211,8 +259,13 @@ watch(
 watch(
   () => form.id_proyecto,
   (nuevoProyecto) => {
-    if (nuevoProyecto) cargarInmueblesDelProyecto(nuevoProyecto)
-    else inmueblesDisponibles.value = []
+    if (nuevoProyecto) {
+      cargarInmueblesDelProyecto(nuevoProyecto)
+      cargarParqueaderosDelProyecto(nuevoProyecto)
+    } else {
+      inmueblesDisponibles.value = []
+      parqueaderosDisponibles.value = []
+    }
   }
 )
 
@@ -223,19 +276,26 @@ watch(
     if (!inmueble || !proyectoSeleccionado.value) return
 
     form.inmueble_tipo = inmueble.tipo
-    form.valor_total = Number(inmueble.valor || 0)
+    form.valor_base = Number(inmueble.valor || 0)
 
-    if (form.tipo_operacion === 'venta') {
-      const porcentaje = parseFloat(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-      const raw = form.valor_total * (porcentaje / 100)
-      form.cuota_inicial_raw = raw
-      form.cuota_inicial = raw
-      form.valor_restante = form.valor_total - raw
-    } else {
-      form.cuota_inicial_raw = 0
-      form.cuota_inicial = 0
-      form.valor_restante = 0
+    // Si no es apartamento, no permitir parqueadero adicional
+    if (form.inmueble_tipo !== 'apartamento') {
+      form.id_parqueadero = ''
     }
+
+    recalcularEconomia()
+  }
+)
+
+// ✅ parqueadero cambia → recalcular total
+watch(
+  () => form.id_parqueadero,
+  () => {
+    if (form.inmueble_tipo !== 'apartamento') {
+      form.id_parqueadero = ''
+      return
+    }
+    recalcularEconomia()
   }
 )
 
@@ -248,11 +308,8 @@ watch(
       const estado = (props.estadosInmueble || []).find((e) => e.nombre === 'Vendido')
       if (estado) form.id_estado_inmueble = estado.id_estado_inmueble
 
-      const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-      const raw = porcentaje ? form.valor_total * (porcentaje / 100) : 0
-      form.cuota_inicial_raw = raw
-      form.cuota_inicial = raw
-      form.valor_restante = Number(form.valor_total || 0) - raw
+      // Recalcular con total actual (incluye parqueadero si aplica)
+      recalcularEconomia()
 
       form.valor_separacion = 0
       form.fecha_limite_separacion = null
@@ -260,6 +317,7 @@ watch(
       const estado = (props.estadosInmueble || []).find((e) => e.nombre === 'Separado')
       if (estado) form.id_estado_inmueble = estado.id_estado_inmueble
 
+      // En separación, no hay cuota inicial/restante
       form.cuota_inicial_raw = 0
       form.cuota_inicial = 0
       form.valor_restante = 0
@@ -318,7 +376,11 @@ function formatearMoneda(valor) {
 
 function parseMoneda(valorStr) {
   if (!valorStr) return 0
-  return Number(valorStr.replace(/\./g, '').replace(/[^0-9]/g, ''))
+  return Number(
+    String(valorStr)
+      .replace(/\./g, '')
+      .replace(/[^0-9]/g, '')
+  )
 }
 
 function calcularPlazosProyecto(proyecto) {
@@ -349,6 +411,9 @@ function onCuotaInicialInput(value) {
 
 function submit() {
   form.cuota_inicial = form.cuota_inicial_raw
+
+  // Enviar null si no hay parqueadero
+  if (!form.id_parqueadero) form.id_parqueadero = ''
 
   form.put(`/admin/ventas/${props.venta.id_venta}`, {
     preserveScroll: true,
@@ -382,12 +447,9 @@ function submit() {
         </template>
       </PageHeader>
 
-      <!-- FORM -->
       <AppCard padding="md">
         <form @submit.prevent="submit" class="space-y-6">
-          <!-- Grid principal -->
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <!-- Tipo operación -->
             <div class="md:col-span-3">
               <FormField label="Tipo de operación">
                 <SelectInput v-model="form.tipo_operacion">
@@ -397,7 +459,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Cliente -->
             <div class="md:col-span-5">
               <FormField label="Cliente">
                 <SelectInput v-model="form.documento_cliente">
@@ -408,7 +469,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Empleado -->
             <div class="md:col-span-4">
               <FormField label="Empleado">
                 <div class="relative">
@@ -425,7 +485,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Proyecto -->
             <div class="md:col-span-6">
               <FormField label="Proyecto">
                 <div class="relative">
@@ -442,7 +501,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Inmueble -->
             <div class="md:col-span-6">
               <FormField label="Inmueble">
                 <div class="relative">
@@ -471,7 +529,29 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Forma Pago -->
+            <!-- ✅ Parqueadero adicional (opcional) -->
+            <div class="md:col-span-6">
+              <FormField label="Parqueadero adicional (opcional)">
+                <SelectInput
+                  v-model="form.id_parqueadero"
+                  :disabled="!form.id_proyecto || form.inmueble_tipo !== 'apartamento'"
+                >
+                  <option value="">Sin parqueadero adicional</option>
+                  <option
+                    v-for="p in parqueaderosDisponibles"
+                    :key="p.id_parqueadero"
+                    :value="String(p.id_parqueadero)"
+                  >
+                    {{ p.numero }} · {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
+                  </option>
+                </SelectInput>
+                <template #hint>
+                  Solo aplica para apartamentos. Se suma al valor total y recalcula cuota
+                  inicial/restante.
+                </template>
+              </FormField>
+            </div>
+
             <div class="md:col-span-6">
               <FormField label="Forma de pago">
                 <div class="relative">
@@ -492,7 +572,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- Estado inmueble -->
             <div class="md:col-span-6">
               <FormField label="Estado del inmueble">
                 <input
@@ -504,7 +583,6 @@ function submit() {
               </FormField>
             </div>
 
-            <!-- BLOQUE: VENTA -->
             <template v-if="form.tipo_operacion === 'venta'">
               <div class="md:col-span-4">
                 <FormField label="Valor total">
@@ -588,7 +666,6 @@ function submit() {
               </div>
             </template>
 
-            <!-- BLOQUE: SEPARACIÓN -->
             <template v-else>
               <div class="md:col-span-6">
                 <FormField label="Valor de separación" :error="erroresLocales.valor_separacion">
@@ -639,7 +716,6 @@ function submit() {
               </div>
             </template>
 
-            <!-- Descripción -->
             <div class="md:col-span-12">
               <FormField label="Descripción">
                 <div class="relative">
@@ -655,7 +731,6 @@ function submit() {
             </div>
           </div>
 
-          <!-- Footer acciones -->
           <div
             class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t pt-5"
           >

@@ -7,6 +7,7 @@ use App\Models\Apartamento;
 use App\Models\Local;
 use App\Models\Proyecto;
 use App\Models\EstadoInmueble;
+use App\Models\Parqueadero;
 use App\Models\PlanAmortizacionVenta;
 use App\Models\PlanAmortizacionCuota;
 use App\Services\ProyectoPricingService;
@@ -18,51 +19,97 @@ class VentaService
     public function __construct(
         protected ProyectoPricingService $pricingService
     ) {}
+
     public function crearOperacion(array $data): Venta
     {
         return DB::transaction(function () use ($data) {
 
-            // 1. Cargar proyecto
-            /** @var \App\Models\Proyecto $proyecto */
+            /** @var Proyecto $proyecto */
             $proyecto = Proyecto::findOrFail($data['id_proyecto']);
 
-            // 2. Resolver inmueble
+            // 1) Resolver inmueble con lock
             if ($data['inmueble_tipo'] === 'apartamento') {
-                $queryInmueble = Apartamento::where('id_apartamento', $data['inmueble_id'])
-                    ->lockForUpdate();
+                $queryInmueble = Apartamento::where('id_apartamento', $data['inmueble_id'])->lockForUpdate();
             } else {
-                $queryInmueble = Local::where('id_local', $data['inmueble_id'])
-                    ->lockForUpdate();
+                $queryInmueble = Local::where('id_local', $data['inmueble_id'])->lockForUpdate();
             }
 
             $inmueble = $queryInmueble->firstOrFail();
 
-            // 3. Verificar que siga disponible
-            $estadoDisponibleId = EstadoInmueble::where('nombre', 'Disponible')
-                ->value('id_estado_inmueble');
-
+            // 2) Verificar disponible
+            $estadoDisponibleId = EstadoInmueble::where('nombre', 'Disponible')->value('id_estado_inmueble');
             if ($inmueble->id_estado_inmueble !== $estadoDisponibleId) {
                 throw new \RuntimeException('El inmueble ya no está disponible.');
             }
 
-            // 4. Validaciones por tipo de operación
+            // 3) Parqueadero adicional (opcional) - validar y reservar
+            $idParqueadero = $data['id_parqueadero'] ?? null;
+            $parqueadero = null;
+
+            if (!empty($idParqueadero)) {
+                if ($data['inmueble_tipo'] !== 'apartamento') {
+                    throw new \RuntimeException('El parqueadero adicional solo aplica para apartamentos.');
+                }
+
+                $parqueadero = Parqueadero::where('id_parqueadero', $idParqueadero)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                // Debe ser adicional
+                if (!empty($parqueadero->id_apartamento)) {
+                    throw new \RuntimeException('El parqueadero seleccionado no es adicional (está asignado a un apartamento).');
+                }
+
+                // Debe pertenecer al proyecto
+                if (!empty($parqueadero->id_proyecto) && (int)$parqueadero->id_proyecto !== (int)$proyecto->id_proyecto) {
+                    throw new \RuntimeException('El parqueadero no pertenece al proyecto seleccionado.');
+                }
+
+                // Debe estar libre (no asignado a otra venta/separación)
+                $ocupado = Venta::whereNotNull('id_parqueadero')
+                    ->where('id_parqueadero', $idParqueadero)
+                    ->whereIn('tipo_operacion', ['venta', 'separacion'])
+                    ->exists();
+
+                if ($ocupado) {
+                    throw new \RuntimeException('El parqueadero ya fue reservado en otra operación.');
+                }
+            }
+
+            // 4) Calcular valores (backend manda)
+            $valorBaseInmueble = (float)($inmueble->valor_final ?? $inmueble->valor_total ?? 0);
+            $precioParqueadero = $parqueadero ? (float)($parqueadero->precio ?? 0) : 0.0;
+
+            $data['valor_base'] = $valorBaseInmueble;
+            $data['valor_total'] = $valorBaseInmueble + $precioParqueadero;
+
+            // Recalcular restante si es venta
+            if (($data['tipo_operacion'] ?? null) === 'venta') {
+                $cuotaInicial = (float)($data['cuota_inicial'] ?? 0);
+                $data['valor_restante'] = max(0, $data['valor_total'] - $cuotaInicial);
+            }
+
+            // 5) Validaciones de negocio
             if ($data['tipo_operacion'] === 'venta') {
                 $this->validarVenta($data, $proyecto);
             } elseif ($data['tipo_operacion'] === 'separacion') {
                 $this->validarSeparacion($data, $proyecto);
             }
 
-            // 5. Mapear IDs de inmueble
+            // 6) Mapear IDs inmueble
             if ($data['inmueble_tipo'] === 'apartamento') {
                 $data['id_apartamento'] = $data['inmueble_id'];
                 $data['id_local'] = null;
             } else {
                 $data['id_local'] = $data['inmueble_id'];
                 $data['id_apartamento'] = null;
+                // por seguridad, no permitir parqueadero en local
+                $data['id_parqueadero'] = null;
             }
 
             unset($data['inmueble_tipo'], $data['inmueble_id']);
 
+            // 7) Evitar duplicidad por inmueble
             $existeOperacion = Venta::whereIn('tipo_operacion', ['venta', 'separacion'])
                 ->when($data['id_apartamento'] ?? null, fn($q) => $q->where('id_apartamento', $data['id_apartamento']))
                 ->when($data['id_local'] ?? null, fn($q) => $q->where('id_local', $data['id_local']))
@@ -72,34 +119,36 @@ class VentaService
                 throw new \RuntimeException('Ya existe una operación para este inmueble.');
             }
 
-            // 6. Crear venta/separación
-            /** @var \App\Models\Venta $venta */
+            // 8) Crear operación
+            /** @var Venta $venta */
             $venta = Venta::create($data);
 
-            // 7. Actualizar estado del inmueble
-            $estadoDestino = $data['tipo_operacion'] === 'venta'
-                ? 'Vendido'
-                : 'Separado';
+            // ✅ Si hay parqueadero adicional y es apartamento, asignarlo al apartamento
+            $this->asignarParqueaderoAApartamento(
+                $venta->id_parqueadero ? (int)$venta->id_parqueadero : null,
+                $venta->id_apartamento ? (int)$venta->id_apartamento : null
+            );
 
-            $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)
-                ->value('id_estado_inmueble');
-
+            // 9) Actualizar estado del inmueble
+            $estadoDestino = $data['tipo_operacion'] === 'venta' ? 'Vendido' : 'Separado';
+            $idEstadoDestino = EstadoInmueble::where('nombre', $estadoDestino)->value('id_estado_inmueble');
             $inmueble->update(['id_estado_inmueble' => $idEstadoDestino]);
 
-            // 8. Si es venta → generar plan de amortización
+            // 10) Si es venta → plan cuota inicial
             if ($data['tipo_operacion'] === 'venta') {
                 $this->generarPlanCuotaInicial($venta, $proyecto);
             }
 
-            // 9. Recalcular precios de inmuebles disponibles del proyecto según políticas
+            // 11) Recalcular precios de proyecto
             app(\App\Services\PriceEngine::class)->recalcularProyecto($proyecto);
 
             session([
                 'debug_venta' => [
                     'tipo' => $data['tipo_operacion'],
+                    'valor_base' => $data['valor_base'] ?? null,
+                    'parqueadero' => $precioParqueadero,
                     'valor_total' => $data['valor_total'] ?? null,
                     'cuota_inicial' => $data['cuota_inicial'] ?? null,
-                    'valor_final' => $inmueble->valor_final ?? null,
                     'estado_inmueble' => $estadoDestino ?? null,
                 ]
             ]);
@@ -139,7 +188,6 @@ class VentaService
         $valorSep = (float)($data['valor_separacion'] ?? 0);
         $fechaLimite = $data['fecha_limite_separacion'] ?? null;
 
-        // Validar valor
         if ($valorSep < $proyecto->valor_min_separacion) {
             throw new \Illuminate\Validation\ValidationException(
                 validator: validator([], []),
@@ -149,10 +197,8 @@ class VentaService
             );
         }
 
-        // Validar fecha límite
         if ($fechaLimite) {
             $maxDias = (int)$proyecto->plazo_max_separacion_dias;
-
             $fechaMax = now()->addDays($maxDias)->toDateString();
 
             if ($fechaLimite > $fechaMax) {
@@ -178,7 +224,6 @@ class VentaService
 
         $fechaInicio = $venta->fecha_venta ?? now();
 
-        // número de pagos según frecuencia (ej: 12 meses cada 3 => 4 pagos)
         $numPagos = (int) ceil($plazo / $frecuencia);
         if ($numPagos < 1) $numPagos = 1;
 
@@ -197,7 +242,6 @@ class VentaService
         for ($i = 1; $i <= $numPagos; $i++) {
             $valorCuota = $cuotaBase;
 
-            // última cuota absorbe residuo
             if ($i === $numPagos) {
                 $valorCuota += $residuo;
             }
@@ -206,7 +250,6 @@ class VentaService
             $saldo = $monto - $pagadoHastaAhora - $valorCuota;
             $saldo = max($saldo, 0);
 
-            // vencimientos: 0, frecuencia, 2*frecuencia, ...
             $mesOffset = ($i - 1) * $frecuencia;
 
             PlanAmortizacionCuota::create([
@@ -234,5 +277,23 @@ class VentaService
         }
 
         $this->generarPlanCuotaInicial($venta, $proyecto);
+    }
+
+    public function asignarParqueaderoAApartamento(?int $idParqueadero, ?int $idApartamento): void
+    {
+        if (!$idParqueadero || !$idApartamento) return;
+
+        Parqueadero::where('id_parqueadero', $idParqueadero)
+            ->whereNull('id_apartamento')
+            ->update(['id_apartamento' => $idApartamento]);
+    }
+
+    public function liberarParqueaderoDeApartamento(?int $idParqueadero, ?int $idApartamento): void
+    {
+        if (!$idParqueadero) return;
+
+        Parqueadero::where('id_parqueadero', $idParqueadero)
+            ->when($idApartamento, fn($q) => $q->where('id_apartamento', $idApartamento))
+            ->update(['id_apartamento' => null]);
     }
 }
