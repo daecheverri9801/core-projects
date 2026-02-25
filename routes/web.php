@@ -40,6 +40,8 @@ use App\Http\Controllers\Ventas\SimuladorWebController;
 use App\Http\Controllers\Gerencia\GerenciaDashboardWebController;
 use App\Http\Controllers\Gerencia\MetasController;
 use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
+use App\Http\Controllers\Ventas\MetasDashboardController;
+
 
 use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
 
@@ -397,6 +399,8 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
 
     Route::put('/ventas/{id}/convertir', [VentaWebController::class, 'convertirStore'])
         ->name('ventas.convertir');
+
+    Route::get('/metas', [MetasDashboardController::class, 'index'])->name('ventas.metas.index');
 });
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {

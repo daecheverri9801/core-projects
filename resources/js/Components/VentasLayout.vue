@@ -133,6 +133,7 @@ import {
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
   Squares2X2Icon,
+  ChartBarIcon,
 } from '@heroicons/vue/24/outline'
 
 // useIdleTimer(10)
@@ -197,10 +198,15 @@ const modulos = [
   //   href: '/plan-amortizacion-cuota',
   //   icon: ClipboardDocumentListIcon,
   // },
+  // {
+  //   name: 'Pagos',
+  //   href: '/pagos',
+  //   icon: CreditCardIcon,
+  // },
   {
-    name: 'Pagos',
-    href: '/pagos',
-    icon: CreditCardIcon,
+    name: 'Metas',
+    href: '/metas',
+    icon: ChartBarIcon,
   },
 ]
 

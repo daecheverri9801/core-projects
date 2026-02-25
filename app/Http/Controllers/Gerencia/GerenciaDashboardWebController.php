@@ -26,9 +26,10 @@ class GerenciaDashboardWebController extends Controller
             'estado_inmueble' => $request->query('estado_inmueble'),
         ];
 
-        $cargo = Cargo::where('nombre', 'Asesora Comercial')->first();
+        $cargo = Cargo::whereIn('nombre',  ['Directora Comercial', 'Asesora Comercial'])->get();
 
-        $Mempleados = $cargo ? Empleado::where('id_cargo', $cargo->id_cargo)
+        $Mempleados = $cargo->isNotEmpty()
+            ? Empleado::whereIn('id_cargo', $cargo->pluck('id_cargo'))
             ->select('id_empleado', 'nombre', 'apellido')
             ->get() : collect();
 

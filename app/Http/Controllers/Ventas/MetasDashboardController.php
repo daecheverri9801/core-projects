@@ -1,66 +1,55 @@
 <?php
 
-namespace App\Http\Controllers\Gerencia;
+namespace App\Http\Controllers\Ventas;
 
 use App\Http\Controllers\Controller;
 use App\Models\Meta;
 use App\Models\Proyecto;
-use App\Models\Empleado;
 use App\Models\Venta;
-use App\Models\Cargo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 
-
-class MetasController extends Controller
+class MetasDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $cargo = Cargo::whereIn('nombre',  ['Directora Comercial', 'Asesora Comercial'])->get();
+        $empleado = $request->user()->load('cargo');
+
         $ano = (int)($request->query('ano', now()->year));
         $mesDesde = (int)($request->query('mes_desde', 1));
         $mesHasta = (int)($request->query('mes_hasta', 12));
         $fProyecto = $request->query('id_proyecto', null);
-        $fEmpleado = $request->query('id_empleado', null);
 
         $proyectos = Proyecto::select('id_proyecto', 'nombre')->orderBy('nombre')->get();
-        $empleados = $cargo->isNotEmpty()
-            ? Empleado::whereIn('id_cargo', $cargo->pluck('id_cargo'))
-            ->select('id_empleado', 'nombre', 'apellido')
-            ->get()
-            : collect();
 
         $metasQuery = Meta::with(['proyecto', 'empleado'])
             ->where('ano', $ano)
-            ->whereBetween('mes', [$mesDesde, $mesHasta]);
+            ->whereBetween('mes', [$mesDesde, $mesHasta])
+            ->where(function ($q) use ($empleado) {
+                $q->whereNull('id_empleado')
+                    ->orWhere('id_empleado', $empleado->id_empleado);
+            });
 
         if ($fProyecto) {
             $metasQuery->where('id_proyecto', $fProyecto);
-        }
-        if ($fEmpleado) {
-            $metasQuery->where('id_empleado', $fEmpleado);
         }
 
         $metas = $metasQuery->get();
 
         $ventasQuery = Venta::selectRaw('
-        id_proyecto,
-        id_empleado,
-        EXTRACT(MONTH FROM fecha_venta)::int as mes,
-        EXTRACT(YEAR FROM fecha_venta)::int as ano,
-        COUNT(*) as unidades,
-        SUM(valor_total) as valor_total
-    ')
+                id_proyecto,
+                id_empleado,
+                EXTRACT(MONTH FROM fecha_venta)::int as mes,
+                EXTRACT(YEAR FROM fecha_venta)::int as ano,
+                COUNT(*) as unidades,
+                SUM(valor_total) as valor_total
+            ')
             ->whereRaw('EXTRACT(YEAR FROM fecha_venta) = ?', [$ano])
             ->whereRaw('EXTRACT(MONTH FROM fecha_venta) BETWEEN ? AND ?', [$mesDesde, $mesHasta])
             ->where('tipo_operacion', 'venta');
 
         if ($fProyecto) {
             $ventasQuery->where('id_proyecto', $fProyecto);
-        }
-        if ($fEmpleado) {
-            $ventasQuery->where('id_empleado', $fEmpleado);
         }
 
         $ventasAgg = $ventasQuery
@@ -77,27 +66,23 @@ class MetasController extends Controller
         }
 
         $metasEnriquecidas = $metas->map(function (Meta $m) use ($resultadosIndex) {
-            // Claves: Proyecto | Mes | Año | Asesor opcional
             $keyBase = $m->id_proyecto . '|' . $m->mes . '|' . $m->ano;
 
-            // Si la meta es por asesor → buscar ventas del asesor
             if (!empty($m->id_empleado)) {
+                // Meta por asesor (solo ese asesor)
                 $key = $keyBase . '|' . $m->id_empleado;
                 $res = $resultadosIndex[$key] ?? ['unidades' => 0, 'valor_total' => 0];
             } else {
                 // Meta de equipo → sumar todas las ventas del proyecto
                 $res = ['unidades' => 0, 'valor_total' => 0];
-
                 foreach ($resultadosIndex as $k => $v) {
                     [$pId, $mes, $ano, $empId] = explode('|', $k);
-
                     if ($pId == $m->id_proyecto && $mes == $m->mes && $ano == $m->ano) {
                         $res['unidades'] += $v['unidades'];
                         $res['valor_total'] += $v['valor_total'];
                     }
                 }
             }
-
 
             $metaValor = (float)($m->meta_valor ?? 0);
             $metaUnidades = (int)($m->meta_unidades ?? 0);
@@ -179,82 +164,19 @@ class MetasController extends Controller
             ->sortBy('empleado')
             ->values();
 
-        return Inertia::render('Gerencia/Metas/Index', [
+        return Inertia::render('Ventas/Metas/Index', [
             'metas' => $metasEnriquecidas,
             'alertas' => $alertas,
             'resumenProyecto' => $resumenProyecto,
             'resumenAsesor' => $resumenAsesor,
             'proyectos' => $proyectos,
-            'empleados' => $empleados,
             'filtros' => [
                 'ano' => $ano,
                 'mes_desde' => $mesDesde,
                 'mes_hasta' => $mesHasta,
                 'id_proyecto' => $fProyecto,
-                'id_empleado' => $fEmpleado,
             ],
+            'empleado' => $empleado,
         ]);
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'tipo' => 'required',
-            'mes' => 'required|integer|min:1|max:12',
-            'ano' => 'required|integer|min:2020|max:2050',
-            'meta_valor' => 'nullable|numeric|min:0',
-            'meta_unidades' => 'nullable|integer|min:0',
-            'id_proyecto' => 'nullable',
-            'id_empleado' => 'nullable|exists:empleados,id_empleado',
-        ]);
-
-        Meta::create($validated);
-
-        return back()->with('success', 'Meta creada correctamente');
-    }
-
-    public function edit($id)
-    {
-        $cargo = Cargo::whereIn('nombre',  ['Directora Comercial', 'Asesora Comercial'])->get();
-        $meta = Meta::with(['proyecto', 'empleado'])->findOrFail($id);
-
-        $empleados = $cargo->isNotEmpty()
-            ? Empleado::whereIn('id_cargo', $cargo->pluck('id_cargo'))
-            ->select('id_empleado', 'nombre', 'apellido')
-            ->get()
-            : collect();
-
-        return Inertia::render('Gerencia/Metas/Edit', [
-            'meta' => $meta,
-            'proyectos' => Proyecto::select('id_proyecto', 'nombre')->get(),
-            'empleados' => $empleados,
-        ]);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $meta = Meta::findOrFail($id);
-
-        $validated = $request->validate([
-            'tipo' => 'required',
-            'mes' => 'required|integer|min:1|max:12',
-            'ano' => 'required|integer|min:2020|max:2050',
-            'meta_valor' => 'nullable|numeric|min:0',
-            'meta_unidades' => 'nullable|integer|min:0',
-            'id_proyecto' => 'nullable|exists:proyectos,id_proyecto',
-            'id_empleado' => 'nullable|exists:empleados,id_empleado',
-        ]);
-
-        $meta->update($validated);
-
-        return redirect()
-            ->route('gerencia.metas.index')
-            ->with('success', 'Meta actualizada correctamente');
-    }
-
-    public function destroy($id)
-    {
-        Meta::findOrFail($id)->delete();
-        return back()->with('success', 'Meta eliminada');
     }
 }
