@@ -23,20 +23,7 @@ import {
 const props = defineProps({
   ventas: { type: Array, default: () => [] },
   empleado: Object,
-
-  // DEBUG
-  debug_proyecto: Object,
-  debug_priceengine: Object,
-  debug_venta: Object,
 })
-
-/** ===== DEBUG (toggle) ===== */
-const debugEnabled = true // pon true si lo necesitas
-const debug = {
-  proyecto: props.debug_proyecto,
-  pe: props.debug_priceengine,
-  venta: props.debug_venta,
-}
 
 /** ===== Utils ===== */
 function formatMoney(v) {
@@ -56,6 +43,15 @@ function formatDate(date) {
   })
 }
 
+function formatDate1(date) {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('es-CO', {
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit'
+  }).replace(/\//g, '/') // Esto mantiene el formato dd/mm/aaaa
+}
+
 function getInmuebleLabel(venta) {
   if (venta?.apartamento) return `Apto ${venta.apartamento.numero}`
   if (venta?.local) return `Local ${venta.local.numero}`
@@ -66,8 +62,8 @@ function getInmuebleLabel(venta) {
 const q = ref('')
 const showFilters = ref(false)
 const selectedProyecto = ref('')
-const selectedTipoOperacion = ref('') // venta | separacion
-const selectedEstado = ref('') // string
+const selectedTipoOperacion = ref('')
+const selectedEstado = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
 
@@ -201,48 +197,6 @@ function clearFilters() {
 <template>
   <VentasLayout :empleado="empleado">
     <Head title="Ventas" />
-
-    <!-- DEBUG -->
-    <div v-if="debugEnabled" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
-        <h3 class="text-blue-900 font-semibold mb-2">ProyectoPricingService</h3>
-        <p><strong>Proyecto:</strong> {{ debug.proyecto?.nombre ?? '—' }}</p>
-        <p><strong>Ventas activas:</strong> {{ debug.proyecto?.ventas_activas ?? '—' }}</p>
-        <p><strong>Bloque actual:</strong> {{ debug.proyecto?.bloque_actual ?? '—' }}</p>
-        <p><strong>Factor:</strong> {{ debug.proyecto?.factor ?? '—' }}</p>
-        <hr class="my-2" />
-        <p class="font-semibold">Políticas</p>
-        <ul class="text-sm pl-3 list-disc">
-          <li v-for="p in debug.proyecto?.politicas ?? []" :key="p.id">
-            {{ p.aplica_desde }} → {{ p.porcentaje_aumento }}%
-          </li>
-        </ul>
-      </div>
-
-      <div class="p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
-        <h3 class="text-green-900 font-semibold mb-2">PriceEngine</h3>
-        <p><strong>Bloque:</strong> {{ debug.pe?.bloque ?? '—' }}</p>
-        <p><strong>Factor acumulado:</strong> {{ debug.pe?.factor ?? '—' }}</p>
-        <hr class="my-2" />
-        <p class="font-semibold">Políticas detectadas</p>
-        <ul class="text-sm pl-3 list-disc">
-          <li v-for="p in debug.pe?.politicas ?? []" :key="p.id">
-            {{ p.ventas_por_escalon }} → {{ p.porcentaje_aumento }}%
-          </li>
-        </ul>
-      </div>
-
-      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm">
-        <h3 class="text-yellow-900 font-semibold mb-2">VentaService</h3>
-        <p><strong>Operación:</strong> {{ debug.venta?.tipo ?? '—' }}</p>
-        <p><strong>Valor total:</strong> {{ formatMoney(debug.venta?.valor_total) }}</p>
-        <p><strong>Cuota inicial:</strong> {{ formatMoney(debug.venta?.cuota_inicial) }}</p>
-        <p><strong>Valor final aplicado:</strong> {{ formatMoney(debug.venta?.valor_final) }}</p>
-        <hr class="my-2" />
-        <p><strong>Estado asignado:</strong> {{ debug.venta?.estado_inmueble ?? '—' }}</p>
-      </div>
-    </div>
-
     <!-- Hero / Header -->
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div class="bg-gradient-to-r from-[#FFEA00] to-[#FFF15C] px-6 py-6">
@@ -309,22 +263,6 @@ function clearFilters() {
               </div>
             </div>
           </div>
-
-          <!-- <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Valor total
-                </p>
-                <p class="mt-1 text-xl sm:text-2xl font-extrabold text-gray-900">
-                  {{ formatMoney(totalValor) }}
-                </p>
-              </div>
-              <div class="rounded-xl bg-white border border-gray-200 p-2">
-                <CurrencyDollarIcon class="w-6 h-6 text-[#1e3a5f]" />
-              </div>
-            </div>
-          </div> -->
 
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <div class="flex items-center justify-between">
@@ -441,16 +379,16 @@ function clearFilters() {
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                <th class="px-5 py-3 text-left">Cliente</th>
-                <th class="px-5 py-3 text-left">Inmueble</th>
-                <th class="px-5 py-3 text-left">Proyecto</th>
-                <th class="px-5 py-3 text-left">Fecha</th>
-                <th class="px-5 py-3 text-left">Tipo</th>
-                <th class="px-5 py-3 text-left">Valor</th>
-                <th class="px-5 py-3 text-left">Frecuencia Pagos</th>
-                <th class="px-5 py-3 text-left">Cuotas (CI)</th>
-                <th class="px-5 py-3 text-left">Estado</th>
-                <th class="px-5 py-3 text-right">Acciones</th>
+                <th class="px-5 py-3 text-center">Cliente</th>
+                <th class="px-5 py-3 text-center">Inmueble</th>
+                <th class="px-5 py-3 text-center">Proyecto</th>
+                <th class="px-5 py-3 text-center">Fecha</th>
+                <th class="px-5 py-3 text-center">Tipo</th>
+                <th class="px-5 py-3 text-center">Fecha Lim Sep</th>
+                <th class="px-5 py-3 text-center">Valor</th>
+                <th class="px-5 py-3 text-center">Frecuencia Pagos</th>
+                <th class="px-5 py-3 text-center">Cuotas (CI)</th>
+                <th class="px-5 py-3 text-center">Acciones</th>
               </tr>
             </thead>
 
@@ -463,9 +401,9 @@ function clearFilters() {
                 <td class="px-5 py-4">
                   <div class="flex items-center gap-3">
                     <div
-                      class="w-10 h-10 rounded-xl bg-[#1e3a5f]/10 flex items-center justify-center"
+                      class="w-5 h-5 rounded-xl bg-[#1e3a5f]/10 flex items-center justify-center"
                     >
-                      <UserGroupIcon class="w-5 h-5 text-[#1e3a5f]" />
+                      <UserGroupIcon class="w-3 h-3 text-[#1e3a5f]" />
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-semibold text-gray-900 truncate">
@@ -492,11 +430,11 @@ function clearFilters() {
                 <td class="px-5 py-4 text-sm text-gray-700">
                   <div class="inline-flex items-center gap-2">
                     <CalendarDaysIcon class="w-5 h-5 text-gray-400" />
-                    <span>{{ formatDate(venta.fecha_venta) }}</span>
+                    <span>{{ formatDate1(venta.fecha_venta) }}</span>
                   </div>
                 </td>
 
-                <td class="px-5 py-4">
+                <td class="px-5 py-4 text-center">
                   <span
                     class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
                     :class="badgeTipoOperacionClass(venta.tipo_operacion)"
@@ -505,31 +443,39 @@ function clearFilters() {
                   </span>
                 </td>
 
-                <td class="px-5 py-4">
+                <td class="px-5 py-4 text-sm text-gray-700">
+                  <div class="inline-flex items-center gap-2">
+                    <CalendarDaysIcon class="w-5 h-5 text-gray-400" />
+                    <span>
+                      {{
+                        venta.fecha_limite_separacion
+                          ? formatDate1(venta.fecha_limite_separacion)
+                          : 'No Aplica'
+                      }}
+                    </span>
+                  </div>
+                </td>
+
+                <td class="px-5 py-4 text-center">
                   <p class="text-sm font-extrabold text-[#1e3a5f]">
                     {{ formatMoney(venta.valor_total) }}
                   </p>
                 </td>
 
-                <td class="px-5 py-4 text-sm text-gray-700">
-                  {{ venta.frecuencia_cuota_inicial_meses ?? '—' }} meses
+                <td class="px-5 py-4 text-sm text-center text-gray-700">
+                  {{
+                    venta.tipo_operacion === 'separacion'
+                      ? 'No Aplica'
+                      : venta.frecuencia_cuota_inicial_meses + ' mes(es)'
+                  }}
                 </td>
 
-                <td class="px-5 py-4 text-sm text-gray-700">
-                  {{ venta.plazo_cuota_inicial_meses ?? '—' }} meses
-                </td>
-
-                <td class="px-5 py-4">
-                  <span
-                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                    :class="badgeEstadoClass(venta)"
-                  >
-                    {{
-                      venta.apartamento?.estado_inmueble?.nombre ||
-                      venta.local?.estado_inmueble?.nombre ||
-                      '—'
-                    }}
-                  </span>
+                <td class="px-5 py-4 text-sm text-center text-gray-700">
+                  {{
+                    venta.tipo_operacion === 'separacion'
+                      ? 'No Aplica'
+                      : venta.plazo_cuota_inicial_meses + ' mes(es)'
+                  }}
                 </td>
 
                 <td class="px-5 py-4">
@@ -542,19 +488,6 @@ function clearFilters() {
                       <EyeIcon class="w-5 h-5 text-blue-700" />
                       <span class="hidden sm:inline">Ver</span>
                     </Link>
-
-                    <!-- Si luego quieres reactivar eliminar con modal -->
-                    <!--
-                    <button
-                      type="button"
-                      @click="confirmDelete(venta)"
-                      class="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition"
-                      title="Eliminar"
-                    >
-                      <TrashIcon class="w-5 h-5" />
-                      <span class="hidden sm:inline">Eliminar</span>
-                    </button>
-                    -->
                   </div>
                 </td>
               </tr>

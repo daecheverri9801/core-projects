@@ -71,7 +71,18 @@ class ClienteWebController extends Controller
     public function show(Request $request, $documento)
     {
         $empleado = $request->user()->load('cargo');
-        $cliente = Cliente::with(['tipoCliente', 'tipoDocumento', 'ventas'])
+
+        $cliente = Cliente::with([
+            'tipoCliente',
+            'tipoDocumento',
+            'ventas' => function ($q) {
+                $q->with([
+                    'proyecto:id_proyecto,nombre',
+                    'apartamento:id_apartamento,numero',
+                    'local:id_local,numero',
+                ])->orderByDesc('fecha_venta');
+            }
+        ])
             ->where('documento', $documento)
             ->firstOrFail();
 

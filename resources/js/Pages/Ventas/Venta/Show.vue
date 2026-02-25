@@ -274,16 +274,26 @@ async function exportVentaPDF() {
   const valorRestante = Number(v.valor_restante || Math.max(0, valorTotal - cuotaInicial) || 0)
 
   const desglose = [
-    ['Valor apartamento', formatMoney(v.valor_base)],
+    [
+      'Fecha Limite de Separación',
+      esSeparacion() ? formatDate(v.fecha_limite_separacion) : 'No Aplica',
+    ],
+    ['Valor apartamento', formatMoney(v.valor_base || v.valor_total)],
     ['Valor parqueadero', formatMoney(v.parqueadero?.precio)],
     ['Valor total', formatMoney(valorTotal)],
-    ['Cuota inicial', formatMoney(cuotaInicial)],
-    ['Valor Cuota Mensual', formatMoney(cuotaMensual)],
+    ['Cuota inicial', esSeparacion() ? 'No Aplica' : formatMoney(cuotaInicial)],
+    ['Valor Cuota Mensual', esSeparacion() ? 'No Aplica' : formatMoney(cuotaMensual)],
     ['Cuota separación (proyecto)', formatMoney(cuotaSep)],
-    ['Saldo cuota inicial', formatMoney(saldoCuotaInicial)],
-    ['Plazo cuota inicial (meses)', safe(v.plazo_cuota_inicial_meses)],
-    ['Frecuencia pago cuota inicial (meses)', safe(v.frecuencia_cuota_inicial_meses)],
-    ['Saldo restante', formatMoney(valorRestante)],
+    ['Saldo cuota inicial', esSeparacion() ? 'No Aplica' : formatMoney(saldoCuotaInicial)],
+    [
+      'Plazo cuota inicial (meses)',
+      esSeparacion() ? 'No Aplica' : safe(v.plazo_cuota_inicial_meses),
+    ],
+    [
+      'Frecuencia pago cuota inicial (meses)',
+      esSeparacion() ? 'No Aplica' : safe(v.frecuencia_cuota_inicial_meses),
+    ],
+    ['Saldo restante', esSeparacion() ? 'No Aplica' : formatMoney(valorRestante)],
     ['Forma de pago', safe(v.forma_pago?.forma_pago || v.formaPago?.forma_pago)],
     ['Fecha operación', formatDate(v.fecha_venta)],
   ]
@@ -309,7 +319,7 @@ async function exportVentaPDF() {
   doc.setFontSize(10)
   doc.setTextColor(90, 90, 90)
   doc.text(
-    `${esApto ? 'Apartamento' : 'Local'} · ${v.tipo_operacion?.toUpperCase() || '—'} #${v.id_venta}`,
+    `${esApto ? 'Apartamento' : 'Local'} · ${v.tipo_operacion?.toUpperCase() || '—'}`,
     105,
     headerY + 6,
     { align: 'center' }
@@ -543,7 +553,7 @@ async function exportVentaPDF() {
       <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
         <div>
           <h1 class="text-3xl font-bold text-gray-900 mb-2">
-            {{ esVenta() ? 'Venta' : 'Separación' }} #{{ venta.id_venta }}
+            {{ esVenta() ? 'Venta' : 'Separación' }}
           </h1>
           <p class="text-sm text-gray-500">Registrada el {{ formatDate(venta.fecha_venta) }}</p>
         </div>
@@ -630,8 +640,7 @@ async function exportVentaPDF() {
                   {{ venta.parqueadero.tipo }}
                 </span>
               </div>
-
-              <div v-else class="mt-2 text-sm text-gray-500">No aplica.</div>
+              <div v-else class="font-semibold text-gray-900">No</div>
             </div>
           </div>
         </div>
@@ -642,12 +651,16 @@ async function exportVentaPDF() {
           <ul class="space-y-2">
             <li class="flex justify-between text-gray-700">
               <span>Valor Apartamento:</span>
-              <span class="font-semibold">{{ formatCurrency(venta.valor_base) }}</span>
+              <span class="font-semibold">{{
+                formatCurrency(venta.valor_base || venta.valor_total)
+              }}</span>
             </li>
 
             <li class="flex justify-between text-gray-700">
               <span>Valor Parqueadero:</span>
-              <span class="font-semibold">{{ formatCurrency(venta.parqueadero.precio) }}</span>
+              <span class="font-semibold">{{
+                formatCurrency(venta.parqueadero?.precio || 0)
+              }}</span>
             </li>
 
             <li class="flex justify-between text-gray-700">
@@ -672,26 +685,32 @@ async function exportVentaPDF() {
             <li class="flex justify-between text-gray-700">
               <span>Saldo Cuota Inicial:</span>
               <span class="font-semibold">{{
-                formatCurrency(desgloseEconomico.saldo_cuota_inicial)
+                esSeparacion() ? 'No Aplica' : formatCurrency(desgloseEconomico.saldo_cuota_inicial)
               }}</span>
             </li>
 
             <li class="flex justify-between text-gray-700">
               <span>Frecuencia Pago Cuota Inicial:</span>
               <span class="font-semibold"
-                >{{ desgloseEconomico.frecuencia_cuota_inicial_meses || '—' }} meses</span
-              >
+                >{{
+                  esSeparacion()
+                    ? 'No Aplica'
+                    : desgloseEconomico.frecuencia_cuota_inicial_meses + ' meses'
+                }}
+              </span>
             </li>
 
             <li class="flex justify-between text-gray-700">
               <span>No. Cuotas:</span>
-              <span class="font-semibold">{{ desgloseEconomico.no_cuotas || '—' }}</span>
+              <span class="font-semibold">{{
+                esSeparacion() ? 'No Aplica' : desgloseEconomico.no_cuotas
+              }}</span>
             </li>
 
             <li class="flex justify-between text-gray-700">
               <span>Valor Cuota Mensual:</span>
               <span class="font-semibold">{{
-                formatCurrency(desgloseEconomico.valor_cuota_mensual)
+                esSeparacion() ? 'No Aplica' : formatCurrency(desgloseEconomico.valor_cuota_mensual)
               }}</span>
             </li>
 
@@ -699,10 +718,12 @@ async function exportVentaPDF() {
               class="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-2"
             >
               <span>Saldo Restante:</span>
-              <span>{{ formatCurrency(desgloseEconomico.saldo_restante) }}</span>
+              <span>{{
+                esSeparacion() ? 'No Aplica' : formatCurrency(desgloseEconomico.saldo_restante)
+              }}</span>
             </li>
 
-            <li class="flex justify-between text-gray-700">
+            <li v-if="esSeparacion()" class="flex justify-between text-gray-700">
               <span>Fecha Límite Separación:</span>
               <span>{{ formatDate(venta.fecha_limite_separacion) }}</span>
             </li>
@@ -732,24 +753,6 @@ async function exportVentaPDF() {
             Forma de Pago: {{ venta.forma_pago?.forma_pago ?? '—' }}
           </p>
           <p class="text-sm text-blue-200 mt-1">Tipo: {{ esVenta() ? 'Venta' : 'Separación' }}</p>
-        </div>
-
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
-          <h3 class="text-lg font-bold text-gray-900">Datos Asociados</h3>
-          <p class="flex items-center text-gray-700">
-            <CreditCardIcon class="w-5 h-5 mr-2 text-gray-400" /> Pagos:
-            {{ venta.pagos?.length ?? 0 }}
-          </p>
-          <p class="flex items-center text-gray-700">
-            <DocumentTextIcon class="w-5 h-5 mr-2 text-gray-400" /> Plan de Amortización:
-            <span class="ml-1">
-              {{
-                venta.plan_amortizacion
-                  ? (venta.plan_amortizacion.cuotas?.length ?? 0)
-                  : 'No generado'
-              }}
-            </span>
-          </p>
         </div>
 
         <div v-if="venta.apartamento && imagenTipoAptoUrl" class="mt-4">

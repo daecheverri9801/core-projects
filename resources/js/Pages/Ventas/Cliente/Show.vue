@@ -8,7 +8,6 @@
       :icon="UserIcon"
     />
 
-    <!-- Acciones Rápidas -->
     <div class="flex items-center gap-3 mb-6">
       <Link
         href="/clientes"
@@ -16,22 +15,9 @@
       >
         <ArrowLeftIcon class="w-5 h-5" /> Volver
       </Link>
-      <!-- <Link
-        :href="`/clientes/${cliente.documento}/edit`"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
-      >
-        <PencilSquareIcon class="w-5 h-5" /> Editar
-      </Link>
-      <button
-        @click="confirmDelete"
-        class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
-      >
-        <TrashIcon class="w-5 h-5" /> Eliminar
-      </button> -->
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Información Principal -->
       <div class="lg:col-span-2 space-y-6">
         <!-- Datos Personales -->
         <VentasCard>
@@ -95,7 +81,7 @@
           </div>
         </VentasCard>
 
-        <!-- Historial de Ventas -->
+        <!-- Historial de Ventas (MEJORADO) -->
         <VentasCard>
           <template #header>
             <div class="flex items-center justify-between">
@@ -103,40 +89,74 @@
               <span
                 class="px-3 py-1 bg-[#FFFDE6] text-[#474100] text-sm font-semibold rounded-full"
               >
-                {{ cliente.ventas?.length || 0 }} ventas
+                {{ cliente.ventas?.length || 0 }} operaciones
               </span>
             </div>
           </template>
 
-          <div v-if="cliente.ventas && cliente.ventas.length > 0" class="space-y-4">
-            <div
-              v-for="venta in cliente.ventas"
-              :key="venta.id_venta"
-              class="p-4 border border-gray-200 rounded-lg hover:border-[#FFEA00] transition"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <h4 class="font-semibold text-gray-900">Venta #{{ venta.id_venta }}</h4>
-                <span
-                  class="px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="getEstadoVentaBadge(venta.estado_venta?.estado_venta)"
-                >
-                  {{ venta.estado_venta?.estado_venta || '—' }}
-                </span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span class="text-gray-500">Fecha:</span>
-                  <span class="ml-2 text-gray-900">{{ formatDate(venta.fecha_venta) }}</span>
-                </div>
-                <div>
-                  <span class="text-gray-500">Valor Total:</span>
-                  <span class="ml-2 font-semibold text-gray-900">{{
-                    formatCurrency(venta.valor_total)
-                  }}</span>
-                </div>
-              </div>
+          <div v-if="cliente.ventas && cliente.ventas.length > 0">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Fecha
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Proyecto
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Inmueble
+                    </th>
+                    <th
+                      class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Valor total
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr
+                    v-for="venta in ventasOrdenadas"
+                    :key="venta.id_venta"
+                    class="hover:bg-gray-50"
+                  >
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {{ formatDateShort(venta.fecha_venta) }}
+                    </td>
+
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {{ venta.proyecto?.nombre || '—' }}
+                    </td>
+
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <span class="font-semibold">
+                        {{ inmuebleLabel(venta) }}
+                      </span>
+                    </td>
+
+                    <td
+                      class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-semibold"
+                    >
+                      {{ formatCurrency(venta.valor_total) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-3 text-xs text-gray-500">
+              Se muestran ventas y separaciones del cliente ordenadas por fecha (desc).
             </div>
           </div>
+
           <div v-else class="text-center py-8 text-gray-500">
             <p>No hay ventas registradas para este cliente</p>
           </div>
@@ -145,7 +165,6 @@
 
       <!-- Panel Lateral -->
       <div class="space-y-6">
-        <!-- Resumen -->
         <VentasCard>
           <template #header>
             <h3 class="text-lg font-semibold text-gray-900">Resumen</h3>
@@ -153,7 +172,7 @@
 
           <div class="space-y-4">
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span class="text-sm text-gray-600">Total Ventas</span>
+              <span class="text-sm text-gray-600">Total Operaciones</span>
               <span class="text-lg font-bold text-gray-900">{{ cliente.ventas?.length || 0 }}</span>
             </div>
 
@@ -169,7 +188,6 @@
           </div>
         </VentasCard>
 
-        <!-- Acciones Rápidas -->
         <VentasCard>
           <template #header>
             <h3 class="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
@@ -188,7 +206,7 @@
     </div>
 
     <FlashMessages />
-    <!-- Modal de Confirmación -->
+
     <ConfirmDialog
       :is-open="showConfirmDialog"
       :title="dialogOptions.title"
@@ -210,20 +228,13 @@ import FlashMessages from '@/Components/FlashMessages.vue'
 import VentasPageHeader from '../Components/VentasPageHeader.vue'
 import VentasCard from '../Components/VentasCard.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
-import {
-  UserIcon,
-  ArrowLeftIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  PlusIcon,
-} from '@heroicons/vue/24/outline'
+import { UserIcon, ArrowLeftIcon, PlusIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   cliente: { type: Object, required: true },
   empleado: { type: Object, default: null },
 })
 
-// Estado del modal de confirmación
 const showConfirmDialog = ref(false)
 const dialogOptions = ref({
   title: '¿Eliminar Cliente?',
@@ -233,10 +244,25 @@ const dialogOptions = ref({
   variant: 'danger',
 })
 
+const ventasOrdenadas = computed(() => {
+  const arr = Array.isArray(props.cliente.ventas) ? [...props.cliente.ventas] : []
+  return arr.sort((a, b) => {
+    const da = a?.fecha_venta ? new Date(a.fecha_venta).getTime() : 0
+    const db = b?.fecha_venta ? new Date(b.fecha_venta).getTime() : 0
+    return db - da
+  })
+})
+
 const totalVentas = computed(() => {
   if (!props.cliente.ventas || props.cliente.ventas.length === 0) return 0
   return props.cliente.ventas.reduce((sum, v) => sum + (Number(v.valor_total) || 0), 0)
 })
+
+function inmuebleLabel(venta) {
+  if (venta?.apartamento?.numero) return `Apto ${venta.apartamento.numero}`
+  if (venta?.local?.numero) return `Local ${venta.local.numero}`
+  return '—'
+}
 
 function getTipoClienteBadge(tipo) {
   const badges = {
@@ -246,18 +272,6 @@ function getTipoClienteBadge(tipo) {
     Corporativo: 'bg-orange-100 text-orange-800',
   }
   return badges[tipo] || 'bg-gray-100 text-gray-800'
-}
-
-function getEstadoVentaBadge(estado) {
-  const badges = {
-    Promesa: 'bg-yellow-100 text-yellow-800',
-    Separado: 'bg-blue-100 text-blue-800',
-    'En Financiación': 'bg-purple-100 text-purple-800',
-    Escriturado: 'bg-green-100 text-green-800',
-    Entregado: 'bg-emerald-100 text-emerald-800',
-    Cancelado: 'bg-red-100 text-red-800',
-  }
-  return badges[estado] || 'bg-gray-100 text-gray-800'
 }
 
 function formatCurrency(val) {
@@ -277,6 +291,16 @@ function formatDate(date) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  })
+}
+
+// ✅ formato corto para tabla
+function formatDateShort(date) {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   })
 }
 

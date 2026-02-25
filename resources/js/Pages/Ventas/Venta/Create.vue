@@ -677,7 +677,6 @@ function submit() {
                     readonly
                     :class="inputClass(false, true)"
                   />
-                  <p :class="hintClass()">Se toma el asesor logueado.</p>
                 </div>
 
                 <!-- Cliente -->
@@ -755,11 +754,6 @@ function submit() {
                       {{ p.numero }} · {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
                     </option>
                   </select>
-
-                  <p :class="hintClass()">
-                    Solo aplica para apartamentos. Se suma al valor total y recalcula cuota inicial
-                    y restante.
-                  </p>
                 </div>
 
                 <!-- Forma pago -->
@@ -824,7 +818,6 @@ function submit() {
                       :value="formatearMoneda(form.cuota_inicial_raw)"
                       @input="onCuotaInicialInput($event.target.value)"
                       :class="inputClass(Boolean(erroresForm.cuota_inicial), false)"
-                      placeholder="Ingresa el valor de la cuota inicial"
                     />
                     <p v-if="erroresForm.cuota_inicial" :class="errorClass()">
                       {{ erroresForm.cuota_inicial }}
@@ -842,9 +835,6 @@ function submit() {
                         {{ p }} mes{{ p === 1 ? '' : 'es' }}
                       </option>
                     </select>
-                    <p :class="hintClass()">
-                      Se calcula con base en la fecha de inicio del proyecto.
-                    </p>
                   </div>
 
                   <div>
