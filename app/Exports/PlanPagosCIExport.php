@@ -23,7 +23,7 @@ class PlanPagosCIExport implements FromArray, WithHeadings, WithStyles
     public function headings(): array
     {
         return array_merge(
-            ['Proyecto', 'Inmueble', 'Cliente'],
+            ['Proyecto', 'Inmueble', 'Cliente', 'Documento'],
             $this->encabezados
         );
     }
@@ -48,7 +48,7 @@ class PlanPagosCIExport implements FromArray, WithHeadings, WithStyles
         }
 
         // Fila TOTAL
-        $totalRow = ['TOTAL', '', ''];
+        $totalRow = ['TOTAL', '', '', ''];
         foreach ($this->encabezados as $m) {
             $totalRow[] = $this->totales[$m] ?? 0;
         }

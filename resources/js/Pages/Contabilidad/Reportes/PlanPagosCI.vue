@@ -174,7 +174,7 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
             </tr>
 
             <tr class="bg-gray-100 font-semibold">
-              <td class="p-3 border border-gray-200" colspan="3">TOTAL</td>
+              <td class="p-3 border border-gray-200" colspan="4">TOTAL</td>
               <td
                 v-for="m in planPagosCI.encabezados"
                 :key="'tot-' + m"
