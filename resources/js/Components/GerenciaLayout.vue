@@ -2,9 +2,9 @@
 import { Head, Link, usePage, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
-// import { useIdleTimer } from '@/composables/useIdleTimer'
+import { useIdleLogout } from '@/composables/useIdleLogout'
 
-// useIdleTimer(10)
+useIdleLogout({ minutes: 15 })
 
 const props = defineProps({
   empleado: { type: Object, default: null },

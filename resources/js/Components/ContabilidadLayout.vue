@@ -113,6 +113,9 @@ import { Link, usePage, router } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import { ChevronDownIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
+import { useIdleLogout } from '@/composables/useIdleLogout'
+
+useIdleLogout({ minutes: 15 })
 
 const page = usePage()
 const empleado = computed(() => page.props?.auth?.empleado ?? page.props?.empleado ?? null)

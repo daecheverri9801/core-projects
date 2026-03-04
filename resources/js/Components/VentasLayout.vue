@@ -128,7 +128,6 @@ import { Link, usePage, router } from '@inertiajs/vue3' // ✅ Mantenido en v0.6
 import Logo from '@/Components/Logo.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import MetasAlertModal from '@/Pages/Ventas/Components/MetasAlertModal.vue'
-// import { useIdleTimer } from '@/composables/useIdleTimer'
 import {
   UserGroupIcon,
   ShoppingCartIcon,
@@ -142,8 +141,10 @@ import {
   Squares2X2Icon,
   ChartBarIcon,
 } from '@heroicons/vue/24/outline'
+import { useIdleLogout } from '@/composables/useIdleLogout'
 
-// useIdleTimer(10)
+useIdleLogout({ minutes: 15 })
+
 
 const props = defineProps({
   empleado: { type: Object, default: null },

@@ -168,7 +168,6 @@
     @cancel="showLogoutModal = false"
     @confirm="handleLogoutConfirm"
   />
-
 </template>
 
 <script setup>
@@ -176,8 +175,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
-// import { useIdleTimer } from '@/composables/useIdleTimer'
-
 import {
   UserIcon,
   ChevronDownIcon,
@@ -190,8 +187,9 @@ import {
   UsersIcon,
   CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
+import { useIdleLogout } from '@/composables/useIdleLogout'
 
-// useIdleTimer(10)
+useIdleLogout({ minutes: 15 })
 
 const props = defineProps({
   empleado: Object,
@@ -265,7 +263,12 @@ const tabs = [
     icon: IdentificationIcon,
     active: '/dependencias-cargos',
   },
-  { label: 'Login Logs', href: '/admin/login-logs', icon: CheckCircleIcon, active: '/admin/login-logs' },
+  {
+    label: 'Login Logs',
+    href: '/admin/login-logs',
+    icon: CheckCircleIcon,
+    active: '/admin/login-logs',
+  },
 ]
 </script>
 

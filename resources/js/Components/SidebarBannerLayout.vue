@@ -181,7 +181,6 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
 import Logo from '@/Components/Logo.vue'
-
 import {
   UserIcon,
   ChevronDownIcon,
@@ -195,6 +194,9 @@ import {
   IdentificationIcon,
   ArrowLeftOnRectangleIcon,
 } from '@heroicons/vue/24/outline'
+import { useIdleLogout } from '@/composables/useIdleLogout'
+
+useIdleLogout({ minutes: 15 })
 
 const props = defineProps({
   empleado: Object,
