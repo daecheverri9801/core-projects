@@ -36,6 +36,7 @@ class Proyecto extends Model
         'plazo_cuota_inicial_meses',
         'valor_min_separacion',
         'plazo_max_separacion_dias',
+        'activo',
     ];
 
     protected $casts = [
@@ -45,8 +46,14 @@ class Proyecto extends Model
         'porcentaje_cuota_inicial_min' => 'decimal:2',
         'valor_min_separacion' => 'decimal:2',
         'prima_altura_activa' => 'boolean',
+        'activo' => 'boolean',
     ];
 
+    public function scopeActivos($query)
+    {
+        return $query->where('activo', true);
+    }
+    
     public function estado_proyecto()
     {
         return $this->belongsTo(Estado::class, 'id_estado', 'id_estado');
@@ -87,7 +94,7 @@ class Proyecto extends Model
     {
         return $this->hasMany(ProyectoMetaComercial::class, 'id_proyecto', 'id_proyecto');
     }
-    
+
     public function politicaVigente()
     {
         return $this->hasOne(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto')

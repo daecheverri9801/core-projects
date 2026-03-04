@@ -73,6 +73,18 @@
                     >
                       {{ proyecto.estado_proyecto?.nombre || '—' }}
                     </span>
+
+                    <!-- ✅ Badge activo/inactivo -->
+                    <span
+                      class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+                      :class="
+                        proyecto.activo
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                          : 'border-red-200 bg-red-50 text-red-800'
+                      "
+                    >
+                      Estado: {{ proyecto.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
                   </div>
 
                   <p class="text-xs text-gray-500 mt-1">
@@ -95,6 +107,22 @@
                   title="Editar"
                   variant="warn"
                 />
+                <!-- ✅ Toggle activo/inactivo -->
+                <button
+                  type="button"
+                  @click="toggleActivo(proyecto)"
+                  class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition"
+                  :class="
+                    proyecto.activo
+                      ? 'border-red-200 bg-red-50 text-red-800 hover:bg-red-100'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  "
+                  :title="proyecto.activo ? 'Desactivar' : 'Activar'"
+                >
+                  <PowerIcon class="w-4 h-4" />
+                  {{ proyecto.activo ? 'Desactivar' : 'Activar' }}
+                </button>
+
                 <IconButton
                   icon="TrashIcon"
                   title="Eliminar"
@@ -228,6 +256,7 @@ import {
   FolderIcon,
   MagnifyingGlassIcon,
   ArrowRightIcon,
+  PowerIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -247,11 +276,13 @@ const filtered = computed(() => {
     const estado = (p.estado_proyecto?.nombre || '').toLowerCase()
     const dir = (p.ubicacion?.direccion || '').toLowerCase()
     const ciudad = (p.ubicacion?.ciudad?.nombre || '').toLowerCase()
+    const activo = p.activo ? 'activo' : 'inactivo'
     return (
       nombre.includes(query) ||
       estado.includes(query) ||
       dir.includes(query) ||
-      ciudad.includes(query)
+      ciudad.includes(query) ||
+      activo.includes(query)
     )
   })
 })
@@ -267,6 +298,11 @@ function estadoBadgeClass(nombre) {
 
 function cambiarPagina(pagina) {
   router.visit(`/proyectos?page=${pagina}`)
+}
+
+// ✅ toggle
+function toggleActivo(proyecto) {
+  router.put(`/proyectos/${proyecto.id_proyecto}/toggle-activo`, {}, { preserveScroll: true })
 }
 
 /** Delete flow */

@@ -76,6 +76,12 @@ const cargoNombre = computed(() => empleado.value?.cargo?.nombre || 'Gerente')
           >
             Dashboard
           </Link>
+          <Link
+            href="/gerencia/login-logs"
+            class="px-3 py-1.5 rounded-lg border border-slate-700 text-xs uppercase tracking-wide hover:bg-slate-800"
+          >
+            Registro de Inicios Sesion
+          </Link>
           <button
             @click="logout"
             class="px-3 py-1.5 rounded-lg border border-red-600 text-xs uppercase tracking-wide text-red-400 hover:bg-red-700"

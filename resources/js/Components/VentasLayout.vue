@@ -48,7 +48,9 @@
                 >
                   <div class="px-4 py-3 border-b border-gray-100">
                     <p class="text-sm font-semibold text-gray-900">{{ empleadoCompleto }}</p>
-                    <p class="text-xs text-gray-500 mt-1">{{ empleado?.correo || cargoNombre }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                      {{ empleado?.correo || cargoNombre }}
+                    </p>
                   </div>
 
                   <button
@@ -105,6 +107,10 @@
       </div>
     </footer>
   </div>
+
+  <!-- ✅ MODAL METAS (AUTO al iniciar sesión / navegar en módulo ventas) -->
+  <MetasAlertModal :empleado="empleado" />
+
   <ConfirmDialog
     :open="showLogoutModal"
     title="Cerrar sesión"
@@ -121,6 +127,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Link, usePage, router } from '@inertiajs/vue3' // ✅ Mantenido en v0.6.0
 import Logo from '@/Components/Logo.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
+import MetasAlertModal from '@/Pages/Ventas/Components/MetasAlertModal.vue'
 // import { useIdleTimer } from '@/composables/useIdleTimer'
 import {
   UserGroupIcon,

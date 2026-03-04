@@ -32,6 +32,16 @@ class ProyectoController extends Controller
         ]);
     }
 
+    // ✅ NUEVO: activar / desactivar
+    public function toggleActivo(Request $request, Proyecto $proyecto)
+    {
+        // Si quieres restringir por rol, aquí es el lugar (policy/gate).
+        $proyecto->activo = !$proyecto->activo;
+        $proyecto->save();
+
+        return back()->with('success', $proyecto->activo ? 'Proyecto activado.' : 'Proyecto desactivado.');
+    }
+
     public function create(Request $request)
     {
         return inertia('Admin/Proyectos/Create', [
@@ -66,24 +76,27 @@ class ProyectoController extends Controller
             'id_estado' => 'required|exists:estados,id_estado',
             'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
+            'activo' => 'nullable|boolean',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'id_estado.required' => 'El estado del proyecto es obligatorio',
             'id_ubicacion.required' => 'La ubicación del proyecto es obligatoria',
-            // ... tus mensajes
         ]);
 
         if ($validator->fails()) {
-            // Para requests tipo JSON, devolver 422 en JSON (mejor para wizard)
             if ($request->expectsJson()) {
                 return response()->json(['errors' => $validator->errors()], 422);
             }
             return back()->withErrors($validator)->withInput();
         }
 
-        $proyecto = Proyecto::create($request->all());
+        $data = $request->all();
+        if (!array_key_exists('activo', $data) || $data['activo'] === null) {
+            $data['activo'] = true; // default
+        }
 
-        // ✅ Si viene del wizard (AJAX/JSON), NO redirigir
+        $proyecto = Proyecto::create($data);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -155,6 +168,7 @@ class ProyectoController extends Controller
             'id_estado' => 'required|exists:estados,id_estado',
             'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
+            'activo' => 'nullable|boolean',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',

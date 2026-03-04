@@ -7,6 +7,7 @@ use App\Models\Meta;
 use App\Models\Proyecto;
 use App\Models\Venta;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 
 class MetasDashboardController extends Controller
@@ -177,6 +178,134 @@ class MetasDashboardController extends Controller
                 'id_proyecto' => $fProyecto,
             ],
             'empleado' => $empleado,
+        ]);
+    }
+
+    public function pendientesMesActual(Request $request): JsonResponse
+    {
+        $empleado = $request->user()->load('cargo');
+
+        $ano = (int) now()->year;
+        $mes = (int) now()->month;
+
+        // Metas del mes actual (generales + asignadas al asesor logueado)
+        $metas = Meta::with(['proyecto', 'empleado'])
+            ->where('ano', $ano)
+            ->where('mes', $mes)
+            ->where(function ($q) use ($empleado) {
+                $q->whereNull('id_empleado')
+                    ->orWhere('id_empleado', $empleado->id_empleado);
+            })
+            ->get();
+
+        if ($metas->isEmpty()) {
+            return response()->json([
+                'empleado_id' => $empleado->id_empleado,
+                'ano' => $ano,
+                'mes' => $mes,
+                'metas' => [],
+            ]);
+        }
+
+        // Ventas del mes actual (todas, para poder sumar en metas generales)
+        $ventasAgg = Venta::selectRaw('
+            id_proyecto,
+            id_empleado,
+            EXTRACT(MONTH FROM fecha_venta)::int as mes,
+            EXTRACT(YEAR FROM fecha_venta)::int as ano,
+            COUNT(*) as unidades,
+            SUM(valor_total) as valor_total
+        ')
+            ->whereRaw('EXTRACT(YEAR FROM fecha_venta) = ?', [$ano])
+            ->whereRaw('EXTRACT(MONTH FROM fecha_venta) = ?', [$mes])
+            ->where('tipo_operacion', 'venta')
+            ->groupBy('id_proyecto', 'id_empleado', 'mes', 'ano')
+            ->get();
+
+        $resultadosIndex = [];
+        foreach ($ventasAgg as $v) {
+            $key = $v->id_proyecto . '|' . $v->mes . '|' . $v->ano . '|' . ($v->id_empleado ?? 0);
+            $resultadosIndex[$key] = [
+                'unidades' => (int) $v->unidades,
+                'valor_total' => (float) $v->valor_total,
+            ];
+        }
+
+        $metasEnriquecidas = $metas->map(function (Meta $m) use ($resultadosIndex) {
+            $keyBase = $m->id_proyecto . '|' . $m->mes . '|' . $m->ano;
+
+            if (!empty($m->id_empleado)) {
+                // meta por asesor
+                $key = $keyBase . '|' . $m->id_empleado;
+                $res = $resultadosIndex[$key] ?? ['unidades' => 0, 'valor_total' => 0];
+            } else {
+                // meta general: sumar todas las ventas del proyecto
+                $res = ['unidades' => 0, 'valor_total' => 0];
+                foreach ($resultadosIndex as $k => $v) {
+                    [$pId, $mes, $ano, $empId] = explode('|', $k);
+                    if ($pId == $m->id_proyecto && $mes == $m->mes && $ano == $m->ano) {
+                        $res['unidades'] += $v['unidades'];
+                        $res['valor_total'] += $v['valor_total'];
+                    }
+                }
+            }
+
+            $metaValor = (float) ($m->meta_valor ?? 0);
+            $metaUnidades = (int) ($m->meta_unidades ?? 0);
+
+            $realValor = (float) $res['valor_total'];
+            $realUnidades = (int) $res['unidades'];
+
+            $cumplValor = $metaValor > 0 ? $realValor / $metaValor : null;
+            $cumplUnid = $metaUnidades > 0 ? $realUnidades / $metaUnidades : null;
+
+            // faltantes a 100%
+            $faltanteValor = $metaValor > 0 ? max(0, $metaValor - $realValor) : 0;
+            $faltanteUnid = $metaUnidades > 0 ? max(0, $metaUnidades - $realUnidades) : 0;
+
+            return [
+                'id_meta' => $m->id_meta,
+                'tipo' => $m->tipo,
+                'mes' => $m->mes,
+                'ano' => $m->ano,
+
+                'meta_valor' => $metaValor,
+                'meta_unidades' => $metaUnidades,
+
+                'id_proyecto' => $m->id_proyecto,
+                'id_empleado' => $m->id_empleado,
+
+                'proyecto' => $m->proyecto ? $m->proyecto->nombre : null,
+                'empleado' => $m->empleado ? ($m->empleado->nombre . ' ' . $m->empleado->apellido) : null,
+
+                'real_valor' => $realValor,
+                'real_unidades' => $realUnidades,
+
+                'cumplimiento_valor' => $cumplValor,
+                'cumplimiento_unidades' => $cumplUnid,
+
+                'faltante_valor' => $faltanteValor,
+                'faltante_unidades' => $faltanteUnid,
+            ];
+        });
+
+        // SOLO < 100% (en valor o unidades)
+        $pendientes = $metasEnriquecidas->filter(function ($m) {
+            $pendValor = ($m['meta_valor'] ?? 0) > 0 && ($m['cumplimiento_valor'] !== null) && $m['cumplimiento_valor'] < 1;
+            $pendUnid = ($m['meta_unidades'] ?? 0) > 0 && ($m['cumplimiento_unidades'] !== null) && $m['cumplimiento_unidades'] < 1;
+
+            // si no hay cumplimiento calculable (null) pero sí meta, también se considera pendiente
+            $pendValorNull = ($m['meta_valor'] ?? 0) > 0 && $m['cumplimiento_valor'] === null;
+            $pendUnidNull = ($m['meta_unidades'] ?? 0) > 0 && $m['cumplimiento_unidades'] === null;
+
+            return $pendValor || $pendUnid || $pendValorNull || $pendUnidNull;
+        })->values();
+
+        return response()->json([
+            'empleado_id' => $empleado->id_empleado,
+            'ano' => $ano,
+            'mes' => $mes,
+            'metas' => $pendientes,
         ]);
     }
 }

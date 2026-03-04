@@ -681,6 +681,9 @@ class GerenciaEstadisticasService
                 ? 'Apto ' . $v->apartamento->numero
                 : ($v->local?->numero ? '' . $v->local->numero : '—');
 
+            $numeroOrden = $v->apartamento?->numero ?? $v->local?->numero ?? '999999';
+            $tipoOrden = $v->apartamento ? 'A' : ($v->local ? 'L' : 'Z');
+
             $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
             $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
 
@@ -753,8 +756,19 @@ class GerenciaEstadisticasService
                 'cliente'  => $clienteNombre,
                 'documento_cliente' => $clienteDocumento,
                 'meses'    => $mesesRow,
+
+                '_orden' => $numeroOrden,
+                '_tipo' => $tipoOrden,
+                '_numero_raw' => $v->apartamento?->numero ?? $v->local?->numero,
             ];
         }
+
+        // 🔴 ORDEN NATURAL (más legible para humanos)
+        $filas = collect($filas)->sortBy('_orden', SORT_NATURAL)
+            ->map(function ($fila) {
+                unset($fila['_orden'], $fila['_tipo'], $fila['_numero_raw']);
+                return $fila;
+            })->values()->all();
 
         return [
             'encabezados' => $encabezados,

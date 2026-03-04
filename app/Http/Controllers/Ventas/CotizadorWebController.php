@@ -28,6 +28,9 @@ class CotizadorWebController extends Controller
                 fn($q) =>
                 $q->whereRaw('LOWER(nombre) = ?', ['disponible'])
             )
+            ->whereHas('torre.proyecto', function ($q) {
+                $q->activos();
+            })
             ->get()
             ->map(function ($a) {
                 return [
@@ -56,6 +59,9 @@ class CotizadorWebController extends Controller
                 fn($q) =>
                 $q->whereRaw('LOWER(nombre) = ?', ['disponible'])
             )
+            ->whereHas('torre.proyecto', function ($q) {
+                $q->activos();
+            })
             ->get()
             ->map(function ($l) {
                 return [
@@ -77,13 +83,14 @@ class CotizadorWebController extends Controller
         $inmuebles = $apartamentos->values()->merge($locales->values());
 
         return Inertia::render('Ventas/Cotizador/Index', [
-            'proyectos' => Proyecto::select(
-                'id_proyecto',
-                'nombre',
-                'plazo_cuota_inicial_meses',
-                'porcentaje_cuota_inicial_min',
-                'valor_min_separacion'
-            )->get(),
+            'proyectos' => Proyecto::activos()
+                ->select(
+                    'id_proyecto',
+                    'nombre',
+                    'plazo_cuota_inicial_meses',
+                    'porcentaje_cuota_inicial_min',
+                    'valor_min_separacion'
+                )->get(),
             'clientes'  => Cliente::select(
                 'documento',
                 'nombre',

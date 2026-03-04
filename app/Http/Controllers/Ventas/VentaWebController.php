@@ -34,7 +34,7 @@ class VentaWebController extends Controller
     public function index(Request $request)
     {
         $empleado = $request->user()->load('cargo');
-        $proyecto = Proyecto::first(); // temporal para debug, escoger el proyecto real
+        $proyecto = Proyecto::first();
 
         $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
             ->whereIn('tipo_operacion', ['venta', 'separacion'])
@@ -54,11 +54,22 @@ class VentaWebController extends Controller
             'cliente',
             'empleado',
             'apartamento.estadoInmueble',
+            'apartamento.torre',
             'local.estadoInmueble',
             'proyecto',
             'formaPago',
             'parqueadero', // ✅ nuevo
         ])->orderBy('fecha_venta', 'desc')->get();
+
+        // 🔴 NUEVO: Ordenar las ventas por número de apartamento
+        $ventas = $ventas->sortBy(function ($venta) {
+            if ($venta->apartamento) {
+                // Ordenamiento natural para números (ej: 1,2,3,...10,11)
+                return $venta->apartamento->numero;
+            }
+            // Si no tiene apartamento (local o parqueadero), poner al final
+            return 'ZZZZ';
+        }, SORT_NATURAL)->values();
 
         return Inertia::render('Ventas/Venta/Index', [
             'ventas' => $ventas,
@@ -103,7 +114,7 @@ class VentaWebController extends Controller
             ->whereHas('estadoInmueble', fn($q) => $q->where('nombre', 'Disponible'))
             ->get();
 
-        $proyectos = Proyecto::orderBy('nombre')->get();
+        $proyectos = Proyecto::activos()->orderBy('nombre')->get();
         $formasPago = FormaPago::orderBy('forma_pago')->get();
         $estadosInmueble = EstadoInmueble::orderBy('nombre')->get();
 

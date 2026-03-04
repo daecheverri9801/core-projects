@@ -42,6 +42,8 @@ use App\Http\Controllers\Gerencia\MetasController;
 use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
 use App\Http\Controllers\Ventas\MetasDashboardController;
 
+use App\Http\Controllers\Admin\LoginLogController as AdminLoginLogController;
+use App\Http\Controllers\Gerencia\LoginLogController as GerenciaLoginLogController;
 
 use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
 
@@ -68,6 +70,8 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
         Route::get('/{proyecto}/edit', [ProyectoController::class, 'edit'])->name('proyectos.edit');
         Route::put('/{proyecto}', [ProyectoController::class, 'update'])->name('proyectos.update');
         Route::delete('/{proyecto}', [ProyectoController::class, 'destroy'])->name('proyectos.destroy');
+        Route::put('/{proyecto}/toggle-activo', [ProyectoController::class, 'toggleActivo'])
+            ->name('proyectos.toggleActivo');
     });
     Route::resource('empleados', EmpleadoController::class);
     Route::get('/estados', [EstadosController::class, 'index'])->name('estados.index');
@@ -226,6 +230,8 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::get('/admin/clientes/{documento}/edit', [ClienteAdminController::class, 'edit'])->name('admin.clientes.edit');
     Route::put('/admin/clientes/{documento}', [ClienteAdminController::class, 'update'])->name('admin.clientes.update');
     Route::delete('/admin/clientes/{documento}', [ClienteAdminController::class, 'destroy'])->name('admin.clientes.destroy');
+
+    Route::get('/admin/login-logs', [AdminLoginLogController::class, 'index'])->name('admin.login-logs.index');
 });
 
 // ============================================
@@ -401,6 +407,8 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
         ->name('ventas.convertir');
 
     Route::get('/metas', [MetasDashboardController::class, 'index'])->name('ventas.metas.index');
+    Route::get('/metas/pendientes-mes-actual', [MetasDashboardController::class, 'pendientesMesActual'])
+        ->name('ventas.metas.pendientesMesActual');
 });
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
@@ -435,6 +443,8 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
 
     Route::get('/gerencia/plan-pagos-ci/export', [PlanPagosCIExportController::class, 'export'])
         ->name('gerencia.plan_pagos_ci.export');
+
+    Route::get('/gerencia/login-logs', [GerenciaLoginLogController::class, 'index'])->name('gerencia.login-logs.index');
 });
 
 Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->group(function () {

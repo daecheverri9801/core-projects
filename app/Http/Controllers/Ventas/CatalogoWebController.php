@@ -17,14 +17,12 @@ class CatalogoWebController extends Controller
     {
         $empleado = $request->user()->load('cargo');
 
-        // Filtros recibidos desde el frontend
         $proyectoId = $request->get('proyecto');
-        $tipoInmueble = $request->get('tipo'); // apartamento | local
+        $tipoInmueble = $request->get('tipo');
         $precioMin = $request->get('precio_min');
         $precioMax = $request->get('precio_max');
         $search = $request->get('search');
 
-        // Estado: Disponible
         $estadoDisponible = EstadoInmueble::where('nombre', 'Disponible')->first();
 
         if (!$estadoDisponible) {
@@ -39,7 +37,8 @@ class CatalogoWebController extends Controller
         // ========================
         // PROYECTOS DISPONIBLES (agrupado)
         // ========================
-        $proyectos = Proyecto::with(['ubicacion.ciudad'])
+        $proyectos = Proyecto::activos()
+            ->with(['ubicacion.ciudad'])
             ->where(function ($q) use ($estadoDisponible) {
                 $q->whereHas('torres.apartamentos', function ($qa) use ($estadoDisponible) {
                     $qa->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble);
@@ -62,6 +61,9 @@ class CatalogoWebController extends Controller
             'estadoInmueble',
         ])
             ->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble)
+            ->whereHas('torre.proyecto', function ($q) {
+                $q->activos(); 
+            })
             ->withCount('parqueaderos')
             // Filtro por proyecto
             ->when($proyectoId, function ($q) use ($proyectoId) {
@@ -134,7 +136,9 @@ class CatalogoWebController extends Controller
             'estadoInmueble'
         ])
             ->where('id_estado_inmueble', $estadoDisponible->id_estado_inmueble)
-
+            ->whereHas('torre.proyecto', function ($q) {
+                $q->activos(); // Ajusta según tu campo de estado
+            })
             ->when($proyectoId, function ($q) use ($proyectoId) {
                 $q->whereHas('torre', function ($t) use ($proyectoId) {
                     $t->where('id_proyecto', $proyectoId);
@@ -185,8 +189,8 @@ class CatalogoWebController extends Controller
                     'direccion' => $local->torre->proyecto->ubicacion->direccion,
                     'estado' => $local->estadoInmueble->nombre,
                     'cuota_inicial' => $local->torre->proyecto->porcentaje_cuota_inicial_min
-                    ? $local->valor_total * ($local->torre->proyecto->porcentaje_cuota_inicial_min / 100)
-                    : 0,
+                        ? $local->valor_total * ($local->torre->proyecto->porcentaje_cuota_inicial_min / 100)
+                        : 0,
                     'tiene_parqueadero' => false,
                 ];
             });

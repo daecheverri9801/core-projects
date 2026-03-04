@@ -57,6 +57,16 @@ class VentaAdminController extends Controller
             'parqueadero', // ✅ nuevo
         ])->orderBy('fecha_venta', 'desc')->get();
 
+        // 🔴 NUEVO: Ordenar las ventas por número de apartamento
+        $ventas = $ventas->sortBy(function ($venta) {
+            if ($venta->apartamento) {
+                // Ordenamiento natural para números (ej: 1,2,3,...10,11)
+                return $venta->apartamento->numero;
+            }
+            // Si no tiene apartamento (local o parqueadero), poner al final
+            return 'ZZZZ';
+        }, SORT_NATURAL)->values();
+
         return Inertia::render('Admin/Ventas/Index', [
             'empleado' => $empleado,
             'ventas' => $ventas,

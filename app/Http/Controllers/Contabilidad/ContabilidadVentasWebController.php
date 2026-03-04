@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Contabilidad;
 use App\Http\Controllers\Controller;
 use App\Models\Venta;
 use App\Models\Proyecto;
+use App\Models\Apartamento;
 use App\Services\GerenciaEstadisticasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,7 @@ class ContabilidadVentasWebController extends Controller
             'cliente',
             'empleado',
             'apartamento.estadoInmueble',
+            'apartamento.torre',
             'local.estadoInmueble',
             'proyecto',
             'formaPago',
@@ -135,6 +137,7 @@ class ContabilidadVentasWebController extends Controller
         $mes = $request->query('mes');
         $desde = $request->query('desde');
         $hasta = $request->query('hasta');
+        $proyectoId = $request->query('proyecto_id');
 
         if ($mes && (!$desde || !$hasta)) {
             $m = (int) $mes;
@@ -152,10 +155,22 @@ class ContabilidadVentasWebController extends Controller
         [$desdeR, $hastaR] = $service->rangoFechas($filtros);
         $plan = $service->planPagosCI($filtros, $desdeR, $hastaR);
 
-        $suffix = $mes ? "año{$ano}_mes{$mes}" : "año{$ano}";
+        $proyectoInfo = "";
+        if ($proyectoId) {
+            $proyecto = Proyecto::find($proyectoId);
+            if ($proyecto) {
+                $nombreProyecto = preg_replace('/[^a-zA-Z0-9_-]/', '_', $proyecto->nombre);
+                $proyectoInfo = "_{$nombreProyecto}";
+            }
+        }
+
+        $fechaActual = now()->format('d-m-Y');
+
+        $nombreArchivo = "Plan_Pagos_CI_{$fechaActual}{$proyectoInfo}.xlsx";
+
         return Excel::download(
             new PlanPagosCIExport($plan['encabezados'], $plan['filas'], $plan['totales']),
-            "plan_pagos_cuota_inicial_{$suffix}.xlsx"
+            $nombreArchivo
         );
     }
 }

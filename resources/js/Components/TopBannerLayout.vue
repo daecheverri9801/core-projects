@@ -265,6 +265,7 @@ const tabs = [
     icon: IdentificationIcon,
     active: '/dependencias-cargos',
   },
+  { label: 'Login Logs', href: '/admin/login-logs', icon: CheckCircleIcon, active: '/admin/login-logs' },
 ]
 </script>
 
