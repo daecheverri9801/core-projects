@@ -48,7 +48,7 @@ use App\Http\Controllers\Gerencia\LoginLogController as GerenciaLoginLogControll
 use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
-Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login');
+Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login.empleado');
 Route::post('/logout', [EmpleadoAuthController::class, 'logout'])->name('logout');
 
 Route::middleware('guest')->group(function () {

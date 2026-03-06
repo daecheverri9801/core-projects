@@ -19,7 +19,7 @@
     </div>
     @endif
 
-    <form method="POST" action="{{ route('login') }}">
+    <form method="POST" action="{{ route('login.empleado') }}">
         @csrf
         <label>Email:</label>
         <input type="email" name="email" value="{{ old('email') }}" required autofocus />
