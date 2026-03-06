@@ -11,7 +11,7 @@ class DepartamentoSeeder extends Seeder
     public function run()
     {
         // Obtener o crear el país Colombia (esto sigue usando el modelo Pais, pero es seguro)
-        $colombia = Pais::firstOrCreate(['nombre' => 'Colombia']);
+        // $colombia = Pais::firstOrCreate(['nombre' => 'Colombia']);
 
         $departamentos = [
             'Amazonas',
@@ -52,7 +52,7 @@ class DepartamentoSeeder extends Seeder
         foreach ($departamentos as $nombre) {
             DB::table('departamentos')->insertOrIgnore([
                 'nombre'      => $nombre,
-                'id_pais'     => $colombia->id,
+                'id_pais'     => 1,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
