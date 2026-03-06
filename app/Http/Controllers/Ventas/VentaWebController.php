@@ -34,23 +34,12 @@ class VentaWebController extends Controller
     public function index(Request $request)
     {
         $empleado = $request->user()->load('cargo');
-        $proyecto = Proyecto::first();
 
-        $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
-            ->whereIn('tipo_operacion', ['venta', 'separacion'])
-            ->count();
+        // ✅ Evita null en producción si aún no hay proyectos cargados
+        $proyecto = Proyecto::query()->first();
 
-        $pe = new \App\Services\PriceEngine();
-        $peBloque = $pe->obtenerBloqueActual($proyecto);
-        $peFactor = $pe->calcularFactorAumento($proyecto, $peBloque);
-        $pePoliticas = $proyecto->politicasPrecio()->get()->toArray();
-
-        $pps = new \App\Services\ProyectoPricingService();
-        $bloque = $peBloque;
-        $factor = $peFactor;
-        $politicas = $proyecto->politicasPrecio()->get();
-
-        $ventas = Venta::with([
+        // Base query de ventas (si hay proyecto, filtra por proyecto; si no, trae todo)
+        $ventasQuery = Venta::with([
             'cliente',
             'empleado',
             'apartamento.estadoInmueble',
@@ -58,42 +47,82 @@ class VentaWebController extends Controller
             'local.estadoInmueble',
             'proyecto',
             'formaPago',
-            'parqueadero', // ✅ nuevo
-        ])->orderBy('fecha_venta', 'desc')->get();
+            'parqueadero',
+        ])->orderBy('fecha_venta', 'desc');
 
-        // 🔴 NUEVO: Ordenar las ventas por número de apartamento
+        $ventasActivas = 0;
+        $peBloque = null;
+        $peFactor = null;
+        $pePoliticas = [];
+        $bloque = null;
+        $factor = null;
+        $politicas = collect();
+
+        // ✅ Solo ejecuta lógica de proyecto/price engine si existe proyecto
+        if ($proyecto) {
+            $ventasActivas = Venta::where('id_proyecto', $proyecto->id_proyecto)
+                ->whereIn('tipo_operacion', ['venta', 'separacion'])
+                ->count();
+
+            $pe = new \App\Services\PriceEngine();
+            $peBloque = $pe->obtenerBloqueActual($proyecto);
+            $peFactor = $pe->calcularFactorAumento($proyecto, $peBloque);
+            $pePoliticas = $proyecto->politicasPrecio()->get()->toArray();
+
+            $pps = new \App\Services\ProyectoPricingService(); // si luego lo usas
+            $bloque = $peBloque;
+            $factor = $peFactor;
+            $politicas = $proyecto->politicasPrecio()->get();
+
+            // Si tu intención era ver ventas del primer proyecto:
+            // $ventasQuery->where('id_proyecto', $proyecto->id_proyecto);
+            //
+            // Si contabilidad/admin debe ver TODO, deja comentada esa línea.
+        }
+
+        $ventas = $ventasQuery->get();
+
+        // ✅ Ordenar por número de apartamento (los demás al final)
         $ventas = $ventas->sortBy(function ($venta) {
             if ($venta->apartamento) {
-                // Ordenamiento natural para números (ej: 1,2,3,...10,11)
                 return $venta->apartamento->numero;
             }
-            // Si no tiene apartamento (local o parqueadero), poner al final
             return 'ZZZZ';
         }, SORT_NATURAL)->values();
 
         return Inertia::render('Ventas/Venta/Index', [
             'ventas' => $ventas,
             'empleado' => $empleado,
+
             'debug_proyecto' => [
                 'nombre' => $proyecto->nombre ?? null,
-                'ventas_activas' => $ventasActivas ?? null,
-                'bloque_actual' => $bloque ?? null,
-                'factor' => $factor ?? null,
-                'politicas' => $politicas->map(function ($p) {
-                    return [
-                        'id' => $p->id_politica_precio,
-                        'ventas_por_escalon' => $p->ventas_por_escalon,
-                        'porcentaje_aumento' => $p->porcentaje_aumento,
-                        'aplica_desde' => $p->aplica_desde,
-                    ];
-                }),
+                'ventas_activas' => $proyecto ? $ventasActivas : null,
+                'bloque_actual' => $proyecto ? $bloque : null,
+                'factor' => $proyecto ? $factor : null,
+                'politicas' => $proyecto
+                    ? $politicas->map(function ($p) {
+                        return [
+                            'id' => $p->id_politica_precio,
+                            'ventas_por_escalon' => $p->ventas_por_escalon,
+                            'porcentaje_aumento' => $p->porcentaje_aumento,
+                            'aplica_desde' => $p->aplica_desde,
+                        ];
+                    })
+                    : [],
             ],
+
             'debug_priceengine' => [
-                'bloque' => $peBloque ?? null,
-                'factor' => $peFactor ?? null,
-                'politicas' => $pePoliticas ?? null,
+                'bloque' => $peBloque,
+                'factor' => $peFactor,
+                'politicas' => $pePoliticas,
             ],
+
             'debug_venta' => session('debug_venta', null),
+
+            // ✅ Extra: indicador para que sepas si falta data base
+            'setup' => [
+                'tiene_proyecto' => (bool) $proyecto,
+            ],
         ]);
     }
 
