@@ -3,37 +3,24 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\TipoDocumento;
 
 class TipoDocumentoSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('tipos_documento')->insert([
-            [
-                'tipo_documento' => 'Cédula de Ciudadanía',
-                'descripcion' => 'Documento de identidad para ciudadanos colombianos',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_documento' => 'Cédula de Extranjería',
-                'descripcion' => 'Documento de identidad para extranjeros residentes',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_documento' => 'NIT',
-                'descripcion' => 'Número de Identificación Tributaria',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_documento' => 'Pasaporte',
-                'descripcion' => 'Documento de viaje internacional',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $tipos = [
+            ['tipo_documento' => 'Cédula de Ciudadanía', 'descripcion' => 'Documento de identidad colombiano.'],
+            ['tipo_documento' => 'Cédula de Extranjería', 'descripcion' => 'Identificación para residentes extranjeros.'],
+            ['tipo_documento' => 'Pasaporte', 'descripcion' => 'Documento de viaje internacional.'],
+            ['tipo_documento' => 'NIT', 'descripcion' => 'Número de Identificación Tributaria para empresas.'],
+            ['tipo_documento' => 'Tarjeta de Identidad', 'descripcion' => 'Documento para menores de edad.'],
+            ['tipo_documento' => 'Registro Civil', 'descripcion' => 'Registro de nacimiento.'],
+            ['tipo_documento' => 'PEP / PPT', 'descripcion' => 'Permiso de Permanencia o Protección Temporal.'],
+        ];
+
+        foreach ($tipos as $tipo) {
+            TipoDocumento::firstOrCreate($tipo);
+        }
     }
 }

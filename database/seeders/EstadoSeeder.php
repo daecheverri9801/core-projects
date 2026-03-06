@@ -3,18 +3,24 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Estado;
 
 class EstadoSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        DB::table('estados')->insert([
-            ['nombre' => 'Planeación', 'descripcion' => 'Proyecto en fase de planeación', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'En Construcción', 'descripcion' => 'Proyecto en construcción activa', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'En Venta', 'descripcion' => 'Proyecto disponible para venta', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Finalizado', 'descripcion' => 'Proyecto completado', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Suspendido', 'descripcion' => 'Proyecto temporalmente suspendido', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        $estados = [
+            ['nombre' => 'En Planeación', 'descripcion' => 'Proyecto en fase de planeación y estudios previos.'],
+            ['nombre' => 'En Diseño', 'descripcion' => 'Desarrollo de planos y diseños arquitectónicos.'],
+            ['nombre' => 'En Ejecución', 'descripcion' => 'Obra en construcción activa.'],
+            ['nombre' => 'En Pausa', 'descripcion' => 'Proyecto detenido temporalmente.'],
+            ['nombre' => 'Finalizado', 'descripcion' => 'Obra concluida y entregada.'],
+            ['nombre' => 'Cancelado', 'descripcion' => 'Proyecto cancelado definitivamente.'],
+            ['nombre' => 'En Revisión', 'descripcion' => 'Proyecto en etapa de aprobaciones.'],
+        ];
+
+        foreach ($estados as $estado) {
+            Estado::firstOrCreate($estado);
+        }
     }
 }

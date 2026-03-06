@@ -3,43 +3,23 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\FormaPago;
 
 class FormaPagoSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('formas_pago')->insert([
-            [
-                'forma_pago' => 'Contado',
-                'descripcion' => 'Pago total al momento de la compra',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'forma_pago' => 'Financiación Directa',
-                'descripcion' => 'Financiación directa con la constructora',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'forma_pago' => 'Crédito Bancario',
-                'descripcion' => 'Financiación a través de entidad bancaria',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'forma_pago' => 'Leasing Habitacional',
-                'descripcion' => 'Arrendamiento con opción de compra',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'forma_pago' => 'Subsidio + Crédito',
-                'descripcion' => 'Combinación de subsidio estatal y crédito',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $formas = [
+            ['forma_pago' => 'Contado', 'descripcion' => 'Pago total al momento de la compra.'],
+            ['forma_pago' => 'Crédito Hipotecario', 'descripcion' => 'Financiación a través de una entidad bancaria.'],
+            ['forma_pago' => 'Crédito Directo', 'descripcion' => 'Financiación otorgada por la constructora.'],
+            ['forma_pago' => 'Leasing Habitacional', 'descripcion' => 'Arrendamiento con opción de compra.'],
+            ['forma_pago' => 'Permuta', 'descripcion' => 'Intercambio del inmueble por otro bien.'],
+            ['forma_pago' => 'Mixta', 'descripcion' => 'Combinación de varias formas de pago.'],
+        ];
+
+        foreach ($formas as $forma) {
+            FormaPago::firstOrCreate($forma);
+        }
     }
 }

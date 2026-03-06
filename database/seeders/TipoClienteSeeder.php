@@ -3,37 +3,23 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\TipoCliente;
 
 class TipoClienteSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('tipos_cliente')->insert([
-            [
-                'tipo_cliente' => 'Persona Natural',
-                'descripcion' => 'Cliente individual o persona física',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_cliente' => 'Persona Jurídica',
-                'descripcion' => 'Empresa o entidad legal',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_cliente' => 'Inversionista',
-                'descripcion' => 'Cliente que compra con fines de inversión',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'tipo_cliente' => 'Corporativo',
-                'descripcion' => 'Grandes empresas o corporaciones',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $tipos = [
+            ['tipo_cliente' => 'Persona Natural', 'descripcion' => 'Individuo particular.'],
+            ['tipo_cliente' => 'Persona Jurídica', 'descripcion' => 'Empresa o sociedad.'],
+            ['tipo_cliente' => 'Constructor', 'descripcion' => 'Empresa constructora.'],
+            ['tipo_cliente' => 'Inversionista', 'descripcion' => 'Persona que compra para invertir.'],
+            ['tipo_cliente' => 'Gobierno', 'descripcion' => 'Entidad gubernamental.'],
+            ['tipo_cliente' => 'Extranjero', 'descripcion' => 'Cliente no residente en el país.'],
+        ];
+
+        foreach ($tipos as $tipo) {
+            TipoCliente::firstOrCreate($tipo);
+        }
     }
 }

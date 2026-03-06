@@ -3,18 +3,29 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Pais;
 
 class PaisSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        DB::table('paises')->insert([
-            ['nombre' => 'Colombia', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'México', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Argentina', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Chile', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Perú', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        $paises = [
+            ['nombre' => 'Colombia'],
+            ['nombre' => 'Argentina'],
+            ['nombre' => 'Bolivia'],
+            ['nombre' => 'Brasil'],
+            ['nombre' => 'Chile'],
+            ['nombre' => 'Ecuador'],
+            ['nombre' => 'Guyana'],
+            ['nombre' => 'Paraguay'],
+            ['nombre' => 'Perú'],
+            ['nombre' => 'Surinam'],
+            ['nombre' => 'Uruguay'],
+            ['nombre' => 'Venezuela'],
+        ];
+
+        foreach ($paises as $pais) {
+            Pais::firstOrCreate($pais);
+        }
     }
 }

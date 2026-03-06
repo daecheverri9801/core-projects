@@ -8,19 +8,20 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Seeders del módulo de Ventas
         $this->call([
+            PaisSeeder::class,
+            DepartamentoSeeder::class,
+            CiudadSeeder::class,
+            DependenciaSeeder::class,
+            CargoSeeder::class,
+            EmpleadoSeeder::class,
+            EstadoSeeder::class,
+            EstadoInmuebleSeeder::class,
+            EstadoVentaSeeder::class,
+            FormaPagoSeeder::class,
+            MedioPagoSeeder::class,
             TipoClienteSeeder::class,
             TipoDocumentoSeeder::class,
-            ClienteSeeder::class,
-            FormaPagoSeeder::class,
-            EstadoVentaSeeder::class,
-            ConceptoPagoSeeder::class,
-            MedioPagoSeeder::class,
-            VentaSeeder::class,
-            PlanAmortizacionVentaSeeder::class,
-            PlanAmortizacionCuotaSeeder::class,
-            PagoSeeder::class,
         ]);
     }
 }
