@@ -50,7 +50,7 @@ class DepartamentoSeeder extends Seeder
         ];
 
         foreach ($departamentos as $nombre) {
-            DB::table('departamentos')->insertOrIgnore([
+            DB::table('departamentos')->firstOrCreate([
                 'nombre'      => $nombre,
                 'id_pais'     => 1,
                 'created_at'  => now(),
