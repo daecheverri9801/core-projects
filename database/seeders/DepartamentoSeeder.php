@@ -3,14 +3,14 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB; // ← necesario para DB
 use App\Models\Pais;
-use App\Models\Departamento;
 
 class DepartamentoSeeder extends Seeder
 {
     public function run()
     {
-        // Obtener o crear el país Colombia
+        // Obtener o crear el país Colombia (esto sigue usando el modelo Pais, pero es seguro)
         $colombia = Pais::firstOrCreate(['nombre' => 'Colombia']);
 
         $departamentos = [
@@ -50,9 +50,11 @@ class DepartamentoSeeder extends Seeder
         ];
 
         foreach ($departamentos as $nombre) {
-            Departamento::firstOrCreate([
-                'nombre' => $nombre,
-                'id_pais' => $colombia->id,  // ahora $colombia siempre existe
+            DB::table('departamentos')->insertOrIgnore([
+                'nombre'      => $nombre,
+                'id_pais'     => $colombia->id,
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ]);
         }
     }
