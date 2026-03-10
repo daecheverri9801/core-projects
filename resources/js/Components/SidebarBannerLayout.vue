@@ -196,7 +196,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 
-useIdleLogout({ minutes: 15 })
+useIdleLogout({ minutes: 30 })
 
 const props = defineProps({
   empleado: Object,

@@ -1,7 +1,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 
-export function useIdleLogout({ minutes = 15 } = {}) {
+export function useIdleLogout({ minutes = 30 } = {}) {
   const timeoutMs = minutes * 60 * 1000
   const timer = ref(null)
 

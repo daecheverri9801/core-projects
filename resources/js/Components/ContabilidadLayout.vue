@@ -115,7 +115,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import { ChevronDownIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 
-useIdleLogout({ minutes: 15 })
+useIdleLogout({ minutes: 30 })
 
 const page = usePage()
 const empleado = computed(() => page.props?.auth?.empleado ?? page.props?.empleado ?? null)

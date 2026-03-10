@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 
-useIdleLogout({ minutes: 15 })
+useIdleLogout({ minutes: 30 })
 
 const props = defineProps({
   empleado: { type: Object, default: null },
