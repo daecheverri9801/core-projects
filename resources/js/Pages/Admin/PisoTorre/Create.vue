@@ -297,7 +297,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { Link, useForm, usePage, router } from '@inertiajs/vue3'
 
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'

@@ -465,6 +465,16 @@ Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->gro
         ->name('contabilidad.reportes.plan_ci.export');
 });
 
+// routes/web.php (SOLO EN DESARROLLO LOCAL)
+if (app()->environment('local')) {
+    Route::get('/test/403', fn() => abort(403));
+    Route::get('/test/404', fn() => abort(404));
+    Route::get('/test/419', fn() => abort(419));
+    Route::get('/test/500', fn() => abort(500));
+    Route::get('/test/502', fn() => abort(502));
+    Route::get('/test/503', fn() => abort(503));
+}
+
 
 // Ruta para cualquier empleado autenticado
 // Route::middleware(['auth'])->group(function () {
