@@ -484,7 +484,7 @@ function saveAndNext_TiposApto() {
     .post(route('pisostorre.store'), {
       preserveScroll: true,
       preserveState: true,
-      onSuccess: () => router.visit(`/admin/tipos-apartamento/create?proyecto=${form.id_proyecto}`),
+      onSuccess: () => router.visit(`/tipos-apartamento/create?proyecto=${form.id_proyecto}`),
     })
 }
 </script>
