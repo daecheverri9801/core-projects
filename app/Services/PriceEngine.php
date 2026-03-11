@@ -123,20 +123,20 @@ class PriceEngine
      * ============================================================ */
     public function recalcularInmueble($inmueble, $factor, $esLocal = false)
     {
-        if (!$esLocal) {
-            // BASE INMUTABLE REAL
-            $precioBase = (float) ($inmueble->valor_total ?? 0);
-        } else {
-            $precioBase = (float) (($inmueble->valor_m2 ?? 0) * ($inmueble->area_total_local ?? 0));
-        }
-
         $prima = (float) ($inmueble->prima_altura ?? 0);
 
+        if (!$esLocal) {
+            // BASE INMUTABLE REAL
+            $baseConPrima = (float) (($inmueble->valor_total ?? 0) + $prima);
+        } else {
+            $baseConPrima = (float) ((($inmueble->valor_m2 ?? 0) * ($inmueble->area_total_local ?? 0)) + $prima);
+        }
+
         // Política SOLO sobre base (no sobre prima)
-        $valorPolitica = ($precioBase * $factor) - $precioBase;
+        $valorPolitica = ($baseConPrima * $factor) - $baseConPrima;
 
         // Final = base + prima + política
-        $valorFinal = $precioBase + $prima + $valorPolitica;
+        $valorFinal = $baseConPrima + $valorPolitica;
 
         $inmueble->update([
             'valor_politica' => round($valorPolitica),
