@@ -137,11 +137,11 @@
                         </tr>
                         <tr>
                             <td>Ubicación:</td>
-                            <td>{{ $venta->proyecto->ubicacion->barrio ?? '—' }} - {{ $venta->proyecto->ubicacion->direccion ?? '' }}</td>
+                            <td>{{ $venta->proyecto->ubicacion->direccion ?? '' }}</td>
                         </tr>
                         <tr>
                             <td>Zonas sociales:</td>
-                            <td>{{ $venta->proyecto->zonas_sociales ? implode(', ', array_column($venta->proyecto->zonas_sociales, 'nombre')) : '—' }}</td>
+                            <td>{{ $venta->proyecto && $venta->proyecto->zonas_sociales ? (is_array($venta->proyecto->zonas_sociales) ? implode(', ', array_column($venta->proyecto->zonas_sociales, 'nombre')) : (is_string($venta->proyecto->zonas_sociales) ? $venta->proyecto->zonas_sociales : '—')): '—' }}</td>
                         </tr>
                     </table>
                 </div>
@@ -179,7 +179,6 @@
             @endif
 
             <!-- 3. Datos del Asesor (solo para cliente) -->
-            @if($tipo == 'cliente')
             <div class="section">
                 <div class="section-title">3. DATOS DEL ASESOR</div>
                 <div class="section-content">
@@ -199,11 +198,10 @@
                     </table>
                 </div>
             </div>
-            @endif
 
             <!-- 4. Información del Inmueble -->
             <div class="section">
-                <div class="section-title">{{ $tipo == 'empleado' ? '4' : ($tipo == 'cliente' ? '3' : '4') }}. INFORMACIÓN DEL INMUEBLE</div>
+                <div class="section-title">4. INFORMACIÓN DEL INMUEBLE</div>
                 <div class="section-content">
                     <table class="table">
                         <tr>
@@ -220,25 +218,25 @@
                         </tr>
                         <tr>
                             <td>Piso:</td>
-                            <td>{{ $venta->apartamento->piso_torre->nivel ?? $venta->local->piso_torre->nivel ?? '—' }}</td>
+                            <td>{{ $venta->apartamento->pisoTorre->nivel ?? $venta->local->pisoTorre->nivel ?? '—' }}</td>
                         </tr>
 
                         @if($venta->apartamento)
                         <tr>
                             <td>Alcobas:</td>
-                            <td>{{ $venta->apartamento->tipo_apartamento->cantidad_habitaciones ?? '—' }}</td>
+                            <td>{{ $venta->apartamento->tipoApartamento->cantidad_habitaciones ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Baños:</td>
-                            <td>{{ $venta->apartamento->tipo_apartamento->cantidad_banos ?? '—' }}</td>
+                            <td>{{ $venta->apartamento->tipoApartamento->cantidad_banos ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Área construida:</td>
-                            <td>{{ $venta->apartamento->tipo_apartamento->area_construida ?? '—' }} m²</td>
+                            <td>{{ $venta->apartamento->tipoApartamento->area_construida ?? '—' }} m²</td>
                         </tr>
                         <tr>
                             <td>Área privada:</td>
-                            <td>{{ $venta->apartamento->tipo_apartamento->area_privada ?? '—' }} m²</td>
+                            <td>{{ $venta->apartamento->tipoApartamento->area_privada ?? '—' }} m²</td>
                         </tr>
                         <tr>
                             <td>Parqueadero:</td>
@@ -313,11 +311,11 @@
 
                         <tr>
                             <td>Forma de pago:</td>
-                            <td>{{ $venta->forma_pago->forma_pago ?? '—' }}</td>
+                            <td>{{ $venta->forma_pago->formaPago ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Fecha operación:</td>
-                            <td>{{ \Carbon\Carbon::parse($venta->fecha_venta)->format('d/m/Y H:i') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($venta->fecha_venta)->format('d/m/Y') }}</td>
                         </tr>
                     </table>
                 </div>
