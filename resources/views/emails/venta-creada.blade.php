@@ -123,7 +123,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <img src="{{ asset('images/logo-ac.png') }}" alt="Constructora A&C" class="header-logo">
+            <img src="{{ asset('images/logo-ayc.png') }}" alt="Constructora A&C" class="header-logo">
             <h1>REPORTE DE OPERACIÓN</h1>
             <p>{{ $venta->tipo_operacion == 'venta' ? 'VENTA' : 'SEPARACIÓN' }} · {{ $venta->apartamento ? 'Apartamento' : 'Local' }}</p>
         </div>
