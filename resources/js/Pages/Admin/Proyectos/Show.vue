@@ -107,7 +107,7 @@
             </div>
           </div>
         </div>
-      </div>     
+      </div>
 
       <FlashMessages />
     </div>
@@ -352,15 +352,21 @@ const primaAlturaActivaTexto = computed(() => {
 const porcentajeCuotaInicialTexto = computed(() => {
   const p =
     proyecto.value?.porcentaje_cuota_inicial_min ?? page.props.porcentaje_cuota_inicial ?? null
-  if (p === null) return '—'
-  try {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'percent',
-      maximumFractionDigits: 0,
-    }).format(Number(p))
-  } catch {
-    return String(p)
+
+  if (p === null || p === '') return '—'
+
+  let valor = Number(p)
+  if (Number.isNaN(valor)) return '—'
+
+  // Si viene como decimal, lo convertimos a porcentaje visible
+  if (valor <= 1) {
+    valor = valor * 100
   }
+
+  return `${new Intl.NumberFormat('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(valor)}%`
 })
 
 /** PLazo Cuota Inicial Meses */
@@ -418,8 +424,6 @@ const bloquesAplicadosTexto = computed(() => {
     return String(b)
   }
 })
-
-
 
 /** Helper: agrega ?proyecto=ID si hay id */
 function withProyecto(path) {

@@ -15,6 +15,7 @@ use App\Models\TipoCliente;
 use App\Models\TipoDocumento;
 use App\Models\Parqueadero;
 use App\Services\VentaService;
+use App\Events\VentaCreada;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -266,6 +267,8 @@ class VentaWebController extends Controller
             }
 
             $venta = $this->ventaService->crearOperacion($validated);
+
+            event(new VentaCreada($venta));
 
             return redirect()
                 ->route('ventas.show', $venta->id_venta)
