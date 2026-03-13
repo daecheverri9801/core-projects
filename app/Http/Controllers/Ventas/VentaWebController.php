@@ -16,10 +16,13 @@ use App\Models\TipoDocumento;
 use App\Models\Parqueadero;
 use App\Services\VentaService;
 use App\Events\VentaCreada;
+use App\Notifications\VentaCreadaCliente;
+use App\Notifications\VentaCreadaEmpleado;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class VentaWebController extends Controller
 {
@@ -269,6 +272,24 @@ class VentaWebController extends Controller
             $venta = $this->ventaService->crearOperacion($validated);
 
             event(new VentaCreada($venta));
+
+            try {
+                // Enviar al cliente
+                if ($venta->cliente && $venta->cliente->correo) {
+                    \Log::info('Enviando notificación a cliente', ['email' => $venta->cliente->correo]);
+                    $venta->cliente->notify(new VentaCreadaCliente($venta));
+                }
+
+                // Enviar al empleado
+                if ($venta->empleado && $venta->empleado->email) {
+                    \Log::info('Enviando notificación a empleado', ['email' => $venta->empleado->email]);
+                    $venta->empleado->notify(new VentaCreadaEmpleado($venta));
+                }
+
+                \Log::info('Notificaciones enviadas correctamente');
+            } catch (\Exception $e) {
+                \Log::error('Error enviando notificaciones: ' . $e->getMessage());
+            }
 
             return redirect()
                 ->route('ventas.show', $venta->id_venta)

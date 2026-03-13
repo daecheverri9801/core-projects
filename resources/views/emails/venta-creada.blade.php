@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Operación</title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FFEA00 0%, #D1C000 100%);
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #1A1700;
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .header p {
+            color: #474100;
+            margin: 5px 0 0;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .section-title {
+            background-color: #1e3a5f;
+            color: white;
+            padding: 10px 15px;
+            margin: 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .section-content {
+            padding: 15px;
+            background: #fafafa;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table td:first-child {
+            font-weight: bold;
+            width: 40%;
+            background-color: #f5f5f5;
+        }
+
+        .table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .total-row td {
+            border-top: 2px solid #1e3a5f;
+            font-weight: bold;
+        }
+
+        .footer {
+            background-color: #f8f8f8;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-top: 1px solid #ddd;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #1e3a5f;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>REPORTE DE OPERACIÓN</h1>
+            <p>{{ $venta->tipo_operacion == 'venta' ? 'VENTA' : 'SEPARACIÓN' }} · {{ $venta->apartamento ? 'Apartamento' : 'Local' }}</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Mensaje personalizado -->
+            <p style="margin-bottom: 20px;">Estimado(a) <strong>{{ $tipo == 'empleado' ? $venta->empleado->nombre : $venta->cliente->nombre }}</strong>,</p>
+            <p style="margin-bottom: 25px;">{{ $tipo == 'empleado' ? 'Se ha registrado una nueva operación en el sistema con los siguientes detalles:' : 'Le informamos que se ha registrado una operación en nuestro sistema con los siguientes detalles:' }}</p>
+
+            <!-- 1. Datos del Proyecto -->
+            <div class="section">
+                <div class="section-title">1. DATOS DEL PROYECTO</div>
+                <div class="section-content">
+                    <table class="table">
+                        <tr>
+                            <td>Nombre:</td>
+                            <td>{{ $venta->proyecto->nombre ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Ubicación:</td>
+                            <td>{{ $venta->proyecto->ubicacion->barrio ?? '—' }} - {{ $venta->proyecto->ubicacion->direccion ?? '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Zonas sociales:</td>
+                            <td>{{ $venta->proyecto->zonas_sociales ? implode(', ', array_column($venta->proyecto->zonas_sociales, 'nombre')) : '—' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. Datos del Cliente (solo para empleado) -->
+            @if($tipo == 'empleado')
+            <div class="section">
+                <div class="section-title">2. DATOS DEL CLIENTE</div>
+                <div class="section-content">
+                    <table class="table">
+                        <tr>
+                            <td>Nombre:</td>
+                            <td>{{ $venta->cliente->nombre ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Documento:</td>
+                            <td>{{ $venta->documento_cliente ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Teléfono:</td>
+                            <td>{{ $venta->cliente->telefono ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Correo:</td>
+                            <td>{{ $venta->cliente->correo ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Dirección:</td>
+                            <td>{{ $venta->cliente->direccion ?? '—' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            <!-- 3. Datos del Asesor (solo para cliente) -->
+            @if($tipo == 'cliente')
+            <div class="section">
+                <div class="section-title">3. DATOS DEL ASESOR</div>
+                <div class="section-content">
+                    <table class="table">
+                        <tr>
+                            <td>Nombre:</td>
+                            <td>{{ $venta->empleado->nombre ?? '' }} {{ $venta->empleado->apellido ?? '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Correo:</td>
+                            <td>{{ $venta->empleado->email ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Teléfono:</td>
+                            <td>{{ $venta->empleado->telefono ?? '—' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            @endif
+
+            <!-- 4. Información del Inmueble -->
+            <div class="section">
+                <div class="section-title">{{ $tipo == 'empleado' ? '4' : ($tipo == 'cliente' ? '3' : '4') }}. INFORMACIÓN DEL INMUEBLE</div>
+                <div class="section-content">
+                    <table class="table">
+                        <tr>
+                            <td>Tipo:</td>
+                            <td>{{ $venta->apartamento ? 'Apartamento' : 'Local Comercial' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Número:</td>
+                            <td>{{ $venta->apartamento->numero ?? $venta->local->numero ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Torre:</td>
+                            <td>{{ $venta->apartamento->torre->nombre_torre ?? $venta->local->torre->nombre_torre ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Piso:</td>
+                            <td>{{ $venta->apartamento->piso_torre->nivel ?? $venta->local->piso_torre->nivel ?? '—' }}</td>
+                        </tr>
+
+                        @if($venta->apartamento)
+                        <tr>
+                            <td>Alcobas:</td>
+                            <td>{{ $venta->apartamento->tipo_apartamento->cantidad_habitaciones ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Baños:</td>
+                            <td>{{ $venta->apartamento->tipo_apartamento->cantidad_banos ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Área construida:</td>
+                            <td>{{ $venta->apartamento->tipo_apartamento->area_construida ?? '—' }} m²</td>
+                        </tr>
+                        <tr>
+                            <td>Área privada:</td>
+                            <td>{{ $venta->apartamento->tipo_apartamento->area_privada ?? '—' }} m²</td>
+                        </tr>
+                        <tr>
+                            <td>Parqueadero:</td>
+                            <td>{{ $venta->apartamento->tiene_parqueadero ? 'Sí' : 'No' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Parqueadero adicional:</td>
+                            <td>{{ $venta->parqueadero ? 'Sí' : 'No' }}</td>
+                        </tr>
+                        @else
+                        <tr>
+                            <td>Área total:</td>
+                            <td>{{ $venta->local->area_total_local ?? '—' }} m²</td>
+                        </tr>
+                        @endif
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. Desglose Económico -->
+            <div class="section">
+                <div class="section-title">{{ $tipo == 'empleado' ? '5' : ($tipo == 'cliente' ? '4' : '5') }}. DESGLOSE ECONÓMICO</div>
+                <div class="section-content">
+                    <table class="table">
+                        @if($venta->tipo_operacion == 'separacion')
+                        <tr>
+                            <td>Fecha Límite de Separación:</td>
+                            <td>{{ \Carbon\Carbon::parse($venta->fecha_limite_separacion)->format('d/m/Y') }}</td>
+                        </tr>
+                        @endif
+
+                        <tr>
+                            <td>Valor apartamento:</td>
+                            <td>${{ number_format($venta->valor_base ?? $venta->valor_total, 0, ',', '.') }}</td>
+                        </tr>
+
+                        @if($venta->parqueadero)
+                        <tr>
+                            <td>Valor parqueadero:</td>
+                            <td>${{ number_format($venta->parqueadero->precio ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        @endif
+
+                        <tr class="total-row">
+                            <td>Valor total:</td>
+                            <td><strong>${{ number_format($venta->valor_total, 0, ',', '.') }}</strong></td>
+                        </tr>
+
+                        @if($venta->tipo_operacion == 'venta')
+                        <tr>
+                            <td>Cuota inicial:</td>
+                            <td>${{ number_format($venta->cuota_inicial, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td>Plazo cuota inicial:</td>
+                            <td>{{ $venta->plazo_cuota_inicial_meses }} meses</td>
+                        </tr>
+                        <tr>
+                            <td>Frecuencia de pago:</td>
+                            <td>Cada {{ $venta->frecuencia_cuota_inicial_meses }} meses</td>
+                        </tr>
+                        <tr>
+                            <td>Saldo restante:</td>
+                            <td>${{ number_format($venta->valor_restante, 0, ',', '.') }}</td>
+                        </tr>
+                        @else
+                        <tr>
+                            <td>Valor de separación:</td>
+                            <td>${{ number_format($venta->valor_separacion, 0, ',', '.') }}</td>
+                        </tr>
+                        @endif
+
+                        <tr>
+                            <td>Forma de pago:</td>
+                            <td>{{ $venta->forma_pago->forma_pago ?? '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Fecha operación:</td>
+                            <td>{{ \Carbon\Carbon::parse($venta->fecha_venta)->format('d/m/Y H:i') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Botón para ver detalles -->
+            <div style="text-align: center;">
+                <a href="{{ url('/ventas/' . $venta->id_venta) }}" class="button">Ver detalles completos</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
+            <p>Constructora A&C - Todos los derechos reservados</p>
+            <p style="font-size: 10px; margin-top: 10px;">Este es un mensaje automático, por favor no responder.</p>
+        </div>
+    </div>
+</body>
+
+</html>
