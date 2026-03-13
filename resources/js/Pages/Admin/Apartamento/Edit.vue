@@ -8,9 +8,7 @@
         subtitle="Actualiza la información del apartamento. La prima de altura y el valor total se calculan automáticamente."
       >
         <template #actions>
-          <ButtonSecondary href="/apartamentos">
-            Volver
-          </ButtonSecondary>
+          <ButtonSecondary href="/apartamentos"> Volver </ButtonSecondary>
         </template>
       </PageHeader>
 
@@ -20,11 +18,10 @@
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-sm text-gray-600">
-                ID: <span class="font-semibold text-gray-900">{{ apartamento.id_apartamento }}</span>
+                ID:
+                <span class="font-semibold text-gray-900">{{ apartamento.id_apartamento }}</span>
               </p>
-              <p class="text-xs text-gray-500 mt-1">
-                Cambios se guardan al actualizar.
-              </p>
+              <p class="text-xs text-gray-500 mt-1">Cambios se guardan al actualizar.</p>
             </div>
           </div>
 
@@ -61,7 +58,11 @@
             <!-- Piso -->
             <div>
               <label class="form-label">Piso</label>
-              <select v-model="form.id_piso_torre" :disabled="pisos.length === 0" class="form-input">
+              <select
+                v-model="form.id_piso_torre"
+                :disabled="pisos.length === 0"
+                class="form-input"
+              >
                 <option value="">Seleccione un piso</option>
                 <option v-for="p in pisos" :key="p.id_piso_torre" :value="p.id_piso_torre">
                   Nivel {{ p.nivel }}
@@ -73,7 +74,13 @@
             <!-- Número -->
             <div>
               <label class="form-label">Número</label>
-              <input v-model="form.numero" type="text" maxlength="20" class="form-input" placeholder="Ej: 302" />
+              <input
+                v-model="form.numero"
+                type="text"
+                maxlength="20"
+                class="form-input"
+                placeholder="Ej: 302"
+              />
               <p v-if="errors.numero" class="form-error">{{ errors.numero }}</p>
             </div>
 
@@ -90,7 +97,9 @@
                   {{ t.nombre }} — {{ formatCurrency(t.valor_estimado) }}
                 </option>
               </select>
-              <p v-if="errors.id_tipo_apartamento" class="form-error">{{ errors.id_tipo_apartamento }}</p>
+              <p v-if="errors.id_tipo_apartamento" class="form-error">
+                {{ errors.id_tipo_apartamento }}
+              </p>
             </div>
 
             <!-- Estado -->
@@ -98,11 +107,17 @@
               <label class="form-label">Estado del inmueble</label>
               <select v-model="form.id_estado_inmueble" class="form-input">
                 <option value="">Seleccione un estado</option>
-                <option v-for="e in estados" :key="e.id_estado_inmueble" :value="e.id_estado_inmueble">
+                <option
+                  v-for="e in estados"
+                  :key="e.id_estado_inmueble"
+                  :value="e.id_estado_inmueble"
+                >
                   {{ e.nombre }}
                 </option>
               </select>
-              <p v-if="errors.id_estado_inmueble" class="form-error">{{ errors.id_estado_inmueble }}</p>
+              <p v-if="errors.id_estado_inmueble" class="form-error">
+                {{ errors.id_estado_inmueble }}
+              </p>
             </div>
           </div>
         </AppCard>
@@ -112,18 +127,18 @@
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <h3 class="text-sm font-semibold text-gray-900">Cálculos</h3>
-              <p class="text-xs text-gray-500 mt-1">
-                Valores informativos (solo lectura).
-              </p>
+              <p class="text-xs text-gray-500 mt-1">Valores informativos (solo lectura).</p>
             </div>
           </div>
 
           <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Prima altura -->
             <div class="rounded-2xl border border-gray-200 p-4">
-              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Prima altura</p>
+              <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                Prima altura
+              </p>
               <p class="mt-2 text-2xl font-semibold text-gray-900">
-                {{ formatCurrency(primaAlturaCalculada) }}
+                {{ formatCurrency(apartamento.prima_altura) }}
               </p>
               <p class="mt-1 text-xs text-gray-500">
                 Se calcula según el piso y configuración del proyecto.
@@ -136,21 +151,15 @@
               <p class="mt-2 text-2xl font-semibold text-gray-900">
                 {{ formatCurrency(valorTotalCalculado) }}
               </p>
-              <p class="mt-1 text-xs text-gray-500">
-                Valor estimado del tipo + prima altura.
-              </p>
+              <p class="mt-1 text-xs text-gray-500">Valor estimado del tipo + prima altura.</p>
             </div>
           </div>
         </AppCard>
 
         <!-- Actions -->
         <div class="flex items-center justify-end gap-2">
-          <ButtonSecondary href="/apartamentos">
-            Cancelar
-          </ButtonSecondary>
-          <ButtonPrimary type="submit">
-            Actualizar
-          </ButtonPrimary>
+          <ButtonSecondary href="/apartamentos"> Cancelar </ButtonSecondary>
+          <ButtonPrimary type="submit"> Actualizar </ButtonPrimary>
         </div>
       </form>
 
@@ -237,29 +246,6 @@ async function onTorreChange() {
 }
 
 // =========================
-// PRIMA ALTURA (CORREGIDA)
-// =========================
-const primaAlturaCalculada = computed(() => {
-  const piso = pisos.value.find((p) => Number(p.id_piso_torre) === Number(form.id_piso_torre))
-  if (!piso || piso.nivel == null) return 0
-
-  const nivel = Number(piso.nivel)
-  if (nivel < 2) return 0
-
-  // Igual que CREATE
-  const torre = torres.value.find((t) => Number(t.id_torre) === Number(form.id_torre))
-  if (!torre || !torre.proyecto) return 0
-
-  const proyecto = torre.proyecto
-  if (!proyecto.prima_altura_activa) return 0
-
-  const base = Number(proyecto.prima_altura_base || 0)
-  const incremento = Number(proyecto.prima_altura_incremento || 0)
-
-  return base + (nivel - 2) * incremento
-})
-
-// =========================
 // VALOR TOTAL
 // =========================
 const valorEstimadoTipo = computed(() => {
@@ -268,7 +254,7 @@ const valorEstimadoTipo = computed(() => {
 })
 
 const valorTotalCalculado = computed(() => {
-  return valorEstimadoTipo.value + primaAlturaCalculada.value
+  return valorEstimadoTipo.value + Number(props.apartamento.prima_altura || 0)
 })
 
 // =========================

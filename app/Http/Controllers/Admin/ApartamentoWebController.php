@@ -259,7 +259,6 @@ class ApartamentoWebController extends Controller
             ->orderBy('nombre_torre')
             ->get();
 
-
         // PISOS SOLO DE LA TORRE ASOCIADA
         $pisos = PisoTorre::where('id_torre', $a->id_torre)
             ->select('id_piso_torre', 'nivel', 'id_torre')
@@ -276,6 +275,7 @@ class ApartamentoWebController extends Controller
                 'id_estado_inmueble' => $a->id_estado_inmueble,
                 'valor_total' => $a->valor_total,
                 'id_proyecto' => $idProyecto,
+                'prima_altura' => $a->prima_altura,
             ],
             'proyectos' => $proyectos,
             'tipos' => $tipos,
