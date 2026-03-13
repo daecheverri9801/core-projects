@@ -145,6 +145,22 @@ class PriceEngine
             // 'valor_comercial' => round($valorFinal),
         ]);
     }
+
+    public function recalcularApartamentoSegunPoliticasActivas(Apartamento $apartamento): void
+    {
+        $apartamento->loadMissing('torre.proyecto');
+
+        $proyecto = $apartamento->torre?->proyecto;
+        if (!$proyecto) {
+            return;
+        }
+
+        $bloque = $this->obtenerBloqueActual($proyecto);
+        $factor = $this->calcularFactorAumento($proyecto, $bloque);
+
+        $this->recalcularInmueble($apartamento, $factor, false);
+    }
+    
     /* ============================================================
      * 5. Llamado principal desde Ventas
      * ============================================================ */
