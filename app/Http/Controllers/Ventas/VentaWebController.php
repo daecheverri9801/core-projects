@@ -141,6 +141,7 @@ class VentaWebController extends Controller
 
         $apartamentos = Apartamento::with(['torre.proyecto', 'estadoInmueble'])
             ->whereHas('estadoInmueble', fn($q) => $q->where('nombre', 'Disponible'))
+            ->orderBy('numero', 'asc')
             ->get();
 
         $locales = Local::with(['torre.proyecto', 'estadoInmueble'])
