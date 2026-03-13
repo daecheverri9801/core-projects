@@ -240,7 +240,7 @@
                         </tr>
                         <tr>
                             <td>Parqueadero:</td>
-                            <td>{{ $venta->apartamento->tiene_parqueadero ? 'Sí' : 'No' }}</td>
+                            <td>{{ $venta->apartamento->parqueaderos->tiene_parqueadero ? 'Sí' : 'No' }}</td>
                         </tr>
                         <tr>
                             <td>Parqueadero adicional:</td>
@@ -311,7 +311,7 @@
 
                         <tr>
                             <td>Forma de pago:</td>
-                            <td>{{ $venta->forma_pago->formaPago ?? '—' }}</td>
+                            <td>{{ $venta->formaPago->forma_Pago ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Fecha operación:</td>
