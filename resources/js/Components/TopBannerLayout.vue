@@ -13,6 +13,21 @@
           </div>
         </div>
 
+        <Link
+          v-if="cargoNombre === 'Gerente'"
+          href="/gerencia/metas"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+        >
+          <ChartBarSquareIcon class="w-5 h-5" /> Ir a Reportes
+        </Link>
+        <Link
+          v-if="cargoNombre === 'Gerente'"
+          href="/ventas"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+        >
+          <ShoppingCartIcon class="w-5 h-5" /> Ir a Ventas
+        </Link>
+
         <!-- User menu -->
         <div class="relative" ref="userMenuRef">
           <button
@@ -186,6 +201,8 @@ import {
   UserGroupIcon,
   UsersIcon,
   CheckCircleIcon,
+  ChartBarSquareIcon,
+  ShoppingCartIcon,
 } from '@heroicons/vue/24/outline'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 

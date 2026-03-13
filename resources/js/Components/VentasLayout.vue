@@ -18,7 +18,20 @@
                 <!-- <p class="text-xs text-gray-500">Módulo de Ventas</p> -->
               </div>
             </div>
-
+            <Link
+              v-if="cargoNombre === 'Gerente'"
+              href="/gerencia/metas"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+            >
+              <ChartBarSquareIcon class="w-5 h-5" /> Ir a Reportes
+            </Link>
+            <Link
+              v-if="cargoNombre === 'Gerente'"
+              href="/dashboard"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+            >
+              <Cog6ToothIcon class="w-5 h-5" /> Ir a Administrador
+            </Link>
             <!-- Usuario y Logout -->
             <div class="relative" ref="userMenuRef">
               <button
@@ -140,11 +153,13 @@ import {
   ArrowRightOnRectangleIcon,
   Squares2X2Icon,
   ChartBarIcon,
+  PlusIcon,
+  ChartBarSquareIcon,
+  Cog6ToothIcon 
 } from '@heroicons/vue/24/outline'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 
 useIdleLogout({ minutes: 30 })
-
 
 const props = defineProps({
   empleado: { type: Object, default: null },

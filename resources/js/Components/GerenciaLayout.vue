@@ -49,7 +49,7 @@ const cargoNombre = computed(() => empleado.value?.cargo?.nombre || 'Gerente')
         <div class="flex items-center gap-3">
           <img src="/images/logo-ayc.png" class="h-8" alt="Logo" />
           <div>
-            <div class="font-semibold text-slate-50">Constructora A&amp;C · Gerencia</div>
+            <div class="font-semibold text-slate-50">Constructora A&amp;C</div>
           </div>
         </div>
 
@@ -59,10 +59,16 @@ const cargoNombre = computed(() => empleado.value?.cargo?.nombre || 'Gerente')
             <div class="text-slate-500 text-xs">{{ empleado?.correo || cargoNombre }}</div>
           </div>
           <Link
+            href="/dashboard"
+            class="px-3 py-1.5 rounded-lg border border-slate-700 text-xs uppercase tracking-wide hover:bg-slate-800"
+          >
+            Administrador
+          </Link>
+          <Link
             href="/ventas"
             class="px-3 py-1.5 rounded-lg border border-slate-700 text-xs uppercase tracking-wide hover:bg-slate-800"
           >
-            Ir a Ventas
+            Ventas
           </Link>
           <Link
             href="/gerencia/metas"
