@@ -28,6 +28,13 @@
             text-align: center;
         }
 
+        .header-logo {
+            max-height: 70px;
+            width: auto;
+            display: block;
+            margin: 0 auto 15px auto;
+        }
+
         .header h1 {
             color: #1A1700;
             margin: 0;
@@ -116,6 +123,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
+            <img src="{{ asset('images/logo-ac.png') }}" alt="Constructora A&C" class="header-logo">
             <h1>REPORTE DE OPERACIÓN</h1>
             <p>{{ $venta->tipo_operacion == 'venta' ? 'VENTA' : 'SEPARACIÓN' }} · {{ $venta->apartamento ? 'Apartamento' : 'Local' }}</p>
         </div>
@@ -311,7 +319,7 @@
 
                         <tr>
                             <td>Forma de pago:</td>
-                            <td>{{ $venta->formaPago->forma_Pago ?? '—' }}</td>
+                            <td>{{ $venta->formaPago->forma_pago ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Fecha operación:</td>
@@ -319,11 +327,6 @@
                         </tr>
                     </table>
                 </div>
-            </div>
-
-            <!-- Botón para ver detalles -->
-            <div style="text-align: center;">
-                <a href="{{ url('/ventas/' . $venta->id_venta) }}" class="button">Ver detalles completos</a>
             </div>
         </div>
 
