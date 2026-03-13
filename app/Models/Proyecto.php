@@ -93,7 +93,7 @@ class Proyecto extends Model
     public function metasComerciales()
     {
         return $this->hasMany(ProyectoMetaComercial::class, 'id_proyecto', 'id_proyecto');
-    }
+    }    
 
     public function politicaVigente()
     {

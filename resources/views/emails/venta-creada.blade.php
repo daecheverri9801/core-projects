@@ -149,7 +149,7 @@
                         </tr>
                         <tr>
                             <td>Zonas sociales:</td>
-                            <td>{{ $venta->proyecto && $venta->proyecto->zonas_sociales ? (is_array($venta->proyecto->zonas_sociales) ? implode(', ', array_column($venta->proyecto->zonas_sociales, 'nombre')) : (is_string($venta->proyecto->zonas_sociales) ? $venta->proyecto->zonas_sociales : '—')): '—' }}</td>
+                            <td>{{ optional($venta->proyecto->zonasSociales)->pluck('nombre')->filter()->join(', ') ?: '—' }}</td>
                         </tr>
                     </table>
                 </div>
