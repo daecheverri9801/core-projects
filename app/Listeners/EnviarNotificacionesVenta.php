@@ -22,7 +22,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
         }
         
         // 2. Enviar correo al EMPLEADO (asesor)
-        if ($venta->empleado && $venta->empleado->correo) {
+        if ($venta->empleado && $venta->empleado->email) {
             $venta->empleado->notify(new VentaCreadaEmpleado($venta));
         }
         

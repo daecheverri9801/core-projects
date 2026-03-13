@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Notifiable;
 
+
 class Cliente extends Model
 {
     use HasFactory, Notifiable;
@@ -43,5 +44,10 @@ class Cliente extends Model
     public function apartamentos()
     {
         return $this->hasMany(Apartamento::class, 'documento', 'documento');
+    }
+
+    public function routeNotificationForMail($notification): ?string
+    {
+        return $this->correo;
     }
 }
