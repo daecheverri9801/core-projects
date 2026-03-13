@@ -240,7 +240,7 @@
                         </tr>
                         <tr>
                             <td>Parqueadero:</td>
-                            <td>{{ $venta->apartamento->parqueaderos->tiene_parqueadero ? 'Sí' : 'No' }}</td>
+                            <td>{{ $venta->apartamento && $venta->apartamento->parqueaderos && $venta->apartamento->parqueaderos->count() > 0 ? 'Sí' : 'No' }}</td>
                         </tr>
                         <tr>
                             <td>Parqueadero adicional:</td>
