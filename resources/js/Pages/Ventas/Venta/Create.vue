@@ -306,6 +306,31 @@ watch(
   }
 )
 
+// watch(
+//   () => form.fecha_limite_separacion,
+//   (fecha) => {
+//     if (form.tipo_operacion !== 'separacion') {
+//       erroresForm.fecha_limite_separacion = ''
+//       return
+//     }
+//     const maxDias = proyectoSeleccionado.value?.plazo_max_separacion_dias ?? 0
+//     const hoy = new Date()
+//     const fechaLimite = new Date(hoy)
+//     fechaLimite.setDate(hoy.getDate() + Number(maxDias))
+
+//     if (!fecha) {
+//       erroresForm.fecha_limite_separacion = ''
+//       return
+//     }
+
+//     const f = new Date(fecha)
+//     erroresForm.fecha_limite_separacion =
+//       f > fechaLimite
+//         ? `La fecha máxima permitida es ${fechaLimite.toISOString().slice(0, 10)}`
+//         : ''
+//   }
+// )
+
 watch(
   () => form.fecha_limite_separacion,
   (fecha) => {
@@ -313,17 +338,19 @@ watch(
       erroresForm.fecha_limite_separacion = ''
       return
     }
+
     const maxDias = proyectoSeleccionado.value?.plazo_max_separacion_dias ?? 0
-    const hoy = new Date()
-    const fechaLimite = new Date(hoy)
-    fechaLimite.setDate(hoy.getDate() + Number(maxDias))
+    const base = form.fecha_venta ? new Date(form.fecha_venta + 'T00:00:00') : new Date()
+    const fechaLimite = new Date(base)
+    fechaLimite.setDate(base.getDate() + Number(maxDias))
 
     if (!fecha) {
       erroresForm.fecha_limite_separacion = ''
       return
     }
 
-    const f = new Date(fecha)
+    const f = new Date(fecha + 'T00:00:00')
+
     erroresForm.fecha_limite_separacion =
       f > fechaLimite
         ? `La fecha máxima permitida es ${fechaLimite.toISOString().slice(0, 10)}`
@@ -331,13 +358,27 @@ watch(
   }
 )
 
-const fechaMinimaSeparacion = computed(() => new Date().toISOString().split('T')[0])
+// const fechaMinimaSeparacion = computed(() => new Date().toISOString().split('T')[0])
+
+const fechaMinimaSeparacion = computed(
+  () => form.fecha_venta || new Date().toISOString().split('T')[0]
+)
+
+// const fechaMaximaSeparacion = computed(() => {
+//   if (!proyectoSeleccionado.value) return null
+//   const dias = Number(proyectoSeleccionado.value.plazo_max_separacion_dias || 0)
+//   const fecha = new Date()
+//   fecha.setDate(fecha.getDate() + dias)
+//   return fecha.toISOString().split('T')[0]
+// })
 
 const fechaMaximaSeparacion = computed(() => {
-  if (!proyectoSeleccionado.value) return null
+  if (!proyectoSeleccionado.value || !form.fecha_venta) return null
+
   const dias = Number(proyectoSeleccionado.value.plazo_max_separacion_dias || 0)
-  const fecha = new Date()
+  const fecha = new Date(form.fecha_venta + 'T00:00:00')
   fecha.setDate(fecha.getDate() + dias)
+
   return fecha.toISOString().split('T')[0]
 })
 
@@ -497,6 +538,7 @@ const camposCompletos = computed(() =>
   Boolean(
     form.tipo_operacion &&
       form.documento_cliente &&
+      form.fecha_venta &&
       form.id_proyecto &&
       form.inmueble_id &&
       form.id_forma_pago &&
@@ -506,26 +548,77 @@ const camposCompletos = computed(() =>
   )
 )
 
+// watch(
+//   () => form.id_proyecto,
+//   () => {
+//     const p = proyectoSeleccionado.value
+//     if (p) {
+//       const inicio = p.fecha_inicio
+//       const plazoTotal = p.plazo_cuota_inicial_meses
+//       if (inicio && plazoTotal > 0) {
+//         const start = new Date(inicio)
+//         const now = new Date()
+//         const diffMonths =
+//           (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+//         const plazosRestantes = Math.max(plazoTotal - diffMonths, 0)
+//         plazosDisponibles.value = Array.from({ length: plazosRestantes }, (_, i) => i + 1)
+//       } else {
+//         plazosDisponibles.value = []
+//       }
+//     } else {
+//       plazosDisponibles.value = []
+//     }
+//   },
+//   { immediate: true }
+// )
+
+function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
+  if (!inicioStr || !fechaRefStr) return 0
+
+  const inicio = new Date(inicioStr + 'T00:00:00')
+  const ref = new Date(fechaRefStr + 'T00:00:00')
+
+  let meses = (ref.getFullYear() - inicio.getFullYear()) * 12 + (ref.getMonth() - inicio.getMonth())
+
+  // Si el día de la fecha de referencia es menor que el día de inicio,
+  // todavía no se cumple el mes completo.
+  if (ref.getDate() < inicio.getDate()) {
+    meses--
+  }
+
+  return Math.max(meses, 0)
+}
+
+function actualizarPlazosDisponibles() {
+  const p = proyectoSeleccionado.value
+
+  if (!p || !p.fecha_inicio || !p.plazo_cuota_inicial_meses || !form.fecha_venta) {
+    plazosDisponibles.value = []
+    form.plazo_cuota_inicial_meses = ''
+    return
+  }
+
+  const plazoTotal = Number(p.plazo_cuota_inicial_meses || 0)
+  const mesesTranscurridos = calcularMesesEntreFechas(p.fecha_inicio, form.fecha_venta)
+  const plazosRestantes = Math.max(plazoTotal - mesesTranscurridos, 0)
+
+  plazosDisponibles.value =
+    plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
+
+  // Si el plazo seleccionado ya no es válido, lo reseteamos
+  if (
+    form.plazo_cuota_inicial_meses &&
+    !plazosDisponibles.value.includes(Number(form.plazo_cuota_inicial_meses))
+  ) {
+    form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
+  }
+}
+
 watch(
-  () => form.id_proyecto,
+  [() => form.id_proyecto, () => form.fecha_venta],
   () => {
-    const p = proyectoSeleccionado.value
-    if (p) {
-      const inicio = p.fecha_inicio
-      const plazoTotal = p.plazo_cuota_inicial_meses
-      if (inicio && plazoTotal > 0) {
-        const start = new Date(inicio)
-        const now = new Date()
-        const diffMonths =
-          (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
-        const plazosRestantes = Math.max(plazoTotal - diffMonths, 0)
-        plazosDisponibles.value = Array.from({ length: plazosRestantes }, (_, i) => i + 1)
-      } else {
-        plazosDisponibles.value = []
-      }
-    } else {
-      plazosDisponibles.value = []
-    }
+    actualizarPlazosDisponibles()
   },
   { immediate: true }
 )
@@ -562,18 +655,36 @@ function usarValorMinimo() {
     form.valor_separacion = proyectoSeleccionado.value.valor_min_separacion || 0
 }
 
-/** ===== Submit ===== */
+// /** ===== Submit ===== */
+// function submit() {
+//   // Normalizar campos
+//   form.cuota_inicial = form.cuota_inicial_raw
+
+//   // Si no es apartamento, fuerza parqueadero null
+//   if (form.inmueble_tipo !== 'apartamento') {
+//     form.id_parqueadero = ''
+//   }
+
+//   form.post('/ventas', {
+//     preserveScroll: true,
+//   })
+// }
+
 function submit() {
-  // Normalizar campos
   form.cuota_inicial = form.cuota_inicial_raw
 
-  // Si no es apartamento, fuerza parqueadero null
   if (form.inmueble_tipo !== 'apartamento') {
     form.id_parqueadero = ''
   }
 
   form.post('/ventas', {
     preserveScroll: true,
+    onError: (errors) => {
+      console.log('Errores de validación:', errors)
+    },
+    onSuccess: () => {
+      console.log('Venta guardada correctamente')
+    },
   })
 }
 </script>
@@ -623,6 +734,18 @@ function submit() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        v-if="Object.keys(form.errors).length"
+        class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      >
+        <p class="font-semibold mb-1">No se pudo guardar la operación.</p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li v-for="(msg, key) in form.errors" :key="key">
+            {{ msg }}
+          </li>
+        </ul>
       </div>
 
       <!-- Contenido: grid form + resumen -->
@@ -677,6 +800,19 @@ function submit() {
                     readonly
                     :class="inputClass(false, true)"
                   />
+                </div>
+
+                <div>
+                  <label :class="labelClass()">Fecha de operación *</label>
+                  <input
+                    type="date"
+                    v-model="form.fecha_venta"
+                    :max="new Date().toISOString().slice(0, 10)"
+                    :class="inputClass(false, false)"
+                  />
+                  <p v-if="form.errors.fecha_venta" :class="errorClass()">
+                    {{ form.errors.fecha_venta }}
+                  </p>
                 </div>
 
                 <!-- Cliente -->
@@ -835,6 +971,9 @@ function submit() {
                         {{ p }} mes{{ p === 1 ? '' : 'es' }}
                       </option>
                     </select>
+                    <p v-if="form.errors.plazo_cuota_inicial_meses" :class="errorClass()">
+                      {{ form.errors.plazo_cuota_inicial_meses }}
+                    </p>
                   </div>
 
                   <div>

@@ -620,13 +620,169 @@ class GerenciaEstadisticasService
     /* ===========================================================
      * PLAN DE PAGOS DE CUOTA INICIAL (tabla horizontal)
      * =========================================================== */
+    // public function planPagosCI(array $filtros, Carbon $desde, Carbon $hasta): array
+    // {
+    //     $filtros = $this->normalizarFiltros($filtros);
+
+    //     $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
+    //         ->where('tipo_operacion', 'venta')
+    //         ->whereBetween('fecha_venta', [$desde, $hasta]);
+
+    //     if (!empty($filtros['proyecto_id'])) {
+    //         $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
+    //     }
+
+    //     if (!empty($filtros['asesor_id'])) {
+    //         $ventasQuery->where('id_empleado', $filtros['asesor_id']);
+    //     }
+
+    //     $ventas = $ventasQuery->get();
+
+    //     if ($ventas->isEmpty()) {
+    //         return ['encabezados' => [], 'filas' => [], 'totales' => []];
+    //     }
+
+    //     $minMes = null;
+    //     $maxMes = null;
+
+    //     foreach ($ventas as $v) {
+    //         if (!$v->fecha_venta) continue;
+
+    //         $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+
+    //         $inicio = Carbon::parse($v->fecha_venta)->startOfMonth();
+    //         // Mes 0 (separación) + ... + mes n+1 (restante)
+    //         $fin = (clone $inicio)->addMonths($plazo + 1);
+
+    //         if ($minMes === null || $inicio->lt($minMes)) $minMes = $inicio->copy();
+    //         if ($maxMes === null || $fin->gt($maxMes))    $maxMes = $fin->copy();
+    //     }
+
+    //     if (!$minMes || !$maxMes) {
+    //         return ['encabezados' => [], 'filas' => [], 'totales' => []];
+    //     }
+
+    //     $encabezados = [];
+    //     $cursor = $minMes->copy();
+    //     while ($cursor <= $maxMes) {
+    //         $encabezados[] = $cursor->format('Y-m');
+    //         $cursor->addMonth();
+    //     }
+
+    //     $filas   = [];
+    //     $totales = array_fill_keys($encabezados, 0);
+
+    //     foreach ($ventas as $v) {
+    //         $proyectoNombre = $v->proyecto?->nombre ?? ('Proyecto ' . ($v->id_proyecto ?? '—'));
+    //         $clienteNombre  = $v->cliente?->nombre ?? '—';
+    //         $clienteDocumento = $v->documento_cliente ?? '';
+
+    //         $inmueble = $v->apartamento?->numero
+    //             ? 'Apto ' . $v->apartamento->numero
+    //             : ($v->local?->numero ? '' . $v->local->numero : '—');
+
+    //         $numeroOrden = $v->apartamento?->numero ?? $v->local?->numero ?? '999999';
+    //         $tipoOrden = $v->apartamento ? 'A' : ($v->local ? 'L' : 'Z');
+
+    //         $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
+    //         $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
+
+    //         // Venta: normalmente valor_separacion viene null, pero el negocio exige reflejar separación en mes 0
+    //         $separacion     = (float) ($v->valor_min_separacion ?? $valorMinSep);
+
+    //         $valorRestante  = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
+    //         $saldoAmortizar = max(0, $cuotaInicial - $separacion);
+
+    //         $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+
+    //         // ✅ FRECUENCIA (1 mensual, 2 bimestral, 3 trimestral, ...)
+    //         $frecuencia = max(1, (int) ($v->frecuencia_cuota_inicial_meses ?? 1));
+
+    //         // Cantidad de pagos dentro del plazo (ej 10 meses bimestral => ceil(10/2)=5 pagos)
+    //         $numPagos = (int) ceil($plazo / $frecuencia);
+
+    //         // Mes base = mes 0 (separación)
+    //         $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
+
+    //         // Distribución por número de pagos (no por meses)
+    //         $cuotaPorPago = $numPagos > 0 ? (int) floor($saldoAmortizar / $numPagos) : 0;
+    //         $residuo      = $saldoAmortizar - ($cuotaPorPago * $numPagos);
+
+    //         $mesesRow = [];
+
+    //         // =========================
+    //         // MES 0: SOLO SEPARACIÓN
+    //         // =========================
+    //         $mes0 = $fechaBase->format('Y-m');
+    //         if (isset($totales[$mes0])) {
+    //             $mesesRow[$mes0] = ($mesesRow[$mes0] ?? 0) + $separacion;
+    //             $totales[$mes0]  += $separacion;
+    //         }
+
+    //         // =========================
+    //         // PAGOS SEGÚN FRECUENCIA
+    //         // Ej: bimestral => meses 2,4,6,8,10 (relativo a mes 0)
+    //         // =========================
+    //         $fechaPago = $fechaBase->copy()->addMonths($frecuencia);
+
+    //         for ($k = 1; $k <= $numPagos; $k++) {
+    //             $mes = $fechaPago->format('Y-m');
+
+    //             $valorCuota = $cuotaPorPago;
+    //             if ($k === $numPagos) $valorCuota += $residuo;
+
+    //             if (isset($totales[$mes])) {
+    //                 $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
+    //                 $totales[$mes]  += $valorCuota;
+    //             }
+
+    //             $fechaPago->addMonths($frecuencia);
+    //         }
+
+    //         // =========================
+    //         // MES N+1: VALOR RESTANTE
+    //         // (se mantiene como está actualmente)
+    //         // =========================
+    //         $mesRestante = $fechaBase->copy()->addMonths($plazo + 1)->format('Y-m');
+
+    //         if (isset($totales[$mesRestante])) {
+    //             $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
+    //             $totales[$mesRestante]  += $valorRestante;
+    //         }
+
+    //         $filas[] = [
+    //             'proyecto' => $proyectoNombre,
+    //             'inmueble' => $inmueble,
+    //             'cliente'  => $clienteNombre,
+    //             'documento_cliente' => $clienteDocumento,
+    //             'meses'    => $mesesRow,
+
+    //             '_orden' => $numeroOrden,
+    //             '_tipo' => $tipoOrden,
+    //             '_numero_raw' => $v->apartamento?->numero ?? $v->local?->numero,
+    //         ];
+    //     }
+
+    //     // 🔴 ORDEN NATURAL (más legible para humanos)
+    //     $filas = collect($filas)->sortBy('_orden', SORT_NATURAL)
+    //         ->map(function ($fila) {
+    //             unset($fila['_orden'], $fila['_tipo'], $fila['_numero_raw']);
+    //             return $fila;
+    //         })->values()->all();
+
+    //     return [
+    //         'encabezados' => $encabezados,
+    //         'filas'       => $filas,
+    //         'totales'     => $totales,
+    //     ];
+    // }
+
     public function planPagosCI(array $filtros, Carbon $desde, Carbon $hasta): array
     {
         $filtros = $this->normalizarFiltros($filtros);
 
         $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
-            ->where('tipo_operacion', 'venta')
-            ->whereBetween('fecha_venta', [$desde, $hasta]);
+            ->where('tipo_operacion', 'venta');
 
         if (!empty($filtros['proyecto_id'])) {
             $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
@@ -636,12 +792,25 @@ class GerenciaEstadisticasService
             $ventasQuery->where('id_empleado', $filtros['asesor_id']);
         }
 
-        $ventas = $ventasQuery->get();
+        $ventas = $ventasQuery->get()->filter(function ($v) use ($desde, $hasta) {
+            if (!$v->fecha_venta) {
+                return false;
+            }
+
+            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+
+            $inicioCalendario = Carbon::parse($v->fecha_venta)->startOfMonth();
+            $finCalendario = Carbon::parse($v->fecha_venta)->startOfMonth()->addMonths($plazo + 1);
+
+            return $inicioCalendario->lte($hasta->copy()->endOfMonth())
+                && $finCalendario->gte($desde->copy()->startOfMonth());
+        })->values();
 
         if ($ventas->isEmpty()) {
             return ['encabezados' => [], 'filas' => [], 'totales' => []];
         }
 
+        // Encabezados del rango seleccionado, no del universo completo
         $minMes = null;
         $maxMes = null;
 
@@ -650,12 +819,16 @@ class GerenciaEstadisticasService
 
             $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
-            $inicio = Carbon::parse($v->fecha_venta)->startOfMonth();
-            // Mes 0 (separación) + ... + mes n+1 (restante)
-            $fin = (clone $inicio)->addMonths($plazo + 1);
+            $inicioCalendario = Carbon::parse($v->fecha_venta)->startOfMonth();
+            $finCalendario = Carbon::parse($v->fecha_venta)->startOfMonth()->addMonths($plazo + 1);
 
-            if ($minMes === null || $inicio->lt($minMes)) $minMes = $inicio->copy();
-            if ($maxMes === null || $fin->gt($maxMes))    $maxMes = $fin->copy();
+            if ($minMes === null || $inicioCalendario->lt($minMes)) {
+                $minMes = $inicioCalendario->copy();
+            }
+
+            if ($maxMes === null || $finCalendario->gt($maxMes)) {
+                $maxMes = $finCalendario->copy();
+            }
         }
 
         if (!$minMes || !$maxMes) {
@@ -664,6 +837,7 @@ class GerenciaEstadisticasService
 
         $encabezados = [];
         $cursor = $minMes->copy();
+
         while ($cursor <= $maxMes) {
             $encabezados[] = $cursor->format('Y-m');
             $cursor->addMonth();
@@ -679,7 +853,7 @@ class GerenciaEstadisticasService
 
             $inmueble = $v->apartamento?->numero
                 ? 'Apto ' . $v->apartamento->numero
-                : ($v->local?->numero ? '' . $v->local->numero : '—');
+                : ($v->local?->numero ? 'Local ' . $v->local->numero : '—');
 
             $numeroOrden = $v->apartamento?->numero ?? $v->local?->numero ?? '999999';
             $tipoOrden = $v->apartamento ? 'A' : ($v->local ? 'L' : 'Z');
@@ -687,24 +861,22 @@ class GerenciaEstadisticasService
             $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
             $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
 
-            // Venta: normalmente valor_separacion viene null, pero el negocio exige reflejar separación en mes 0
+            // Mes 0 = separación
             $separacion     = (float) ($v->valor_min_separacion ?? $valorMinSep);
 
+            // Último mes + 1 = restante
             $valorRestante  = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
+
+            // Lo que se amortiza entre mes 1 y mes n
             $saldoAmortizar = max(0, $cuotaInicial - $separacion);
 
             $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
-
-            // ✅ FRECUENCIA (1 mensual, 2 bimestral, 3 trimestral, ...)
             $frecuencia = max(1, (int) ($v->frecuencia_cuota_inicial_meses ?? 1));
 
-            // Cantidad de pagos dentro del plazo (ej 10 meses bimestral => ceil(10/2)=5 pagos)
             $numPagos = (int) ceil($plazo / $frecuencia);
 
-            // Mes base = mes 0 (separación)
             $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
 
-            // Distribución por número de pagos (no por meses)
             $cuotaPorPago = $numPagos > 0 ? (int) floor($saldoAmortizar / $numPagos) : 0;
             $residuo      = $saldoAmortizar - ($cuotaPorPago * $numPagos);
 
@@ -720,8 +892,7 @@ class GerenciaEstadisticasService
             }
 
             // =========================
-            // PAGOS SEGÚN FRECUENCIA
-            // Ej: bimestral => meses 2,4,6,8,10 (relativo a mes 0)
+            // MES 1..N: CUOTAS DE CI
             // =========================
             $fechaPago = $fechaBase->copy()->addMonths($frecuencia);
 
@@ -729,7 +900,9 @@ class GerenciaEstadisticasService
                 $mes = $fechaPago->format('Y-m');
 
                 $valorCuota = $cuotaPorPago;
-                if ($k === $numPagos) $valorCuota += $residuo;
+                if ($k === $numPagos) {
+                    $valorCuota += $residuo;
+                }
 
                 if (isset($totales[$mes])) {
                     $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
@@ -741,7 +914,6 @@ class GerenciaEstadisticasService
 
             // =========================
             // MES N+1: VALOR RESTANTE
-            // (se mantiene como está actualmente)
             // =========================
             $mesRestante = $fechaBase->copy()->addMonths($plazo + 1)->format('Y-m');
 
@@ -750,20 +922,22 @@ class GerenciaEstadisticasService
                 $totales[$mesRestante]  += $valorRestante;
             }
 
-            $filas[] = [
-                'proyecto' => $proyectoNombre,
-                'inmueble' => $inmueble,
-                'cliente'  => $clienteNombre,
-                'documento_cliente' => $clienteDocumento,
-                'meses'    => $mesesRow,
+            // Solo agregar fila si tiene al menos un valor dentro del rango
+            if (!empty($mesesRow)) {
+                $filas[] = [
+                    'proyecto' => $proyectoNombre,
+                    'inmueble' => $inmueble,
+                    'cliente'  => $clienteNombre,
+                    'documento_cliente' => $clienteDocumento,
+                    'meses'    => $mesesRow,
 
-                '_orden' => $numeroOrden,
-                '_tipo' => $tipoOrden,
-                '_numero_raw' => $v->apartamento?->numero ?? $v->local?->numero,
-            ];
+                    '_orden' => $numeroOrden,
+                    '_tipo' => $tipoOrden,
+                    '_numero_raw' => $v->apartamento?->numero ?? $v->local?->numero,
+                ];
+            }
         }
 
-        // 🔴 ORDEN NATURAL (más legible para humanos)
         $filas = collect($filas)->sortBy('_orden', SORT_NATURAL)
             ->map(function ($fila) {
                 unset($fila['_orden'], $fila['_tipo'], $fila['_numero_raw']);

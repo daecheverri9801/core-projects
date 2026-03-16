@@ -184,7 +184,7 @@ class VentaWebController extends Controller
         $plazos = [];
         if ($inmueblePrecargado) {
             $proyecto = $inmueblePrecargado->torre->proyecto;
-            $plazos = $this->calcularPlazosDisponibles($proyecto);
+            $plazos = $this->calcularPlazosDisponibles($proyecto, now()->toDateString());
         }
 
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
@@ -214,20 +214,52 @@ class VentaWebController extends Controller
         ]);
     }
 
-    private function calcularPlazosDisponibles(Proyecto $proyecto)
-    {
+    // private function calcularPlazosDisponibles(Proyecto $proyecto)
+    // {
 
+    //     if (!$proyecto->fecha_inicio || !$proyecto->plazo_cuota_inicial_meses) {
+    //         return [];
+    //     }
+
+    //     $inicio = \Carbon\Carbon::parse($proyecto->fecha_inicio);
+    //     $mesesTranscurridos = $inicio->diffInMonths(now());
+
+    //     $max = $proyecto->plazo_cuota_inicial_meses;
+    //     $restantes = max($max - $mesesTranscurridos, 0);
+
+    //     return range(1, $restantes);
+    // }
+
+    private function calcularPlazosDisponibles(Proyecto $proyecto, ?string $fechaVenta = null): array
+    {
         if (!$proyecto->fecha_inicio || !$proyecto->plazo_cuota_inicial_meses) {
             return [];
         }
 
-        $inicio = \Carbon\Carbon::parse($proyecto->fecha_inicio);
-        $mesesTranscurridos = $inicio->diffInMonths(now());
+        $inicio = \Carbon\Carbon::parse($proyecto->fecha_inicio)->startOfDay();
+        $referencia = $fechaVenta
+            ? \Carbon\Carbon::parse($fechaVenta)->startOfDay()
+            : now()->startOfDay();
 
-        $max = $proyecto->plazo_cuota_inicial_meses;
+        // Si la fecha de venta es anterior al inicio del proyecto, no se descuentan meses
+        if ($referencia->lt($inicio)) {
+            $mesesTranscurridos = 0;
+        } else {
+            $mesesTranscurridos =
+                (($referencia->year - $inicio->year) * 12) +
+                ($referencia->month - $inicio->month);
+
+            if ($referencia->day < $inicio->day) {
+                $mesesTranscurridos--;
+            }
+
+            $mesesTranscurridos = max(0, $mesesTranscurridos);
+        }
+
+        $max = (int) $proyecto->plazo_cuota_inicial_meses;
         $restantes = max($max - $mesesTranscurridos, 0);
 
-        return range(1, $restantes);
+        return $restantes > 0 ? range(1, $restantes) : [];
     }
 
     /* ===========================================================
@@ -254,13 +286,30 @@ class VentaWebController extends Controller
 
                 'cuota_inicial'     => 'nullable|numeric|min:0',
                 'valor_separacion'  => 'nullable|numeric|min:0',
-                'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
+                'fecha_limite_separacion' => 'nullable|date',
                 'valor_total'       => 'nullable|numeric|min:0',
                 'valor_restante'    => 'nullable|numeric|min:0',
                 'descripcion'       => 'nullable|max:300',
                 'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
                 'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
             ]);
+
+            $proyecto = Proyecto::findOrFail($validated['id_proyecto']);
+
+            if (($validated['tipo_operacion'] ?? null) === 'venta') {
+                $plazosDisponibles = $this->calcularPlazosDisponibles(
+                    $proyecto,
+                    $validated['fecha_venta'] ?? null
+                );
+
+                $plazoSeleccionado = (int) ($validated['plazo_cuota_inicial_meses'] ?? 0);
+
+                if ($plazoSeleccionado < 1 || !in_array($plazoSeleccionado, $plazosDisponibles, true)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'plazo_cuota_inicial_meses' => 'El plazo seleccionado no es válido para la fecha de venta indicada.',
+                    ]);
+                }
+            }
 
             if (($validated['tipo_operacion'] ?? null) === 'venta') {
                 $validated['frecuencia_cuota_inicial_meses'] = (int)($validated['frecuencia_cuota_inicial_meses'] ?? 1);

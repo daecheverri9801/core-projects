@@ -222,7 +222,7 @@ class VentaService
         if ($frecuencia < 1) $frecuencia = 1;
         if ($frecuencia > $plazo) $frecuencia = $plazo;
 
-        $fechaInicio = $venta->fecha_venta ?? now();
+        $fechaInicio = $venta->fecha_venta; 
 
         $numPagos = (int) ceil($plazo / $frecuencia);
         if ($numPagos < 1) $numPagos = 1;
