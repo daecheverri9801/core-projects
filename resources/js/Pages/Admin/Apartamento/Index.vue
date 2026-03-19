@@ -9,7 +9,7 @@
         subtitle="Consulta y administra los apartamentos por proyecto, torre y piso."
       >
         <template #actions>
-          <ButtonPrimary href="/apartamentos/create">
+          <ButtonPrimary href="/admin/apartamentos/create?proyecto=${pid}">
             <PlusIcon class="w-5 h-5" />
             Nuevo apartamento
           </ButtonPrimary>

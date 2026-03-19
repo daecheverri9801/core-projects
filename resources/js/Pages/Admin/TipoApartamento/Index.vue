@@ -7,7 +7,7 @@
         subtitle="Administra los tipos de apartamento definidos por proyecto."
       >
         <template #actions>
-          <ButtonPrimary href="/tipos-apartamento/create">
+          <ButtonPrimary href="/tipos-apartamento/create?proyecto=${pid}">
             Nuevo tipo
           </ButtonPrimary>
         </template>

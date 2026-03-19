@@ -84,8 +84,7 @@ class Proyecto extends Model
         return $this->hasMany(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto');
     }
 
-
-    public function politicasComisiones()
+    public function politicasComision()
     {
         return $this->hasMany(PoliticaComision::class, 'id_proyecto', 'id_proyecto');
     }

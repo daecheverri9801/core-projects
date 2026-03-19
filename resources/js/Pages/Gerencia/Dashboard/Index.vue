@@ -178,6 +178,7 @@ const props = defineProps({
   ventasPorProyecto: Array,
   proyeccionVsReal: Array,
   inventarioProyectos: Array,
+  consolidadoComisiones: Array,
   ventasAsesoresProyecto: Array,
   estadoInventario: Array,
   rankingAsesores: Array,
@@ -770,18 +771,18 @@ const inventarioProyectosOrdenado = computed(() => {
           Proyectos / Inventario
         </button>
 
-        <!-- <button
+        <button
           type="button"
           :class="[
             'px-4 py-2 border-b-2',
-            activeTab === 'proyeccion'
-              ? 'border-amber-400 text-amber-200'
+            activeTab === 'comisiones'
+              ? 'border-cyan-400 text-cyan-200'
               : 'border-transparent text-slate-400 hover:text-slate-200',
           ]"
-          @click="activeTab = 'proyeccion'"
+          @click="activeTab = 'comisiones'"
         >
-          Proyección de Ingresos
-        </button> -->
+          Consolidado Comisiones
+        </button>
 
         <button
           type="button"
@@ -1166,6 +1167,8 @@ const inventarioProyectosOrdenado = computed(() => {
                 <th class="py-2 pr-2">Estado</th>
                 <th class="py-2 pr-2">Asesor</th>
                 <th class="py-2 pr-2">Fecha venta/sep.</th>
+                <th class="py-2 pr-2 text-right">Val Com. As</th>
+                <th class="py-2 pr-2 text-right">Val Com. Dir.</th>
               </tr>
             </thead>
             <tbody>
@@ -1204,6 +1207,12 @@ const inventarioProyectosOrdenado = computed(() => {
                 <td class="py-2 pr-2 text-slate-300">
                   {{ formatDate(i.fecha_operacion) }}
                 </td>
+                <td class="py-2 pr-2 text-right text-slate-100">
+                  {{ formatMoney(i.valor_comision_asesora || 0) }}
+                </td>
+                <td class="py-2 pr-2 text-right text-slate-100">
+                  {{ formatMoney(i.valor_comision_directora || 0) }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1211,61 +1220,116 @@ const inventarioProyectosOrdenado = computed(() => {
       </div>
     </div>
 
-    <!-- TAB: PROYECCIÓN DE INGRESOS -->
-    <!-- <div v-else-if="activeTab === 'proyeccion'" class="space-y-4">
-      <h2 class="text-sm font-semibold text-slate-100">
-        Proyección de ingresos vs ventas reales (mes actual)
-      </h2>
+    <!-- TAB: COMISIONES -->
+    <div v-else-if="activeTab === 'comisiones'" class="space-y-4">
+      <h2 class="text-sm font-semibold text-slate-100">Consolidado de comisiones por proyecto</h2>
 
       <div
+        v-for="proyecto in props.consolidadoComisiones || []"
+        :key="proyecto.id_proyecto"
         class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"
-        style="max-height: 360px; overflow: auto"
       >
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-slate-100 font-semibold">
+            {{ proyecto.nombre }}
+          </div>
+          <div class="text-xs text-slate-400">{{ proyecto.empleados.length }} empleado(s)</div>
+        </div>
+
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-slate-400 border-b border-slate-800 text-left">
-                <th class="py-2 pr-2">Proyecto</th>
-                <th class="py-2 pr-2 text-right">Meta unidades</th>
-                <th class="py-2 pr-2 text-right">Unidades reales</th>
-                <th class="py-2 pr-2 text-right">Meta valor</th>
-                <th class="py-2 pr-2 text-right">Valor real</th>
-                <th class="py-2 pr-2 text-right">% Cumpl. unidades</th>
-                <th class="py-2 pr-2 text-right">% Cumpl. valor</th>
+                <th class="py-2 pr-2">Cargo</th>
+                <th class="py-2 pr-2">Nombre completo empleado</th>
+                <th class="py-2 pr-2 text-right">Número total de ventas</th>
+                <th class="py-2 pr-2 text-right">Total comisiones x venta</th>
+                <th class="py-2 pr-2 text-right">Total comisiones x equipo</th>
+                <th class="py-2 pr-2 text-right">Total comisiones a pagar</th>
               </tr>
             </thead>
+
             <tbody>
               <tr
-                v-for="r in proyeccionVsReal"
-                :key="r.id_proyecto"
+                v-for="(e, idx) in proyecto.empleados"
+                :key="`${proyecto.id_proyecto}-${e.id_empleado || idx}`"
                 class="border-b border-slate-800/60"
               >
-                <td class="py-2 pr-2 text-slate-200">{{ r.nombre }}</td>
-                <td class="py-2 pr-2 text-right text-slate-100">{{ r.meta_unidades }}</td>
-                <td class="py-2 pr-2 text-right text-slate-100">{{ r.real_unidades }}</td>
-                <td class="py-2 pr-2 text-right text-slate-100">
-                  {{ formatMoney(r.meta_valor) }}
+                <td class="py-2 pr-2 text-slate-200">
+                  {{ e.cargo || '—' }}
+                </td>
+                <td class="py-2 pr-2 text-slate-100">
+                  {{ e.nombre_completo || '—' }}
                 </td>
                 <td class="py-2 pr-2 text-right text-slate-100">
-                  {{ formatMoney(r.real_valor) }}
+                  {{ e.numero_total_ventas || 0 }}
                 </td>
                 <td class="py-2 pr-2 text-right text-slate-100">
-                  {{ formatPercent(r.real_unidades, r.meta_unidades || 0) }}
+                  {{ formatMoney(e.total_comisiones_venta || 0) }}
                 </td>
                 <td class="py-2 pr-2 text-right text-slate-100">
-                  {{ formatPercent(r.real_valor, r.meta_valor || 0) }}
+                  {{ formatMoney(e.total_comisiones_equipo || 0) }}
+                </td>
+                <td class="py-2 pr-2 text-right font-semibold text-cyan-300">
+                  {{ formatMoney(e.total_comisiones_pagar || 0) }}
                 </td>
               </tr>
-              <tr v-if="!proyeccionVsReal.length">
-                <td colspan="7" class="py-4 text-center text-slate-400">
-                  No hay metas comerciales definidas para el mes actual.
+
+              <tr v-if="!proyecto.empleados.length">
+                <td colspan="6" class="py-4 text-center text-slate-400">
+                  Este proyecto no tiene políticas de comisión configuradas.
                 </td>
               </tr>
             </tbody>
+
+            <tfoot v-if="proyecto.empleados.length">
+              <tr class="border-t border-slate-700">
+                <td colspan="3" class="py-2 pr-2 text-right text-slate-300 font-semibold">
+                  Totales
+                </td>
+                <td class="py-2 pr-2 text-right text-slate-100 font-semibold">
+                  {{
+                    formatMoney(
+                      proyecto.empleados.reduce(
+                        (acc, item) => acc + Number(item.total_comisiones_venta || 0),
+                        0
+                      )
+                    )
+                  }}
+                </td>
+                <td class="py-2 pr-2 text-right text-slate-100 font-semibold">
+                  {{
+                    formatMoney(
+                      proyecto.empleados.reduce(
+                        (acc, item) => acc + Number(item.total_comisiones_equipo || 0),
+                        0
+                      )
+                    )
+                  }}
+                </td>
+                <td class="py-2 pr-2 text-right text-cyan-300 font-bold">
+                  {{
+                    formatMoney(
+                      proyecto.empleados.reduce(
+                        (acc, item) => acc + Number(item.total_comisiones_pagar || 0),
+                        0
+                      )
+                    )
+                  }}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
-    </div> -->
+
+      <div
+        v-if="!(props.consolidadoComisiones || []).length"
+        class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 text-center text-slate-400"
+      >
+        No hay proyectos con consolidado de comisiones para los filtros actuales.
+      </div>
+    </div>
 
     <!-- TAB: VENTAS / SEPARACIONES POR ASESOR Y PROYECTO -->
     <div v-else-if="activeTab === 'asesores'" class="space-y-4">

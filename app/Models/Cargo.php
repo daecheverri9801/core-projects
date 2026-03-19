@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Empleado;
+use App\Models\PoliticaComision;
 
 class Cargo extends Model
 {
@@ -20,5 +22,10 @@ class Cargo extends Model
     public function empleados()
     {
         return $this->hasMany(Empleado::class, 'id_cargo', 'id_cargo');
+    }
+
+    public function politicasComision()
+    {
+        return $this->hasMany(PoliticaComision::class, 'id_cargo', 'id_cargo');
     }
 }

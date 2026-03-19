@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Http\Controllers\Controller;
 use App\Models\PoliticaPrecioProyecto;
 use App\Models\Proyecto;
+use App\Models\Empleado;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Support\RedirectBackTo;
@@ -28,10 +29,31 @@ class PoliticaPrecioProyectoWebController extends Controller
     public function create(Request $request)
     {
         $empleado = $request->user()->load('cargo');
-        $proyectos = Proyecto::orderBy('nombre')->get(['id_proyecto', 'nombre']);
         $proyectoSeleccionado = $request->query('proyecto');
+
+        $proyectos = Proyecto::orderBy('nombre')
+            ->get(['id_proyecto', 'nombre', 'fecha_inicio', 'fecha_finalizacion']);
+
+        $empleadosComisionables = Empleado::query()
+            ->with('cargo:id_cargo,nombre')
+            ->whereHas('cargo', function ($q) {
+                $q->whereIn('nombre', ['Asesora Comercial', 'Directora Comercial']);
+            })
+            ->orderBy('nombre')
+            ->get(['id_empleado', 'nombre', 'apellido', 'id_cargo'])
+            ->map(function ($emp) {
+                return [
+                    'id_empleado' => $emp->id_empleado,
+                    'nombre' => trim(($emp->nombre ?? '') . ' ' . ($emp->apellido ?? '')),
+                    'id_cargo' => $emp->id_cargo,
+                    'cargo' => $emp->cargo?->nombre,
+                ];
+            })
+            ->values();
+
         return Inertia::render('Admin/PoliticaPrecioProyecto/Create', [
             'proyectos' => $proyectos,
+            'empleadosComisionables' => $empleadosComisionables,
             'proyectoSeleccionado' => $proyectoSeleccionado,
             'empleado' => $empleado,
         ]);
@@ -51,7 +73,7 @@ class PoliticaPrecioProyectoWebController extends Controller
 
         return RedirectBackTo::respond(
             $request,
-            'politicas-precio-proyecto.show',
+            'politicas-precio-proyecto.create',
             [$politica->id_politica_precio],
             'Política de precio creada exitosamente.',
             ['id_politica_precio' => $politica->id_politica_precio]

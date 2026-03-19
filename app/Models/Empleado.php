@@ -34,7 +34,7 @@ class Empleado extends Authenticatable
 
     protected $casts = [
         'estado' => 'boolean',
-        'password' => 'hashed', 
+        'password' => 'hashed',
     ];
 
     // protected static function booted()
@@ -60,5 +60,10 @@ class Empleado extends Authenticatable
     public function dependencia()
     {
         return $this->belongsTo(Dependencia::class, 'id_dependencia', 'id_dependencia');
+    }
+
+    public function politicasComision()
+    {
+        return $this->hasMany(PoliticaComision::class, 'id_empleado', 'id_empleado');
     }
 }

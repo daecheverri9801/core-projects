@@ -8,7 +8,7 @@
         subtitle="Visualiza las torres agrupadas por proyecto."
       >
         <template #actions>
-          <ButtonPrimary :href="route('admin.torres.create')">
+          <ButtonPrimary href="/admin/torres/create?proyecto=${pid}">
             <PlusIcon class="w-5 h-5" />
             Nueva torre
           </ButtonPrimary>

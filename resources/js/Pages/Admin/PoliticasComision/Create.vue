@@ -8,136 +8,9 @@
       >
       </PageHeader>
 
-      <!-- Banner Flujo -->
-      <AppCard padding="md" v-if="flowProyectoId">
-        <div class="flex flex-col gap-4">
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900">Flujo de configuración</p>
-              <p class="mt-1 text-sm text-gray-700">
-                Proyecto <span class="font-semibold">#{{ flowProyectoId }}</span> · Paso
-                <span class="font-semibold">1/8</span> (Políticas)
-              </p>
-            </div>
-
-            <Link
-              :href="`/proyectos/${flowProyectoId}`"
-              class="shrink-0 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
-            >
-              Volver al proyecto
-            </Link>
-          </div>
-
-          <div class="overflow-x-auto">
-            <ol class="min-w-[900px] grid grid-cols-8 gap-2">
-              <li v-for="s in steps" :key="s.key">
-                <Link
-                  :href="s.href"
-                  class="block rounded-xl border px-3 py-2 text-xs font-semibold transition"
-                  :class="
-                    s.key === activeStep
-                      ? 'border-brand-400 bg-brand-50 text-brand-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                  "
-                >
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="truncate">{{ s.label }}</span>
-                    <span class="text-[10px] opacity-70">{{ s.n }}</span>
-                  </div>
-                </Link>
-              </li>
-            </ol>
-          </div>
-
-          <div class="flex items-center justify-end gap-2">
-            <Link
-              :href="steps[1].href"
-              class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
-            >
-              Siguiente: Torres
-            </Link>
-          </div>
-        </div>
-      </AppCard>
-
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Formularios -->
         <div class="lg:col-span-8 space-y-6">
-          <!-- FORMULARIO PRECIO -->
-          <AppCard padding="md">
-            <SectionHeader
-              title="Política de precio"
-              subtitle="Define escalones de aumento por ventas y su vigencia."
-              icon="TagIcon"
-            />
-
-            <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="md:col-span-2">
-                <FormField label="Proyecto" required :error="formPrecio.errors.id_proyecto">
-                  <SelectInput v-model="formPrecio.id_proyecto">
-                    <option value="">Seleccione un proyecto</option>
-                    <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
-                      {{ p.nombre }}
-                    </option>
-                  </SelectInput>
-                </FormField>
-              </div>
-
-              <FormField
-                label="Ventas por escalón"
-                :error="formPrecio.errors.ventas_por_escalon"
-                hint="Ej: 10"
-              >
-                <TextInput
-                  v-model.number="formPrecio.ventas_por_escalon"
-                  type="number"
-                  min="1"
-                  placeholder="10"
-                />
-              </FormField>
-
-              <FormField
-                label="% Aumento"
-                required
-                :error="formPrecio.errors.porcentaje_aumento"
-                hint="Ej: 5.5"
-              >
-                <TextInput
-                  v-model.number="formPrecio.porcentaje_aumento"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  max="999.999"
-                  placeholder="5.5"
-                />
-              </FormField>
-
-              <FormField label="Aplica desde" :error="formPrecio.errors.aplica_desde">
-                <TextInput v-model="formPrecio.aplica_desde" type="date" />
-              </FormField>
-
-              <div class="md:col-span-2">
-                <Toggle
-                  v-model="formPrecio.estado"
-                  label="Política activa"
-                  description="Si está activa, podrá aplicarse según las reglas del sistema."
-                />
-              </div>
-
-              <div class="md:col-span-2 flex justify-end">
-                <button
-                  type="button"
-                  @click="guardarPoliticaPrecio"
-                  :disabled="formPrecio.processing"
-                  class="rounded-xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-50 inline-flex items-center gap-2"
-                >
-                  <CheckIcon class="w-5 h-5" />
-                  {{ formPrecio.processing ? 'Guardando…' : 'Guardar política de precio' }}
-                </button>
-              </div>
-            </div>
-          </AppCard>
-
           <!-- FORMULARIO COMISIÓN -->
           <AppCard padding="md">
             <SectionHeader
@@ -238,28 +111,6 @@
             </div>
           </AppCard>
 
-          <AppCard padding="md">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div class="text-sm text-gray-700">
-                <p class="font-semibold text-gray-900">Siguiente paso</p>
-                <p class="mt-1">
-                  Después de guardar, continúa con <span class="font-semibold">Torres</span>.
-                </p>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <Link
-                  v-if="flowProyectoId"
-                  :href="steps[1].href"
-                  class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition inline-flex items-center gap-2"
-                >
-                  <ArrowRightIcon class="w-5 h-5" />
-                  Ir a Torres
-                </Link>
-              </div>
-            </div>
-          </AppCard>
-
           <!-- MOBILE -->
           <div class="lg:hidden space-y-3">
             <Link
@@ -292,11 +143,13 @@
           <AppCard padding="md">
             <p class="text-sm font-semibold text-gray-900">Validación rápida</p>
             <div class="mt-3 space-y-2 text-sm">
-              <InlineStatus :ok="!!formPrecio.id_proyecto" label="Proyecto en precio" />
               <InlineStatus :ok="!!formComision.id_proyecto" label="Proyecto en comisión" />
               <InlineStatus :ok="!!formComision.id_empleado" label="Empleado en comisión" />
               <InlineStatus :ok="!!formComision.tipo_comision" label="Tipo comisión definido" />
-              <InlineStatus :ok="canSubmit" label="Formulario listo" />
+              <InlineStatus
+                :ok="!formPrecio.processing && !formComision.processing"
+                label="Listo para guardar"
+              />
             </div>
           </AppCard>
         </div>
@@ -307,7 +160,7 @@
 
 <script setup>
 import { computed, onMounted, watch } from 'vue'
-import { useForm, Link, usePage, router } from '@inertiajs/vue3'
+import { useForm, Link, usePage } from '@inertiajs/vue3'
 
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
@@ -325,7 +178,6 @@ import {
   InformationCircleIcon,
   CheckIcon,
   CurrencyDollarIcon,
-  ArrowRightIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -342,48 +194,6 @@ const flowProyectoId = computed(() => {
   const qs = url.split('?')[1] || ''
   const sp = new URLSearchParams(qs)
   return sp.get('proyecto') || null
-})
-
-const activeStep = 'politicas'
-
-const steps = computed(() => {
-  if (!flowProyectoId.value) return []
-  const pid = flowProyectoId.value
-  return [
-    {
-      n: '1/8',
-      key: 'politicas',
-      label: 'Políticas',
-      href: `/politicas-precio-proyecto/crear?proyecto=${pid}`,
-    },
-    { n: '2/8', key: 'torres', label: 'Torres', href: `/admin/torres/create?proyecto=${pid}` },
-    { n: '3/8', key: 'pisos', label: 'Pisos', href: `/pisos-torre/create?proyecto=${pid}` },
-    {
-      n: '4/8',
-      key: 'tipos',
-      label: 'Tipos apto',
-      href: `/tipos-apartamento/create?proyecto=${pid}`,
-    },
-    {
-      n: '5/8',
-      key: 'apartamentos',
-      label: 'Apartamentos',
-      href: `/admin/apartamentos/create?proyecto=${pid}`,
-    },
-    { n: '6/8', key: 'locales', label: 'Locales', href: `/locales/create?proyecto=${pid}` },
-    {
-      n: '7/8',
-      key: 'parqueaderos',
-      label: 'Parqueaderos',
-      href: `/parqueaderos/create?proyecto=${pid}`,
-    },
-    {
-      n: '8/8',
-      key: 'zonas',
-      label: 'Zonas sociales',
-      href: `/zonas-sociales/create?proyecto=${pid}`,
-    },
-  ]
 })
 
 const formPrecio = useForm({
@@ -467,33 +277,9 @@ watch(
   }
 )
 
-function guardarPoliticaPrecio() {
-  const proyectoId = formPrecio.id_proyecto || flowProyectoId.value || ''
-
-  formPrecio.post(route('politicas-precio-proyecto.store'), {
-    preserveScroll: true,
-    onSuccess: () => {
-      router.visit(
-        proyectoId
-          ? `/politicas-precio-proyecto/crear?proyecto=${proyectoId}`
-          : '/politicas-precio-proyecto/crear'
-      )
-    },
-  })
-}
-
 function guardarPoliticaComision() {
-  const proyectoId = formComision.id_proyecto || flowProyectoId.value || ''
-
-  formComision.post(route('politicas-comision.store'), {
+  formComision.post('/politicas-comision', {
     preserveScroll: true,
-    onSuccess: () => {
-      router.visit(
-        proyectoId
-          ? `/politicas-precio-proyecto/crear?proyecto=${proyectoId}`
-          : '/politicas-precio-proyecto/crear'
-      )
-    },
   })
 }
 </script>

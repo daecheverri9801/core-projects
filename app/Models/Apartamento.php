@@ -61,7 +61,6 @@ class Apartamento extends Model
         return $this->belongsTo(Cliente::class, 'documento', 'documento');
     }
 
-    // ✅ NUEVA: Relación inversa con ventas
     public function ventas()
     {
         return $this->hasMany(Venta::class, 'id_apartamento');

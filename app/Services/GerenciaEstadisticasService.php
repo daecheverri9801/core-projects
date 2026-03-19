@@ -30,6 +30,7 @@ class GerenciaEstadisticasService
             'velocidadVentas'        => $this->velocidadVentasPorProyecto($filtros, $desde, $hasta),
             'separacionesEfectiv'    => $this->separacionesYEfectividad($filtros, $desde, $hasta),
             'inventarioProyectos'    => $this->inventarioPorProyecto($filtros),
+            'consolidadoComisiones' => $this->consolidadoComisionesPorProyecto($filtros),
             'ventasAsesoresProyecto' => $this->ventasPorAsesorProyecto($filtros, $desde, $hasta),
 
             'estadoInventario'       => $this->estadoInventario(),
@@ -432,19 +433,39 @@ class GerenciaEstadisticasService
                     }
 
                     $ultimaVenta  = $apto->ventas->first();
-                    $asesor       = $ultimaVenta?->empleado; // si existe relación
+                    $empleadoVenta = $ultimaVenta?->empleado; // si existe relación
                     $estadoNombre = $apto->estadoInmueble?->nombre ?? '—';
 
                     $precioBase = (float) ($apto->tipoApartamento?->valor_estimado ?? 0);
+                    $precioVigente = (float) ($apto->valor_final ?? $apto->valor_total ?? 0);
+
+                    $nombreEmpleadoVenta = $empleadoVenta
+                        ? trim(($empleadoVenta->nombre ?? '') . ' ' . ($empleadoVenta->apellido ?? ''))
+                        : null;
 
                     $items[] = [
-                        'tipo'            => 'Apartamento',
-                        'etiqueta'        => 'Apto ' . $apto->numero,
-                        'precio_base'     => $precioBase,
-                        'precio_vigente'  => (float) ($apto->valor_final ?? $apto->valor_total ?? 0),
-                        'estado'          => $estadoNombre,
-                        'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
+                        'tipo' => 'Apartamento',
+                        'etiqueta' => 'Apto ' . $apto->numero,
+                        'precio_base' => $precioBase,
+                        'precio_vigente' => $precioVigente,
+                        'estado' => $estadoNombre,
+                        'asesor' => $nombreEmpleadoVenta,
+                        'id_empleado_venta' => $empleadoVenta?->id_empleado,
+                        'nombre_empleado_venta' => $nombreEmpleadoVenta,
+                        'cargo_empleado_venta' => $empleadoVenta?->cargo?->nombre,
                         'fecha_operacion' => $ultimaVenta?->fecha_venta,
+                        'valor_comision_asesora' => $this->calcularValorComisionAsesora(
+                            $proyecto,
+                            $empleadoVenta,
+                            $ultimaVenta?->fecha_venta,
+                            $precioVigente
+                        ),
+                        'valor_comision_directora' => $this->calcularValorComisionDirectora(
+                            $proyecto,
+                            $empleadoVenta,
+                            $ultimaVenta?->fecha_venta,
+                            $precioVigente
+                        ),
                     ];
                 }
 
@@ -454,17 +475,37 @@ class GerenciaEstadisticasService
                     }
 
                     $ultimaVenta  = $loc->ventas->first();
-                    $asesor       = $ultimaVenta?->empleado; // si existe relación
+                    $empleadoVenta = $ultimaVenta?->empleado; // si existe relación
                     $estadoNombre = $loc->estadoInmueble?->nombre ?? '—';
+                    $precioVigente = (float) ($loc->valor_total ?? 0);
+
+                    $nombreEmpleadoVenta = $empleadoVenta
+                        ? trim(($empleadoVenta->nombre ?? '') . ' ' . ($empleadoVenta->apellido ?? ''))
+                        : null;
 
                     $items[] = [
-                        'tipo'            => 'Local',
-                        'etiqueta'        => '' . $loc->numero,
-                        'precio_base'     => (float) ($loc->valor_total ?? 0),
-                        'precio_vigente'  => (float) ($loc->valor_total ?? 0),
-                        'estado'          => $estadoNombre,
-                        'asesor'          => $asesor ? ($asesor->nombre . ' ' . $asesor->apellido) : null,
+                        'tipo' => 'Local',
+                        'etiqueta' => '' . $loc->numero,
+                        'precio_base' => $precioBase,
+                        'precio_vigente' => $precioVigente,
+                        'estado' => $estadoNombre,
+                        'asesor' => $nombreEmpleadoVenta,
+                        'id_empleado_venta' => $empleadoVenta?->id_empleado,
+                        'nombre_empleado_venta' => $nombreEmpleadoVenta,
+                        'cargo_empleado_venta' => $empleadoVenta?->cargo?->nombre,
                         'fecha_operacion' => $ultimaVenta?->fecha_venta,
+                        'valor_comision_asesora' => $this->calcularValorComisionAsesora(
+                            $proyecto,
+                            $empleadoVenta,
+                            $ultimaVenta?->fecha_venta,
+                            $precioVigente
+                        ),
+                        'valor_comision_directora' => $this->calcularValorComisionDirectora(
+                            $proyecto,
+                            $empleadoVenta,
+                            $ultimaVenta?->fecha_venta,
+                            $precioVigente
+                        ),
                     ];
                 }
             }
@@ -477,6 +518,99 @@ class GerenciaEstadisticasService
         }
 
         return $result;
+    }
+
+    private function calcularValorComisionAsesora($proyecto, $empleadoVenta, $fechaOperacion, float $baseCalculo): float
+    {
+        if (!$empleadoVenta || !$fechaOperacion || $baseCalculo <= 0) {
+            return 0.0;
+        }
+
+        $cargoNombre = $empleadoVenta->cargo?->nombre;
+
+        if ($cargoNombre !== 'Asesora Comercial') {
+            return 0.0;
+        }
+
+        $fecha = \Carbon\Carbon::parse($fechaOperacion)->toDateString();
+
+        $politicas = $proyecto->politicasComision
+            ->filter(function ($politica) use ($empleadoVenta, $fecha) {
+                return (int) $politica->id_empleado === (int) $empleadoVenta->id_empleado
+                    && $politica->tipo_comision === 'venta_propia'
+                    && $this->politicaVigenteEnFecha($politica, $fecha);
+            });
+
+        $porcentajeTotal = (float) $politicas->sum(function ($politica) {
+            return (float) $politica->porcentaje;
+        });
+
+        return round($baseCalculo * ($porcentajeTotal / 100), 2);
+    }
+
+    private function calcularValorComisionDirectora($proyecto, $empleadoVenta, $fechaOperacion, float $baseCalculo): float
+    {
+        if (!$empleadoVenta || !$fechaOperacion || $baseCalculo <= 0) {
+            return 0.0;
+        }
+
+        $fecha = \Carbon\Carbon::parse($fechaOperacion)->toDateString();
+        $cargoNombreVendedor = $empleadoVenta->cargo?->nombre;
+
+        // Si vendió una asesora, la directora gana por venta_equipo
+        if ($cargoNombreVendedor === 'Asesora Comercial') {
+            $politicas = $proyecto->politicasComision
+                ->filter(function ($politica) use ($fecha) {
+                    return $politica->empleado?->cargo?->nombre === 'Directora Comercial'
+                        && $politica->tipo_comision === 'venta_equipo'
+                        && $this->politicaVigenteEnFecha($politica, $fecha);
+                });
+
+            $porcentajeTotal = (float) $politicas->sum(function ($politica) {
+                return (float) $politica->porcentaje;
+            });
+
+            return round($baseCalculo * ($porcentajeTotal / 100), 2);
+        }
+
+        // Si vendió la directora, gana su venta_propia
+        if ($cargoNombreVendedor === 'Directora Comercial') {
+            $politicas = $proyecto->politicasComision
+                ->filter(function ($politica) use ($empleadoVenta, $fecha) {
+                    return (int) $politica->id_empleado === (int) $empleadoVenta->id_empleado
+                        && $politica->tipo_comision === 'venta_propia'
+                        && $this->politicaVigenteEnFecha($politica, $fecha);
+                });
+
+            $porcentajeTotal = (float) $politicas->sum(function ($politica) {
+                return (float) $politica->porcentaje;
+            });
+
+            return round($baseCalculo * ($porcentajeTotal / 100), 2);
+        }
+
+        return 0.0;
+    }
+
+    private function politicaVigenteEnFecha($politica, string $fecha): bool
+    {
+        $desde = $politica->vigente_desde
+            ? \Carbon\Carbon::parse($politica->vigente_desde)->toDateString()
+            : null;
+
+        $hasta = $politica->vigente_hasta
+            ? \Carbon\Carbon::parse($politica->vigente_hasta)->toDateString()
+            : null;
+
+        if ($desde && $fecha < $desde) {
+            return false;
+        }
+
+        if ($hasta && $fecha > $hasta) {
+            return false;
+        }
+
+        return true;
     }
 
     /* ===========================================================
@@ -615,6 +749,99 @@ class GerenciaEstadisticasService
             ->groupBy('proyectos.nombre', DB::raw("TO_CHAR(fecha_venta, 'YYYY-MM')"))
             ->orderBy('mes')
             ->get();
+    }
+
+    public function consolidadoComisionesPorProyecto(array $filtros): array
+    {
+        $filtros = $this->normalizarFiltros($filtros);
+
+        $proyectosQuery = Proyecto::query()->with([
+            'politicasComision.empleado.cargo',
+        ]);
+
+        if (!empty($filtros['proyecto_id'])) {
+            $proyectosQuery->where('id_proyecto', $filtros['proyecto_id']);
+        }
+
+        $proyectos = $proyectosQuery->get();
+
+        // Reutiliza el inventario ya calculado para tomar los valores de comisión por inmueble
+        $inventario = collect($this->inventarioPorProyecto($filtros))
+            ->keyBy('id_proyecto');
+
+        $resultado = [];
+
+        foreach ($proyectos as $proyecto) {
+            $inventarioProyecto = collect($inventario->get($proyecto->id_proyecto)['inmuebles'] ?? []);
+
+            $filas = $proyecto->politicasComision
+                ->groupBy('id_empleado')
+                ->map(function ($politicasEmpleado, $idEmpleado) use ($inventarioProyecto) {
+                    $politicaBase = $politicasEmpleado->first();
+                    $empleado = $politicaBase?->empleado;
+                    $cargoNombre = $empleado?->cargo?->nombre ?? '—';
+                    $nombreCompleto = trim(($empleado->nombre ?? '') . ' ' . ($empleado->apellido ?? ''));
+
+                    $totalVentas = 0;
+                    $totalComisionVenta = 0.0;
+                    $totalComisionEquipo = 0.0;
+
+                    foreach ($inventarioProyecto as $item) {
+                        $valorAsesora = (float) ($item['valor_comision_asesora'] ?? 0);
+                        $valorDirectora = (float) ($item['valor_comision_directora'] ?? 0);
+                        $nombreAsesor = trim((string) ($item['asesor'] ?? ''));
+
+                        if ($cargoNombre === 'Asesora Comercial') {
+                            $tipos = $politicasEmpleado->pluck('tipo_comision')->all();
+
+                            if (in_array('venta_propia', $tipos, true) && $nombreCompleto !== '' && $nombreCompleto === $nombreAsesor) {
+                                $totalVentas++;
+                                $totalComisionVenta += $valorAsesora;
+                            }
+                        }
+
+                        if ($cargoNombre === 'Directora Comercial') {
+                            foreach ($politicasEmpleado as $politica) {
+                                if ($politica->tipo_comision === 'venta_propia' && $valorDirectora > 0 && $nombreCompleto !== '' && $nombreCompleto === $nombreAsesor) {
+                                    $totalVentas++;
+                                    $totalComisionVenta += $valorDirectora;
+                                }
+
+                                if ($politica->tipo_comision === 'venta_equipo' && $valorDirectora > 0) {
+                                    // Cuenta solo ventas del equipo, no las ventas propias de la directora
+                                    if ($nombreCompleto === '' || $nombreCompleto !== $nombreAsesor) {
+                                        $totalComisionEquipo += $valorDirectora;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return [
+                        'id_empleado' => $empleado?->id_empleado,
+                        'cargo' => $cargoNombre,
+                        'nombre_completo' => $nombreCompleto ?: '—',
+                        'numero_total_ventas' => $totalVentas,
+                        'total_comisiones_venta' => round($totalComisionVenta, 2),
+                        'total_comisiones_equipo' => round($totalComisionEquipo, 2),
+                        'total_comisiones_pagar' => round($totalComisionVenta + $totalComisionEquipo, 2),
+                    ];
+                })
+                ->sortBy([
+                    ['cargo', 'asc'],
+                    ['nombre_completo', 'asc'],
+                ])
+                ->values()
+                ->all();
+
+            $resultado[] = [
+                'id_proyecto' => $proyecto->id_proyecto,
+                'nombre' => $proyecto->nombre,
+                'empleados' => $filas,
+            ];
+        }
+
+        return $resultado;
     }
 
     /* ===========================================================

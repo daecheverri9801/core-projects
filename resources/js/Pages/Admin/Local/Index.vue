@@ -8,7 +8,7 @@
         subtitle="Consulta y administra locales agrupados por proyecto."
       >
         <template #actions>
-          <ButtonPrimary href="/locales/create">
+          <ButtonPrimary href="/locales/create?proyecto=${pid}">
             <PlusIcon class="w-5 h-5" />
             Nuevo local
           </ButtonPrimary>

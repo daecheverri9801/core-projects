@@ -43,7 +43,6 @@ class Local extends Model
         return $this->belongsTo(PisoTorre::class, 'id_piso_torre', 'id_piso_torre');
     }
 
-    // ✅ NUEVA: Relación inversa con ventas
     public function ventas()
     {
         return $this->hasMany(Venta::class, 'id_local');

@@ -1,11 +1,10 @@
-<!-- resources/js/Pages/PoliticasPrecioProyecto/Index.vue -->
 <template>
   <TopBannerLayout :empleado="empleado">
     <div class="space-y-6">
       <PageHeader
-        title="Políticas de precio"
+        title="Políticas de comisión"
         kicker="Módulo comercial"
-        subtitle="Crea, consulta y administra escalones de aumento por ventas."
+        subtitle="Crea, consulta y administra porcentajes de comisión por proyecto y cargo."
       >
         <template #actions>
           <ButtonPrimary href="/politicas-precio-proyecto/crear?proyecto=${pid}">
@@ -15,7 +14,6 @@
         </template>
       </PageHeader>
 
-      <!-- Controles -->
       <AppCard padding="md">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div class="min-w-0">
@@ -28,34 +26,45 @@
           <div class="w-full md:w-[520px]">
             <QuickSearch
               v-model="search"
-              placeholder="Buscar por proyecto, escalón, porcentaje o estado…"
+              placeholder="Buscar por proyecto, cargo, tipo o porcentaje…"
             />
           </div>
         </div>
       </AppCard>
 
-      <!-- Tabla -->
       <AppCard padding="none">
         <div class="overflow-x-auto">
-          <table class="min-w-[980px] w-full divide-y divide-gray-200">
+          <table class="min-w-[1100px] w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Proyecto
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Ventas/Escalón
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  Empleado
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  % Aumento
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  Tipo comisión
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Aplica desde
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  Porcentaje
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Estado
+                <th
+                  class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  Vigencia
                 </th>
-                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
                   Acciones
                 </th>
               </tr>
@@ -64,7 +73,7 @@
             <tbody class="divide-y divide-gray-200 bg-white">
               <tr
                 v-for="p in filtered"
-                :key="p.id_politica_precio"
+                :key="p.id_politica_comision"
                 class="hover:bg-brand-50/40 transition"
               >
                 <td class="px-6 py-4">
@@ -77,44 +86,42 @@
                       <p class="font-semibold text-gray-900 truncate">
                         {{ p.proyecto?.nombre || '—' }}
                       </p>
-                      <p class="text-xs text-gray-600">
-                        ID: {{ p.id_politica_precio }}
-                      </p>
+                      <p class="text-xs text-gray-600">ID: {{ p.id_politica_comision }}</p>
                     </div>
                   </div>
                 </td>
 
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ p.ventas_por_escalon ?? '—' }}
+                <td class="px-6 py-4">
+                  <div class="text-sm font-semibold text-gray-900">
+                    {{ p.empleado?.nombre || '—' }}
+                  </div>
+                  <div class="text-xs text-gray-600">
+                    {{ p.empleado?.cargo || '—' }}
+                  </div>
                 </td>
 
                 <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ porcentajeFmt(p.porcentaje_aumento) }}
+                  {{ tipoFmt(p.tipo_comision) }}
                 </td>
 
                 <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ p.aplica_desde?.split('T')[0] || 'No definida' }}
+                  {{ porcentajeFmt(p.porcentaje) }}
                 </td>
 
-                <td class="px-6 py-4 text-sm">
-                  <span
-                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                    :class="p.estado ? 'border-green-200 bg-green-50 text-green-800' : 'border-amber-200 bg-amber-50 text-amber-800'"
-                  >
-                    {{ p.estado ? 'Activa' : 'Inactiva' }}
-                  </span>
+                <td class="px-6 py-4 text-sm text-gray-900">
+                  {{ fechaFmt(p.vigente_desde) }} - {{ fechaFmt(p.vigente_hasta) }}
                 </td>
 
                 <td class="px-6 py-4">
                   <div class="flex items-center justify-end gap-2">
                     <IconButton
-                      :href="`/politicas-precio-proyecto/${p.id_politica_precio}`"
+                      :href="`/politicas-comision/${p.id_politica_comision}`"
                       icon="EyeIcon"
                       title="Ver"
                       variant="info"
                     />
                     <IconButton
-                      :href="`/politicas-precio-proyecto/${p.id_politica_precio}/editar`"
+                      :href="`/politicas-comision/${p.id_politica_comision}/edit`"
                       icon="PencilIcon"
                       title="Editar"
                       variant="warn"
@@ -123,20 +130,19 @@
                       icon="TrashIcon"
                       title="Eliminar"
                       variant="danger"
-                      @click="askDelete(p.id_politica_precio)"
+                      @click="askDelete(p.id_politica_comision)"
                     />
                   </div>
                 </td>
               </tr>
 
-              <!-- Empty -->
               <tr v-if="filtered.length === 0">
                 <td colspan="6" class="px-6 py-12 text-center">
                   <div class="mx-auto max-w-md">
                     <MagnifyingGlassIcon class="w-8 h-8 mx-auto text-brand-700" />
                     <p class="mt-3 text-sm font-semibold text-gray-900">Sin resultados</p>
                     <p class="mt-1 text-sm text-gray-600">
-                      No hay políticas que coincidan con tu búsqueda.
+                      No hay políticas de comisión que coincidan con tu búsqueda.
                     </p>
                     <button
                       v-if="search"
@@ -152,19 +158,18 @@
           </table>
         </div>
 
-        <!-- Footer -->
         <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200">
           <p class="text-sm text-gray-600">
-            Mostrando <span class="font-semibold text-gray-900">{{ filtered.length }}</span> registros
+            Mostrando
+            <span class="font-semibold text-gray-900">{{ filtered.length }}</span> registros
           </p>
         </div>
       </AppCard>
 
-      <!-- Confirm delete -->
       <ConfirmDialog
         :open="showConfirmDelete"
         title="Confirmar eliminación"
-        message="¿Estás seguro de eliminar esta política? Esta acción no se puede deshacer."
+        message="¿Estás seguro de eliminar esta política de comisión? Esta acción no se puede deshacer."
         cancel-text="Cancelar"
         confirm-text="Eliminar"
         @cancel="cancelarEliminar"
@@ -200,17 +205,19 @@ const filtered = computed(() => {
   if (!q) return props.politicas
 
   return props.politicas.filter((p) => {
-    const id = String(p.id_politica_precio || '')
+    const id = String(p.id_politica_comision || '')
     const proyecto = (p.proyecto?.nombre || '').toLowerCase()
-    const escalon = String(p.ventas_por_escalon ?? '')
-    const porcentaje = String(p.porcentaje_aumento ?? '')
-    const estado = (p.estado ? 'activa' : 'inactiva')
+    const empleado = (p.empleado?.nombre || '').toLowerCase()
+    const cargo = (p.empleado?.cargo || '').toLowerCase()
+    const tipo = tipoFmt(p.tipo_comision).toLowerCase()
+    const porcentaje = String(p.porcentaje ?? '')
     return (
       id.includes(q) ||
       proyecto.includes(q) ||
-      escalon.includes(q) ||
-      porcentaje.includes(q) ||
-      estado.includes(q)
+      empleado.includes(q) ||
+      cargo.includes(q) ||
+      tipo.includes(q) ||
+      porcentaje.includes(q)
     )
   })
 })
@@ -219,12 +226,22 @@ function porcentajeFmt(val) {
   if (val === null || val === undefined || val === '') return '—'
   const n = Number(val)
   if (Number.isNaN(n)) return '—'
-  // Mantiene decimales si existen (sin forzar muchos)
   const s = String(val)
   return s.includes('.') ? `${parseFloat(s)}%` : `${n}%`
 }
 
-/** Delete flow */
+function tipoFmt(tipo) {
+  if (!tipo) return '—'
+  if (tipo === 'venta_propia') return 'Venta propia'
+  if (tipo === 'venta_equipo') return 'Venta del equipo'
+  return tipo
+}
+
+function fechaFmt(val) {
+  if (!val) return '—'
+  return String(val).split('T')[0].split(' ')[0]
+}
+
 const politicaAEliminar = ref(null)
 const showConfirmDelete = ref(false)
 
@@ -240,7 +257,7 @@ function cancelarEliminar() {
 
 function confirmarEliminar() {
   if (!politicaAEliminar.value) return
-  router.delete(`/politicas-precio-proyecto/${politicaAEliminar.value}`, {
+  router.delete(`/politicas-comision/${politicaAEliminar.value}`, {
     onFinish: () => {
       showConfirmDelete.value = false
       politicaAEliminar.value = null

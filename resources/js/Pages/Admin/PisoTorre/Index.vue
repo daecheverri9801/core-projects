@@ -8,7 +8,7 @@
         subtitle="Visualiza los pisos agrupados por proyecto (torre, nivel, uso y aptos)."
       >
         <template #actions>
-          <ButtonPrimary :href="route('pisostorre.create')">
+          <ButtonPrimary href="/pisos-torre/create?proyecto=${pid}">
             <PlusIcon class="w-5 h-5" />
             Nuevo piso
           </ButtonPrimary>

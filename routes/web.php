@@ -21,7 +21,7 @@ use App\Http\Controllers\Admin\ParqueaderoWebController;
 use App\Http\Controllers\Admin\PoliticaPrecioProyectoWebController;
 use App\Http\Controllers\Admin\VentaAdminController;
 use App\Http\Controllers\Admin\ClienteAdminController;
-use App\Http\Controllers\Admin\ProyectoWizardController;
+use App\Http\Controllers\Admin\PoliticaComisionController;
 
 use App\Http\Controllers\Ventas\TipoClienteWebController;
 use App\Http\Controllers\Ventas\TipoDocumentoWebController;
@@ -41,11 +41,11 @@ use App\Http\Controllers\Gerencia\GerenciaDashboardWebController;
 use App\Http\Controllers\Gerencia\MetasController;
 use App\Http\Controllers\Gerencia\PlanPagosCIExportController;
 use App\Http\Controllers\Ventas\MetasDashboardController;
-
+use App\Http\Controllers\Contabilidad\InventarioController;
 use App\Http\Controllers\Admin\LoginLogController as AdminLoginLogController;
 use App\Http\Controllers\Gerencia\LoginLogController as GerenciaLoginLogController;
-
 use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
+use App\Http\Controllers\Contabilidad\ComisionController;
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login.empleado');
@@ -230,6 +230,14 @@ Route::middleware(['auth', 'check.cargo:Gerente,Administrador'])->group(function
     Route::get('/admin/clientes/{documento}/edit', [ClienteAdminController::class, 'edit'])->name('admin.clientes.edit');
     Route::put('/admin/clientes/{documento}', [ClienteAdminController::class, 'update'])->name('admin.clientes.update');
     Route::delete('/admin/clientes/{documento}', [ClienteAdminController::class, 'destroy'])->name('admin.clientes.destroy');
+
+    Route::get('/politicas-comision', [PoliticaComisionController::class, 'index'])->name('politicas-comision.index');
+    Route::get('/politicas-comision/create', [PoliticaComisionController::class, 'create'])->name('politicas-comision.create');
+    Route::post('/politicas-comision', [PoliticaComisionController::class, 'store'])->name('politicas-comision.store');
+    Route::get('/politicas-comision/{politicaComision}', [PoliticaComisionController::class, 'show'])->name('politicas-comision.show');
+    Route::get('/politicas-comision/{politicaComision}/edit', [PoliticaComisionController::class, 'edit'])->name('politicas-comision.edit');
+    Route::put('/politicas-comision/{politicaComision}', [PoliticaComisionController::class, 'update'])->name('politicas-comision.update');
+    Route::delete('/politicas-comision/{politicaComision}', [PoliticaComisionController::class, 'destroy'])->name('politicas-comision.destroy');
 
     Route::get('/admin/login-logs', [AdminLoginLogController::class, 'index'])->name('admin.login-logs.index');
 });
@@ -430,7 +438,6 @@ Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {
     Route::delete('/gerencia/metas/{id}', [MetasController::class, 'destroy'])
         ->name('gerencia.metas.destroy');
 
-    // Endpoint AJAX para datos filtrados del dashboard
     Route::get(
         '/gerencia/dashboard/datos',
         [GerenciaDashboardWebController::class, 'datos']
@@ -463,6 +470,12 @@ Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->gro
     // Export Excel
     Route::get('/reportes/plan-pagos-ci/export', [ContabilidadVentasWebController::class, 'exportPlanPagosCI'])
         ->name('contabilidad.reportes.plan_ci.export');
+
+    Route::get('/inventario', [InventarioController::class, 'index'])
+        ->name('contabilidad.inventario.index');
+
+    Route::get('/comisiones', [ComisionController::class, 'index'])
+        ->name('contabilidad.comisiones.index');
 });
 
 // routes/web.php (SOLO EN DESARROLLO LOCAL)

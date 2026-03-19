@@ -41,6 +41,30 @@
             >
               Plan Pagos CI
             </Link>
+
+            <Link
+              href="/contabilidad/inventario"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition"
+              :class="
+                isActive('/contabilidad/inventario')
+                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  : 'text-gray-700 hover:bg-gray-100'
+              "
+            >
+              Proyectos / Inventario
+            </Link>
+
+            <Link
+              href="/contabilidad/comisiones"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition"
+              :class="
+                isActive('/contabilidad/comisiones')
+                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  : 'text-gray-700 hover:bg-gray-100'
+              "
+            >
+              Comisiones
+            </Link>
           </nav>
 
           <!-- Usuario y Logout (derecha) -->

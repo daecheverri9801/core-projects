@@ -8,7 +8,7 @@
         subtitle="Consulta y administra parqueaderos agrupados por proyecto."
       >
         <template #actions>
-          <ButtonPrimary :href="route('parqueaderos.create')">
+          <ButtonPrimary :href="`/parqueaderos/create?proyecto=${pid}`">
             <PlusIcon class="h-5 w-5" />
             Nuevo
           </ButtonPrimary>

@@ -8,7 +8,7 @@
         subtitle="Crea, consulta y administra las zonas sociales asociadas a los proyectos."
       >
         <template #actions>
-          <ButtonPrimary :href="route('zonas-sociales.create')">
+          <ButtonPrimary href="/zonas-sociales/create?proyecto=${pid}">
             <PlusIcon class="w-5 h-5" />
             Nueva zona
           </ButtonPrimary>
@@ -47,11 +47,7 @@
 
       <!-- Listado por proyecto -->
       <div class="space-y-4">
-        <AppCard
-          v-for="p in proyectosAgrupados"
-          :key="p.key"
-          padding="none"
-        >
+        <AppCard v-for="p in proyectosAgrupados" :key="p.key" padding="none">
           <div class="px-6 py-5 border-b border-gray-200 flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs text-gray-600">Proyecto</p>
@@ -64,7 +60,9 @@
             </div>
 
             <div class="shrink-0">
-              <span class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800">
+              <span
+                class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-800"
+              >
                 {{ p.zonas.length }} zona(s)
               </span>
             </div>
@@ -74,13 +72,19 @@
             <table class="min-w-[980px] w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                  >
                     Zona social
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                  >
                     Descripción
                   </th>
-                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                  >
                     Acciones
                   </th>
                 </tr>
@@ -102,9 +106,7 @@
                         <p class="font-semibold text-gray-900 truncate">
                           {{ z.nombre || '—' }}
                         </p>
-                        <p class="text-xs text-gray-600">
-                          ID: {{ z.id_zona_social }}
-                        </p>
+                        <p class="text-xs text-gray-600">ID: {{ z.id_zona_social }}</p>
                       </div>
                     </div>
                   </td>
@@ -154,12 +156,14 @@
           <div class="py-10 text-center">
             <MagnifyingGlassIcon class="w-8 h-8 mx-auto text-brand-700" />
             <p class="mt-3 text-sm font-semibold text-gray-900">Sin resultados</p>
-            <p class="mt-1 text-sm text-gray-600">No hay zonas sociales que coincidan con tu búsqueda.</p>
+            <p class="mt-1 text-sm text-gray-600">
+              No hay zonas sociales que coincidan con tu búsqueda.
+            </p>
 
             <button
               v-if="search"
               type="button"
-              @click="search=''"
+              @click="search = ''"
               class="mt-4 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
             >
               Limpiar búsqueda
@@ -193,11 +197,7 @@ import QuickSearch from '@/Components/QuickSearch.vue'
 import IconButton from '@/Components/IconButton.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 
-import {
-  PlusIcon,
-  MapPinIcon,
-  MagnifyingGlassIcon,
-} from '@heroicons/vue/24/outline'
+import { PlusIcon, MapPinIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   zonas: { type: Array, default: () => [] },
@@ -220,12 +220,7 @@ const proyectosAgrupados = computed(() => {
         const desc = (z.descripcion || '').toLowerCase()
         const proyecto = (z.proyecto || '').toLowerCase()
         const ciudad = (z.ubicacion || '').toLowerCase()
-        return (
-          nombre.includes(q) ||
-          desc.includes(q) ||
-          proyecto.includes(q) ||
-          ciudad.includes(q)
-        )
+        return nombre.includes(q) || desc.includes(q) || proyecto.includes(q) || ciudad.includes(q)
       })
 
   const map = new Map()

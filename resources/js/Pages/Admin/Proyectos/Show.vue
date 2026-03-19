@@ -108,7 +108,6 @@
           </div>
         </div>
       </div>
-
       <FlashMessages />
     </div>
   </TopBannerLayout>
@@ -440,6 +439,13 @@ const flows = computed(() => [
     title: 'Políticas',
     subtitle: 'Políticas vigentes y escalonamientos.',
     href: withProyecto('/politicas-precio-proyecto'),
+    createHref: withProyecto('/politicas-precio-proyecto/crear'),
+  },
+  {
+    key: 'comisiones',
+    title: 'Comisiones',
+    subtitle: 'Políticas de comisión vigentes y escalonamientos.',
+    href: withProyecto('/politicas-comision'),
     createHref: withProyecto('/politicas-precio-proyecto/crear'),
   },
   {

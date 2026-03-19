@@ -14,25 +14,26 @@ class PoliticaComision extends Model
 
     protected $fillable = [
         'id_proyecto',
-        'aplica_a',
-        'base_calculo',
+        'id_empleado',
+        'tipo_comision',
         'porcentaje',
-        'valor_fijo',
-        'minimo_venta_estado',
-        'descripcion',
         'vigente_desde',
-        'vigente_hasta'
+        'vigente_hasta',
     ];
 
     protected $casts = [
         'vigente_desde' => 'date',
         'vigente_hasta' => 'date',
         'porcentaje' => 'decimal:3',
-        'valor_fijo' => 'decimal:2'
     ];
 
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class, 'id_proyecto', 'id_proyecto');
+    }
+
+    public function empleado()
+    {
+        return $this->belongsTo(Empleado::class, 'id_empleado', 'id_empleado');
     }
 }
