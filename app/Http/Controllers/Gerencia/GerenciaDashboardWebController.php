@@ -33,9 +33,9 @@ class GerenciaDashboardWebController extends Controller
             ->select('id_empleado', 'nombre', 'apellido')
             ->get() : collect();
 
-        // [$desde, $hasta] = $service->rangoFechas($filtros);
+        [$desde, $hasta] = $service->rangoFechas($filtros);
 
-        $planPagosCI = $service->planPagosCI($filtros);
+        $planPagosCI = $service->planPagosCI($filtros, $desde, $hasta);
         $dashboard = $service->obtenerDashboard($filtros);
 
         return Inertia::render('Gerencia/Dashboard/Index', array_merge($dashboard, [
