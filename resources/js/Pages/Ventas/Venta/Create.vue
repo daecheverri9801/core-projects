@@ -52,12 +52,13 @@ const form = useForm({
   id_proyecto: '',
   inmueble_tipo: '',
   inmueble_id: '',
+  inmueble_uid: '',
   id_forma_pago: '',
   id_estado_inmueble: '',
-  valor_base: 0, // ✅ ahora lo usamos como base inmueble
+  valor_base: 0,
   iva: 0,
   valor_total: 0,
-  id_parqueadero: '', // ✅ nuevo
+  id_parqueadero: '',
   cuota_inicial: 0,
   cuota_inicial_raw: 0,
   valor_restante: 0,
@@ -164,7 +165,7 @@ const steps = computed(() => {
 })
 
 const resumenInmueble = computed(() => {
-  const inm = inmueblesDisponibles.value.find((i) => i.id === Number(form.inmueble_id))
+  const inm = inmueblesDisponibles.value.find((i) => i.uid === form.inmueble_uid)
   if (!inm) return null
   return inm
 })
@@ -410,6 +411,7 @@ watch(
   () => form.id_proyecto,
   (nuevoProyecto) => {
     form.inmueble_id = ''
+    form.inmueble_uid = ''
     form.inmueble_tipo = ''
     form.valor_base = 0
     form.valor_total = 0
@@ -437,12 +439,14 @@ watch(
       ...aps.map((a) => ({
         tipo: 'apartamento',
         id: a.id_apartamento,
+        uid: `apartamento-${a.id_apartamento}`,
         label: `Apto ${a.numero}`,
         valor: parseFloat(a.valor_final || a.valor_total || 0),
       })),
       ...locs.map((l) => ({
         tipo: 'local',
         id: l.id_local,
+        uid: `local-${l.id_local}`,
         label: `Local ${l.numero}`,
         valor: parseFloat(l.valor_total || 0),
       })),
@@ -469,6 +473,7 @@ onMounted(() => {
       form.id_proyecto = proyectoId
       form.inmueble_tipo = esApartamento ? 'apartamento' : 'local'
       form.inmueble_id = esApartamento ? inmueble.id_apartamento : inmueble.id_local
+      form.inmueble_uid = `${form.inmueble_tipo}-${form.inmueble_id}`
       form.valor_base = parseFloat(inmueble.valor_final || inmueble.valor_total || 0)
       recalcularEconomiaVenta()
     }
@@ -477,16 +482,23 @@ onMounted(() => {
 
 /** ===== Inmueble -> setear tipo, valor_base y recalcular ===== */
 watch(
-  () => form.inmueble_id,
-  (newId) => {
-    if (!newId) return
-    const inm = inmueblesDisponibles.value.find((i) => i.id === Number(newId))
+  () => form.inmueble_uid,
+  (newUid) => {
+    if (!newUid) {
+      form.inmueble_id = ''
+      form.inmueble_tipo = ''
+      form.valor_base = 0
+      form.valor_total = 0
+      return
+    }
+
+    const inm = inmueblesDisponibles.value.find((i) => i.uid === newUid)
     if (!inm || !proyectoSeleccionado.value) return
 
     form.inmueble_tipo = inm.tipo
+    form.inmueble_id = inm.id
     form.valor_base = Number(inm.valor)
 
-    // Si el inmueble NO es apartamento, no permitir parqueadero adicional
     if (form.inmueble_tipo !== 'apartamento') {
       form.id_parqueadero = ''
     }
@@ -852,12 +864,12 @@ function submit() {
                 <div>
                   <label :class="labelClass()">Inmueble disponible *</label>
                   <select
-                    v-model="form.inmueble_id"
+                    v-model="form.inmueble_uid"
                     :disabled="!inmueblesDisponibles.length"
                     :class="inputClass(false, !inmueblesDisponibles.length)"
                   >
                     <option value="">Seleccione...</option>
-                    <option v-for="i in inmueblesDisponibles" :key="i.id" :value="i.id">
+                    <option v-for="i in inmueblesDisponibles" :key="i.uid" :value="i.uid">
                       {{ i.label }}
                     </option>
                   </select>
