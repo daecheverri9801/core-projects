@@ -15,15 +15,10 @@ class EventServiceProvider extends ServiceProvider
         // \Illuminate\Auth\Events\Login::class => [
         //     \App\Listeners\LogSuccessfulLogin::class,
         // ],
-        VentaCreada::class => [
-            EnviarNotificacionesVenta::class,
-        ],
+        // VentaCreada::class => [
+        //     EnviarNotificacionesVenta::class,
+        // ],
     ];
-
-    public function shouldDiscoverEvents(): bool
-    {
-        return false;
-    }
 
     public function boot(): void
     {
