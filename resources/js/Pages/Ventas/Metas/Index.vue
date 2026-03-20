@@ -455,6 +455,6 @@ function average(arr) {
       </div>
     </VentasCard>
 
-    <FlashMessages />
+    <!-- <FlashMessages /> -->
   </VentasLayout>
 </template>

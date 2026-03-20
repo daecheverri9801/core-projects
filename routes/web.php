@@ -414,9 +414,9 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
     Route::put('/ventas/{id}/convertir', [VentaWebController::class, 'convertirStore'])
         ->name('ventas.convertir');
 
-    Route::get('/metas', [MetasDashboardController::class, 'index'])->name('ventas.metas.index');
-    Route::get('/metas/pendientes-mes-actual', [MetasDashboardController::class, 'pendientesMesActual'])
-        ->name('ventas.metas.pendientesMesActual');
+    // Route::get('/metas', [MetasDashboardController::class, 'index'])->name('ventas.metas.index');
+    // Route::get('/metas/pendientes-mes-actual', [MetasDashboardController::class, 'pendientesMesActual'])
+    //     ->name('ventas.metas.pendientesMesActual');
 });
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {

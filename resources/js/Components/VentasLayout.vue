@@ -226,11 +226,11 @@ const modulos = [
   //   href: '/pagos',
   //   icon: CreditCardIcon,
   // },
-  {
-    name: 'Metas',
-    href: '/metas',
-    icon: ChartBarIcon,
-  },
+  // {
+  //   name: 'Metas',
+  //   href: '/metas',
+  //   icon: ChartBarIcon,
+  // },
 ]
 
 function isActive(href) {
