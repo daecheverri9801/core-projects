@@ -112,6 +112,45 @@ async function generarPDF() {
    * ------------------------------------------------------ */
   const doc = new jsPDF()
 
+  /* ------------------------------------------------------
+   * HELPERS
+   * ------------------------------------------------------ */
+  const MARGIN_BOTTOM = 15
+
+  const ensureSpace = (doc, currentY, neededHeight = 20) => {
+    const pageHeight = doc.internal.pageSize.getHeight()
+    if (currentY + neededHeight > pageHeight - MARGIN_BOTTOM) {
+      doc.addPage()
+      return 20
+    }
+    return currentY
+  }
+
+  const writeWrappedTextWithPageBreak = (
+    doc,
+    text,
+    x,
+    y,
+    maxWidth,
+    lineHeight = 4.5,
+    extraGap = 3
+  ) => {
+    const lines = doc.splitTextToSize(text, maxWidth)
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    for (const line of lines) {
+      if (y + lineHeight > pageHeight - MARGIN_BOTTOM) {
+        doc.addPage()
+        y = 20
+      }
+      doc.text(line, x, y)
+      y += lineHeight
+    }
+
+    y += extraGap
+    return y
+  }
+
   /* LOGO */
   const logo = new Image()
   logo.src = '/images/logo-ayc.png'
@@ -240,6 +279,8 @@ async function generarPDF() {
    * ============================================================ */
   let yAsesor = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 260
 
+  yAsesor = ensureSpace(doc, yAsesor, 35)
+
   doc.setFontSize(14)
   doc.setFont('Helvetica', 'bold')
   doc.text('Datos del Asesor', 15, yAsesor)
@@ -260,6 +301,8 @@ async function generarPDF() {
   /* ============================================================
    *    SECCIÓN: ACLARACIONES / NOTAS LEGALES
    * ============================================================ */
+  yAsesor = ensureSpace(doc, yAsesor, 20)
+
   doc.setFontSize(12)
   doc.setFont('Helvetica', 'bold')
   doc.setTextColor(30, 30, 30)
@@ -282,11 +325,15 @@ async function generarPDF() {
     '5. Las áreas, distribuciones y especificaciones pueden registrar ajustes razonables debido a tolerancias constructivas, instalaciones u obligaciones técnicas. Dichos ajustes no afectarán la funcionalidad esencial del inmueble.',
   ]
 
-  aclaraciones.forEach((texto) => {
-    const lineas = doc.splitTextToSize(texto, 180)
-    doc.text(lineas, 15, yAsesor)
-    yAsesor += lineas.length * 4.5 + 3
-  })
+  // aclaraciones.forEach((texto) => {
+  //   const lineas = doc.splitTextToSize(texto, 180)
+  //   doc.text(lineas, 15, yAsesor)
+  //   yAsesor += lineas.length * 4.5 + 3
+  // })
+
+  for (const texto of aclaraciones) {
+    yAsesor = writeWrappedTextWithPageBreak(doc, texto, 15, yAsesor, 180, 4.5, 3)
+  }
 
   /* ------------------------------------------------------
    *  PIE DE PÁGINA
@@ -295,6 +342,7 @@ async function generarPDF() {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(8)
+    doc.setTextColor(70, 70, 70)
     doc.text(`Página ${i} de ${pageCount} - Generado ${fechaGen}`, 105, 290, { align: 'center' })
   }
 
