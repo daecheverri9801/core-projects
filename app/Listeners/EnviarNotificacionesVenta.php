@@ -40,14 +40,24 @@ class EnviarNotificacionesVenta implements ShouldQueue
         // 2. Empleado asesor (si existe en BD)
         $this->enviarAlEmpleado($venta);
 
+        Log::info('🟢 Antes de enviaraGerente');
+
         // 3. Gerentes (BD + correos fijos)
         $this->enviarAGerentes($venta);
+
+        Log::info('🟢 Después de enviarAGerente');
+        Log::info('🟢 Antes de enviarAContabilidad');
 
         // 4. Contabilidad (BD + correos fijos)
         $this->enviarAContabilidad($venta);
 
+        Log::info('🟢 Después de enviarAContabilidad');
+        Log::info('🟢 Antes de enviarACorreosSiempre');
+
         // 5. Siempre enviar a correos adicionales
         $this->enviarACorreosSiempre($venta);
+
+        Log::info('🟢 Después de enviarACorreosSiempre');
     }
 
     protected function enviarAlCliente($venta)
@@ -80,6 +90,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
     protected function enviarAGerentes($venta)
     {
+        Log::info('🔵 INICIANDO enviarAGerentes', ['emails' => $this->emailsGerentes]);
         foreach ($this->emailsGerentes as $email) {
             try {
                 (new AnonymousNotifiable)
@@ -95,6 +106,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
     protected function enviarAContabilidad($venta)
     {
+        Log::info('🔵 INICIANDO enviarAContabilidad', ['emails' => $this->emailsContabilidad]);
         foreach ($this->emailsContabilidad as $email) {
             try {
                 (new AnonymousNotifiable)
@@ -110,17 +122,23 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
     protected function enviarACorreosSiempre($venta)
     {
+        Log::info('🔵 INICIANDO enviarACorreosSiempre', ['emails' => $this->emailsSiempre]);
+
         foreach ($this->emailsSiempre as $email) {
             try {
+                Log::info('📧 Intentando enviar a SIEMPRE: ' . $email);
+
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
                     ->notify(new VentaCreadaEmpleado($venta));
 
-                Log::info('✅ Notificación enviada a contabilidad: ' . $email);
+                Log::info('✅ Notificación enviada a SIEMPRE: ' . $email);
             } catch (\Exception $e) {
-                Log::error('❌ Error enviando a contabilidad ' . $email . ': ' . $e->getMessage());
+                Log::error('❌ Error enviando a SIEMPRE ' . $email . ': ' . $e->getMessage());
             }
         }
+
+        Log::info('🔵 FINALIZADO enviarACorreosSiempre');
     }
 
     // // 1. Enviar correo al CLIENTE (si tiene email)
