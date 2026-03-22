@@ -166,7 +166,7 @@ async function generarPDF() {
     if (t.imagen) {
       const img = new Image()
       img.src = `/storage/${t.imagen}`
-      doc.addImage(img, 'JPEG', 130, 88, 65, 50)
+      doc.addImage(img, 'JPEG', 95, 70, 90, 90)
     }
   }
 

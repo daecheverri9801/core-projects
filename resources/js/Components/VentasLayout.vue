@@ -122,7 +122,7 @@
   </div>
 
   <!-- ✅ MODAL METAS (AUTO al iniciar sesión / navegar en módulo ventas) -->
-  <MetasAlertModal :empleado="empleado" />
+  <!-- <MetasAlertModal :empleado="empleado" /> -->
 
   <ConfirmDialog
     :open="showLogoutModal"
