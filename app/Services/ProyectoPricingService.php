@@ -24,6 +24,7 @@ class ProyectoPricingService
          * ============================================================ */
             $ventasActivas = Venta::where('id_proyecto', $idProyecto)
                 ->whereIn('tipo_operacion', ['venta', 'separacion'])
+                ->whereNotNull('id_apartamento')
                 ->count();
 
             /* ============================================================
@@ -85,7 +86,6 @@ class ProyectoPricingService
                 // marcar bloque como aplicado
                 $proyecto->increment('bloques_aplicados');
             }
-
         });
     }
 }

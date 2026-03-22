@@ -16,7 +16,10 @@ class PriceEngine
      * ============================================================ */
     public function obtenerBloqueActual(Proyecto $proyecto): int
     {
-        $ventas = Venta::where('id_proyecto', $proyecto->id_proyecto)->count();
+        $ventas = Venta::where('id_proyecto', $proyecto->id_proyecto)
+            ->whereIn('tipo_operacion', ['venta', 'separacion'])
+            ->whereNotNull('id_apartamento')
+            ->count();
 
         $politicasVentas = $proyecto->politicasPrecio()
             ->where('estado', true)
@@ -160,7 +163,7 @@ class PriceEngine
 
         $this->recalcularInmueble($apartamento, $factor, false);
     }
-    
+
     /* ============================================================
      * 5. Llamado principal desde Ventas
      * ============================================================ */
