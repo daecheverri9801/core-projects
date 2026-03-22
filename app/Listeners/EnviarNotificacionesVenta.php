@@ -95,7 +95,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
             try {
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaEmpleado($venta));
+                    ->notify(new VentaCreadaCliente($venta));
 
                 Log::info('✅ Notificación enviada a gerente: ' . $email);
             } catch (\Exception $e) {
@@ -111,7 +111,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
             try {
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaEmpleado($venta));
+                    ->notify(new VentaCreadaCliente($venta));
 
                 Log::info('✅ Notificación enviada a contabilidad: ' . $email);
             } catch (\Exception $e) {
@@ -130,7 +130,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaEmpleado($venta));
+                    ->notify(new VentaCreadaCliente($venta));
 
                 Log::info('✅ Notificación enviada a SIEMPRE: ' . $email);
             } catch (\Exception $e) {
