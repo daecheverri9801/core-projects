@@ -23,7 +23,7 @@ class PoliticaPrecioProyecto extends Model
     protected $casts = [
         'estado' => 'boolean',
         'aplica_desde' => 'date',
-        'porcentaje_aumento' => 'decimal:3'
+        'porcentaje_aumento' => 'decimal:12'
     ];
 
     public function proyecto()
