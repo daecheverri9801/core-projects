@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\VentaCreada;
 use App\Notifications\VentaCreadaCliente;
 use App\Notifications\VentaCreadaEmpleado;
+use App\Notifications\VentaCreadaAdministrativo;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +15,6 @@ class EnviarNotificacionesVenta implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    // CORREOS FIJOS (fallback / siempre enviar)
     protected $emailsGerentes = [
         'gerencia@constructora-ayc.com',
     ];
@@ -95,7 +95,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
             try {
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaCliente($venta));
+                    ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a gerente: ' . $email);
             } catch (\Exception $e) {
@@ -111,7 +111,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
             try {
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaCliente($venta));
+                    ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a contabilidad: ' . $email);
             } catch (\Exception $e) {
@@ -130,7 +130,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
                 (new AnonymousNotifiable)
                     ->route('mail', $email)
-                    ->notify(new VentaCreadaCliente($venta));
+                    ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a SIEMPRE: ' . $email);
             } catch (\Exception $e) {
@@ -154,7 +154,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
     // 3. (Opcional) Enviar correo a administradores
     // $admins = User::where('rol', 'admin')->get();
     // foreach ($admins as $admin) {
-    //     $admin->notify(new VentaCreadaEmpleado($venta));
+    //     $admin->notify(new VentaCreadaAdministrativo($venta));
     // }
     // }
 }

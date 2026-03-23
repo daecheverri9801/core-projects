@@ -106,35 +106,50 @@
             color: #666;
             border-top: 1px solid #ddd;
         }
-
-        .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #1e3a5f;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 15px;
-        }
     </style>
 </head>
 
 <body>
+    @php
+    $esEmpleado = $tipo === 'empleado';
+    $esCliente = $tipo === 'cliente';
+    $esAdministrativo = $tipo === 'administrativo';
+    $esApartamento = !is_null($venta->apartamento);
+    $tituloOperacion = $venta->tipo_operacion == 'venta' ? 'VENTA' : 'SEPARACIÓN';
+    $tipoInmueble = $esApartamento ? 'Apartamento' : 'Local';
+    @endphp
+
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <img src="{{ asset('images/logo-ayc.png') }}" alt="Constructora A&C" class="header-logo">
             <h1>REPORTE DE OPERACIÓN</h1>
-            <p>{{ $venta->tipo_operacion == 'venta' ? 'VENTA' : 'SEPARACIÓN' }} · {{ $venta->apartamento ? 'Apartamento' : 'Local' }}</p>
+            <p>{{ $tituloOperacion }} · {{ $tipoInmueble }}</p>
         </div>
 
-        <!-- Content -->
         <div class="content">
-            <!-- Mensaje personalizado -->
-            <p style="margin-bottom: 20px;">Estimado(a) <strong>{{ $tipo == 'empleado' ? $venta->empleado->nombre : $venta->cliente->nombre }}</strong>,</p>
-            <p style="margin-bottom: 25px;">{{ $tipo == 'empleado' ? 'Se ha registrado una nueva operación en el sistema con los siguientes detalles:' : 'Le informamos que se ha registrado una operación en nuestro sistema con los siguientes detalles:' }}</p>
+            @if($esEmpleado)
+            <p style="margin-bottom: 20px;">
+                Estimado(a) <strong>{{ trim(($venta->empleado->nombre ?? '') . ' ' . ($venta->empleado->apellido ?? '')) ?: 'Empleado' }}</strong>,
+            </p>
+            <p style="margin-bottom: 25px;">
+                Se ha registrado una nueva operación en el sistema con los siguientes detalles:
+            </p>
+            @elseif($esCliente)
+            <p style="margin-bottom: 20px;">
+                Estimado(a) <strong>{{ $venta->cliente->nombre ?? 'Cliente' }}</strong>,
+            </p>
+            <p style="margin-bottom: 25px;">
+                Le informamos que se ha registrado una operación en nuestro sistema con los siguientes detalles:
+            </p>
+            @else
+            <p style="margin-bottom: 20px;">
+                Estimado(a),
+            </p>
+            <p style="margin-bottom: 25px;">
+                Se ha registrado una nueva operación en el sistema. A continuación se comparten los detalles para control administrativo:
+            </p>
+            @endif
 
-            <!-- 1. Datos del Proyecto -->
             <div class="section">
                 <div class="section-title">1. DATOS DEL PROYECTO</div>
                 <div class="section-content">
@@ -145,7 +160,7 @@
                         </tr>
                         <tr>
                             <td>Ubicación:</td>
-                            <td>{{ $venta->proyecto->ubicacion->direccion ?? '' }}</td>
+                            <td>{{ $venta->proyecto->ubicacion->direccion ?? '—' }}</td>
                         </tr>
                         <tr>
                             <td>Zonas sociales:</td>
@@ -155,8 +170,7 @@
                 </div>
             </div>
 
-            <!-- 2. Datos del Cliente (solo para empleado) -->
-            @if($tipo == 'empleado')
+            @if($esEmpleado || $esAdministrativo)
             <div class="section">
                 <div class="section-title">2. DATOS DEL CLIENTE</div>
                 <div class="section-content">
@@ -186,14 +200,13 @@
             </div>
             @endif
 
-            <!-- 3. Datos del Asesor (solo para cliente) -->
             <div class="section">
-                <div class="section-title">3. DATOS DEL ASESOR</div>
+                <div class="section-title">{{ $esCliente ? '2' : '3' }}. DATOS DEL ASESOR</div>
                 <div class="section-content">
                     <table class="table">
                         <tr>
                             <td>Nombre:</td>
-                            <td>{{ $venta->empleado->nombre ?? '' }} {{ $venta->empleado->apellido ?? '' }}</td>
+                            <td>{{ trim(($venta->empleado->nombre ?? '') . ' ' . ($venta->empleado->apellido ?? '')) ?: '—' }}</td>
                         </tr>
                         <tr>
                             <td>Correo:</td>
@@ -207,14 +220,13 @@
                 </div>
             </div>
 
-            <!-- 4. Información del Inmueble -->
             <div class="section">
-                <div class="section-title">4. INFORMACIÓN DEL INMUEBLE</div>
+                <div class="section-title">{{ $esCliente ? '3' : '4' }}. INFORMACIÓN DEL INMUEBLE</div>
                 <div class="section-content">
                     <table class="table">
                         <tr>
                             <td>Tipo:</td>
-                            <td>{{ $venta->apartamento ? 'Apartamento' : 'Local Comercial' }}</td>
+                            <td>{{ $esApartamento ? 'Apartamento' : 'Local Comercial' }}</td>
                         </tr>
                         <tr>
                             <td>Número:</td>
@@ -229,7 +241,7 @@
                             <td>{{ $venta->apartamento->pisoTorre->nivel ?? $venta->local->pisoTorre->nivel ?? '—' }}</td>
                         </tr>
 
-                        @if($venta->apartamento)
+                        @if($esApartamento)
                         <tr>
                             <td>Alcobas:</td>
                             <td>{{ $venta->apartamento->tipoApartamento->cantidad_habitaciones ?? '—' }}</td>
@@ -264,9 +276,8 @@
                 </div>
             </div>
 
-            <!-- 5. Desglose Económico -->
             <div class="section">
-                <div class="section-title">{{ $tipo == 'empleado' ? '5' : ($tipo == 'cliente' ? '4' : '5') }}. DESGLOSE ECONÓMICO</div>
+                <div class="section-title">{{ $esCliente ? '4' : '5' }}. DESGLOSE ECONÓMICO</div>
                 <div class="section-content">
                     <table class="table">
                         @if($venta->tipo_operacion == 'separacion')
@@ -277,7 +288,7 @@
                         @endif
 
                         <tr>
-                            <td>Valor apartamento:</td>
+                            <td>{{ $esApartamento ? 'Valor apartamento' : 'Valor local' }}:</td>
                             <td>${{ number_format($venta->valor_base ?? $venta->valor_total, 0, ',', '.') }}</td>
                         </tr>
 
@@ -330,7 +341,6 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <p>Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
             <p>Constructora A&C - Todos los derechos reservados</p>
