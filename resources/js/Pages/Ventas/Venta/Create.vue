@@ -844,7 +844,7 @@ function submit() {
                   <select v-model="form.documento_cliente" :class="inputClass(false, false)">
                     <option value="">Seleccione...</option>
                     <option v-for="c in clientes" :key="c.documento" :value="c.documento">
-                      {{ c.nombre }}
+                      {{ c.nombre }} - {{ c.documento }}
                     </option>
                   </select>
                 </div>
