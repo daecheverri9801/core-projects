@@ -642,6 +642,15 @@ async function exportVentaPDF() {
               </div>
               <div v-else class="font-semibold text-gray-900">No</div>
             </div>
+
+            <div class="col-span-1 md:col-span-2 bg-gray-50 rounded-lg px-4 py-3">
+              <span class="block text-gray-600 mb-2">Observaciones</span>
+              <div
+                class="w-full min-h-[120px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 whitespace-pre-wrap break-words overflow-y-auto"
+              >
+                {{ venta.descripcion || ' ' }}
+              </div>
+            </div>
           </div>
         </div>
 

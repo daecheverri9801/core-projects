@@ -206,7 +206,7 @@ const ValorRestanteCI = computed(() => {
             </div>
 
             <!-- Observaciones -->
-            <div v-if="venta.descripcion" class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+            <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
               <p class="text-sm font-semibold text-gray-900">Observaciones</p>
               <p class="text-sm text-gray-700 mt-2">{{ venta.descripcion }}</p>
             </div>

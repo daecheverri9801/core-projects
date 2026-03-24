@@ -339,6 +339,29 @@
                     </table>
                 </div>
             </div>
+
+            @if($esEmpleado || $esAdministrativo)
+            <div class="section">
+                <div class="section-title">{{ $esCliente ? '5' : '6' }}. OBSERVACIONES DE LA OPERACIÓN</div>
+                <div class="section-content">
+                    <div style="
+                width: 100%;
+                min-height: 100px;
+                background-color: #ffffff;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 12px;
+                font-size: 14px;
+                color: #333;
+                white-space: pre-wrap;
+                word-break: break-word;
+                box-sizing: border-box;
+            ">
+                        {{ $venta->descripcion ?: 'Sin observaciones registradas.' }}
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         <div class="footer">
