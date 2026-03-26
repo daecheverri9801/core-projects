@@ -337,11 +337,12 @@ async function generarPDF() {
   doc.setTextColor(70, 70, 70)
 
   const aclaraciones = [
-    '1. Los valores presentados en esta cotización son referenciales al momento de su generación. Antes de cualquier trámite, confirme el valor actualizado con la asesora comercial.',
-    '2. LOS RENDER USADOS EN LA PUBLICIDAD SON UNA APROXIMACIÓN A LA REALIDAD. Las áreas, animaciones y diseños pueden variar en el desarrollo arquitectónico y constructivo. Solo es válido lo acordado en la promesa de compraventa.',
-    '3. Todo material publicitario (brochures, web, redes, prensa), renders e imágenes tiene carácter ilustrativo e informativo. No modifica lo pactado contractualmente salvo que se incorpore expresamente.',
-    '4. Salvo indicación expresa, no se incluyen muebles, electrodomésticos, decoración ni equipamiento mostrado en piezas publicitarias. La entrega se realiza conforme a la ficha técnica y el inventario de entrega.',
-    '5. Las áreas, distribuciones y especificaciones pueden registrar ajustes razonables debido a tolerancias constructivas, instalaciones u obligaciones técnicas. Dichos ajustes no afectarán la funcionalidad esencial del inmueble.',
+    '1. CLAUSULA PENAL: DIEZ POR CIENTO (10%) SOBRE LO APORTADO AL MOMENTO DEL RETIRO VOLUNTARIO O POR INCUMPLIMIENTO DE LOS PLAZOS DE PAGO.',
+    '2. Los valores presentados en esta cotización son referenciales al momento de su generación. Antes de cualquier trámite, confirme el valor actualizado con la asesora comercial.',
+    '3. LOS RENDER USADOS EN LA PUBLICIDAD SON UNA APROXIMACIÓN A LA REALIDAD. Las áreas, animaciones y diseños pueden variar en el desarrollo arquitectónico y constructivo. Solo es válido lo acordado en la promesa de compraventa.',
+    '4. Todo material publicitario (brochures, web, redes, prensa), renders e imágenes tiene carácter ilustrativo e informativo. No modifica lo pactado contractualmente salvo que se incorpore expresamente.',
+    '5. Salvo indicación expresa, no se incluyen muebles, electrodomésticos, decoración ni equipamiento mostrado en piezas publicitarias. La entrega se realiza conforme a la ficha técnica y el inventario de entrega.',
+    '6. Las áreas, distribuciones y especificaciones pueden registrar ajustes razonables debido a tolerancias constructivas, instalaciones u obligaciones técnicas. Dichos ajustes no afectarán la funcionalidad esencial del inmueble.',
   ]
 
   // aclaraciones.forEach((texto) => {
