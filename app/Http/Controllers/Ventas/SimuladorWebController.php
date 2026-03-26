@@ -18,16 +18,19 @@ class SimuladorWebController extends Controller
 
             $valorFinal = $item->valor_final ?? $item->valor_total;
             $porcentaje = $item->torre->proyecto->porcentaje_cuota_inicial_min ?? 0;
-
             $cuotaInicial = $valorFinal * ($porcentaje / 100);
+            $valor_separacion = $item->torre->proyecto->valor_min_separacion ?? 0;
+            $valor_restante = $cuotaInicial - $valor_separacion;
+            
         } else {
             $item = Local::with(['torre.proyecto'])
                 ->findOrFail($id);
 
             $valorFinal = $item->valor_total;
             $porcentaje = $item->torre->proyecto->porcentaje_cuota_inicial_min ?? 0;
-
             $cuotaInicial = $valorFinal * ($porcentaje / 100);
+            $valor_separacion = $item->torre->proyecto->valor_min_separacion ?? 0;
+            $valor_restante = $cuotaInicial - $valor_separacion;
         }
 
         return Inertia::render('Ventas/Simulador/Index', [
@@ -36,6 +39,8 @@ class SimuladorWebController extends Controller
             'valor_final'   => $valorFinal,
             'porcentaje'    => $porcentaje,
             'cuota_inicial' => $cuotaInicial,
+            'valor_separacion' => $valor_separacion,
+            'valor_restante' => $valor_restante,
         ]);
     }
 }

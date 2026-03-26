@@ -243,7 +243,7 @@
 
                         @if($esApartamento)
                         <tr>
-                            <td>Alcobas:</td>
+                            <td>Habitaciones:</td>
                             <td>{{ $venta->apartamento->tipoApartamento->cantidad_habitaciones ?? '—' }}</td>
                         </tr>
                         <tr>

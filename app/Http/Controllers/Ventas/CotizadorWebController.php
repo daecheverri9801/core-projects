@@ -28,6 +28,7 @@ class CotizadorWebController extends Controller
                 fn($q) =>
                 $q->whereRaw('LOWER(nombre) = ?', ['disponible'])
             )
+            ->orderBy('numero', 'asc')
             ->whereHas('torre.proyecto', function ($q) {
                 $q->activos();
             })
@@ -62,6 +63,7 @@ class CotizadorWebController extends Controller
             ->whereHas('torre.proyecto', function ($q) {
                 $q->activos();
             })
+            ->orderBy('numero', 'asc')
             ->get()
             ->map(function ($l) {
                 return [
@@ -87,6 +89,7 @@ class CotizadorWebController extends Controller
                 ->select(
                     'id_proyecto',
                     'nombre',
+                    'fecha_inicio',
                     'plazo_cuota_inicial_meses',
                     'porcentaje_cuota_inicial_min',
                     'valor_min_separacion'
@@ -99,7 +102,6 @@ class CotizadorWebController extends Controller
                 'correo'
             )->get(),
             'empleado'  => $empleado,
-            // IMPORTANTE: inmuebles = ARRAY PLANO
             'inmuebles' => $inmuebles,
         ]);
     }

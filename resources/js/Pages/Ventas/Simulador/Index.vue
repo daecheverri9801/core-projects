@@ -25,6 +25,16 @@
           <strong>Cuota Inicial ({{ porcentaje }}%):</strong>
           {{ formatCurrency(cuota_inicial) }}
         </p>
+
+        <p class="text-gray-700">
+          <strong>Valor Separación:</strong>
+          {{ formatCurrency(valor_separacion) }}
+        </p>
+
+        <p class="text-gray-700">
+          <strong>Valor Restante Cuota Inicial:</strong>
+          {{ formatCurrency(valor_restante) }}
+        </p>
       </div>
 
       <div class="mt-6">
@@ -57,7 +67,7 @@
         <h2 class="text-xl font-semibold text-gray-900 mb-3">Resultado</h2>
 
         <p class="text-gray-700">
-          <strong>Cuota Inicial:</strong> {{ formatCurrency(cuota_inicial) }}
+          <strong>Cuota Inicial:</strong> {{ formatCurrency(valor_restante) }}
         </p>
         <p class="text-gray-700"><strong>Meses:</strong> {{ meses }}</p>
 
@@ -80,12 +90,14 @@ const props = defineProps({
   valor_final: Number,
   porcentaje: Number,
   cuota_inicial: Number,
+  valor_separacion: Number,
+  valor_restante: Number,
 })
 
 const meses = ref(12)
 
 const cuotaMensual = computed(() =>
-  props.cuota_inicial > 0 ? props.cuota_inicial / meses.value : 0
+  props.cuota_inicial > 0 ? props.valor_restante / meses.value : 0
 )
 
 function formatCurrency(v) {

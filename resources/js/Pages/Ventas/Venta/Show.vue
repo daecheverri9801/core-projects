@@ -234,7 +234,7 @@ async function exportVentaPDF() {
         ['Torre', safe(v.apartamento?.torre?.nombre_torre)],
         ['Piso', safe(v.apartamento?.piso_torre?.nivel)],
         [
-          'Alcobas',
+          'Habitaciones',
           safe(
             v.apartamento?.tipo_apartamento?.cantidad_habitaciones ||
               v.apartamento?.tipoApartamento?.cantidad_habitaciones
@@ -609,7 +609,7 @@ async function exportVentaPDF() {
             </div>
 
             <div class="flex justify-between bg-gray-50 rounded-lg px-4 py-3">
-              <span class="text-gray-600">Alcobas</span>
+              <span class="text-gray-600">Habitaciones</span>
               <span class="font-semibold text-gray-900">{{ infoInmueble.alcobas }}</span>
             </div>
 

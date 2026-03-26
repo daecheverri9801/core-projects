@@ -67,7 +67,7 @@ function generarAmortizacion() {
     const v = ventaSeleccionada.value
 
     const cuotaInicial = v.cuota_inicial
-    const valorSeparacion = v.valor_separacion ?? v.valor_min_separacion ?? 0
+    const valorSeparacion = v.valor_separacion ?? 0
     const saldoCuotaInicial = cuotaInicial - valorSeparacion
     const plazo = v.plazo
 

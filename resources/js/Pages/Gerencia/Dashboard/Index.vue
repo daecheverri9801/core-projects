@@ -1167,8 +1167,8 @@ const inventarioProyectosOrdenado = computed(() => {
                 <th class="py-2 pr-2">Estado</th>
                 <th class="py-2 pr-2">Asesor</th>
                 <th class="py-2 pr-2">Fecha venta/sep.</th>
-                <th class="py-2 pr-2 text-right">Val Com. As</th>
-                <th class="py-2 pr-2 text-right">Val Com. Dir.</th>
+                <th class="py-2 pr-2 text-right">Valor Comisión Asesora</th>
+                <th class="py-2 pr-2 text-right">Valor Comisión Directora</th>
               </tr>
             </thead>
             <tbody>

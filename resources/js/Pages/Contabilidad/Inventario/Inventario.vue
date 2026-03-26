@@ -325,8 +325,8 @@ function estadoBadgeClass(estadoNombre) {
                 <th class="px-4 py-3 text-center">Estado</th>
                 <th class="px-4 py-3 text-center">Asesor</th>
                 <th class="px-4 py-3 text-center">Fecha venta/sep.</th>
-                <th class="px-4 py-3 text-right">Val Com. As</th>
-                <th class="px-4 py-3 text-right">Val Com. Dir.</th>
+                <th class="px-4 py-3 text-right">Valor Comisión Asesora</th>
+                <th class="px-4 py-3 text-right">Valor Comisión Directora</th>
               </tr>
             </thead>
 

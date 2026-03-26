@@ -59,15 +59,34 @@ const inmueble = computed(() => {
  * ------------------------------------------------------ */
 watch(proyectoId, () => {
   inmuebleId.value = ''
-  plazo.value = ''
 })
 
 /* ------------------------------------------------------
  *  PLAZOS DISPONIBLES
  * ------------------------------------------------------ */
+// Función para calcular meses entre dos fechas (igual que en ventas)
+function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
+  if (!inicioStr || !fechaRefStr) return 0
+  const inicio = new Date(inicioStr + 'T00:00:00')
+  const ref = new Date(fechaRefStr + 'T00:00:00')
+  let meses = (ref.getFullYear() - inicio.getFullYear()) * 12 + (ref.getMonth() - inicio.getMonth())
+  // Ajuste si el día de la fecha de referencia es menor que el día de inicio
+  if (ref.getDate() < inicio.getDate()) meses--
+  return Math.max(meses, 0)
+}
+
+// Plazos disponibles: desde 1 hasta los meses restantes del proyecto
 const plazosDisponibles = computed(() => {
   if (!proyecto.value) return []
-  return Array.from({ length: proyecto.value.plazo_cuota_inicial_meses }, (_, i) => i + 1)
+  const plazoTotal = Number(proyecto.value.plazo_cuota_inicial_meses || 0)
+  if (!plazoTotal || !proyecto.value.fecha_inicio) return []
+
+  const hoy = new Date()
+  const hoyStr = hoy.toISOString().slice(0, 10)
+  const mesesTranscurridos = calcularMesesEntreFechas(proyecto.value.fecha_inicio, hoyStr)
+  const plazosRestantes = Math.max(plazoTotal - mesesTranscurridos, 0)
+
+  return plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
 })
 
 /* ------------------------------------------------------
@@ -197,7 +216,7 @@ async function generarPDF() {
     const t = inmueble.value.tipoApartamento
 
     doc.text(`Tipo: ${t.nombre}`, 15, 106)
-    doc.text(`Alcobas: ${t.cantidad_habitaciones}`, 15, 112)
+    doc.text(`Habitaciones: ${t.cantidad_habitaciones}`, 15, 112)
     doc.text(`Baños: ${t.cantidad_banos}`, 15, 118)
     doc.text(`Área Construida: ${t.area_construida} m²`, 15, 124)
     doc.text(`Área Privada: ${t.area_privada} m²`, 15, 130)
@@ -395,12 +414,19 @@ async function generarPDF() {
 
         <div>
           <label>Plazo (meses)</label>
-          <select v-model="plazo" class="w-full border rounded p-2">
+          <select
+            v-model="plazo"
+            class="w-full border rounded p-2"
+            :disabled="!proyectoId || plazosDisponibles.length === 0"
+          >
             <option value="">Seleccione...</option>
             <option v-for="p in plazosDisponibles" :key="p" :value="p">
-              {{ p }}
+              {{ p }} mes{{ p === 1 ? '' : 'es' }}
             </option>
           </select>
+          <p v-if="proyectoId && plazosDisponibles.length === 0" class="text-xs text-red-500 mt-1">
+            No hay plazos disponibles para este proyecto a partir de la fecha actual.
+          </p>
         </div>
       </div>
 
