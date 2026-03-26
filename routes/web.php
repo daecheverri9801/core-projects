@@ -480,15 +480,45 @@ Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->gro
         ->name('contabilidad.comisiones.index');
 });
 
-// routes/web.php (SOLO EN DESARROLLO LOCAL)
-if (app()->environment('local')) {
-    Route::get('/test/403', fn() => abort(403));
-    Route::get('/test/404', fn() => abort(404));
-    Route::get('/test/419', fn() => abort(419));
-    Route::get('/test/500', fn() => abort(500));
-    Route::get('/test/502', fn() => abort(502));
-    Route::get('/test/503', fn() => abort(503));
-}
+Route::get('/preview-email/{id?}', function ($id = null) {
+    // Cargar una venta real o la primera disponible
+    $venta = \App\Models\Venta::with([
+        'proyecto',
+        'empleado',
+        'cliente',
+        'formaPago',
+        'apartamento.tipoApartamento',
+        'apartamento.torre',
+        'apartamento.pisoTorre',
+        'apartamento.parqueaderos',
+        'local',
+        'parqueadero'
+    ])->find($id);
+
+    if (!$venta) {
+        $venta = \App\Models\Venta::with([
+            'proyecto',
+            'empleado',
+            'cliente',
+            'formaPago',
+            'apartamento.tipoApartamento',
+            'apartamento.torre',
+            'apartamento.pisoTorre',
+            'apartamento.parqueaderos',
+            'local',
+            'parqueadero'
+        ])->first();
+    }
+
+    if (!$venta) {
+        abort(404, 'No hay ventas para previsualizar');
+    }
+
+    // Cambia el tipo según el destinatario que quieras ver
+    $tipo = 'administrativo'; // 'empleado', 'cliente', 'administrativo'
+
+    return view('emails.venta-creada', compact('venta', 'tipo'));
+})->name('preview.email');
 
 
 // Ruta para cualquier empleado autenticado

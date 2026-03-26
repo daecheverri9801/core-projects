@@ -281,10 +281,8 @@
                 <div class="section-content">
                     <table class="table">
                         @if($venta->tipo_operacion == 'separacion')
-                        <tr>
-                            <td>Fecha Límite de Separación:</td>
-                            <td>{{ \Carbon\Carbon::parse($venta->fecha_limite_separacion)->format('d/m/Y') }}</td>
-                        </tr>
+                        <td>Fecha Límite de Separación:</td>
+                        <td>{{ \Carbon\Carbon::parse($venta->fecha_limite_separacion)->format('d/m/Y') }}</td>
                         @endif
 
                         <tr>
@@ -305,23 +303,57 @@
                         </tr>
 
                         @if($venta->tipo_operacion == 'venta')
+                        @php
+                        $valorSeparacion = $venta->proyecto->valor_min_separacion ?? 0;
+                        $cuotaInicial = $venta->cuota_inicial ?? 0;
+                        $cuotaInicialRestante = $cuotaInicial - $valorSeparacion;
+                        $plazo = $venta->plazo_cuota_inicial_meses ?? 1;
+                        $frecuencia = $venta->frecuencia_cuota_inicial_meses ?? 1;
+
+                        $numeroCuotas = ($frecuencia > 0) ? (int) ceil($plazo / $frecuencia) : 1;
+                        $valorCuota = $numeroCuotas > 0 ? round($cuotaInicialRestante / $numeroCuotas) : 0;
+                        @endphp
+
+                        <!-- Valor Separación (mínimo del proyecto) -->
+                        <tr>
+                            <td>Valor Separación:</td>
+                            <td>${{ number_format($valorSeparacion, 0, ',', '.') }}</td>
+                        </tr>
+
                         <tr>
                             <td>Cuota inicial:</td>
-                            <td>${{ number_format($venta->cuota_inicial, 0, ',', '.') }}</td>
+                            <td>${{ number_format($cuotaInicial, 0, ',', '.') }}</td>
                         </tr>
+
+                        <!-- Cuota Inicial Restante -->
+                        <tr>
+                            <td>Cuota inicial restante:</td>
+                            <td>${{ number_format($cuotaInicialRestante, 0, ',', '.') }}</td>
+                        </tr>
+
                         <tr>
                             <td>Plazo cuota inicial:</td>
-                            <td>{{ $venta->plazo_cuota_inicial_meses }} meses</td>
+                            <td>{{ $plazo }} meses</td>
                         </tr>
+
                         <tr>
                             <td>Frecuencia de pago:</td>
                             <td>Cada {{ $venta->frecuencia_cuota_inicial_meses }} meses</td>
                         </tr>
+
+                        <!-- Valor de Cuotas Mensuales -->
+                        <tr>
+                            <td>Valor de cuota:</td>
+                            <td>${{ number_format($valorCuota, 0, ',', '.') }}</td>
+                        </tr>
+
                         <tr>
                             <td>Saldo restante:</td>
                             <td>${{ number_format($venta->valor_restante, 0, ',', '.') }}</td>
                         </tr>
+
                         @else
+                        <!-- Operación de separación: valor_separacion es el registrado en la venta -->
                         <tr>
                             <td>Valor de separación:</td>
                             <td>${{ number_format($venta->valor_separacion, 0, ',', '.') }}</td>
@@ -344,31 +376,18 @@
             <div class="section">
                 <div class="section-title">{{ $esCliente ? '5' : '6' }}. OBSERVACIONES DE LA OPERACIÓN</div>
                 <div class="section-content">
-                    <div style="
-                width: 100%;
-                min-height: 100px;
-                background-color: #ffffff;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-                padding: 12px;
-                font-size: 14px;
-                color: #333;
-                white-space: pre-wrap;
-                word-break: break-word;
-                box-sizing: border-box;
-            ">
-                        {{ $venta->descripcion ?: 'Sin observaciones registradas.' }}
-                    </div>
+                    {{ $venta->descripcion ?: 'Sin observaciones registradas.' }}
                 </div>
             </div>
-            @endif
         </div>
+        @endif
+    </div>
 
-        <div class="footer">
-            <p>Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
-            <p>Constructora A&C - Todos los derechos reservados</p>
-            <p style="font-size: 10px; margin-top: 10px;">Este es un mensaje automático, por favor no responder.</p>
-        </div>
+    <div class="footer">
+        <p>Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
+        <p>Constructora A&C - Todos los derechos reservados</p>
+        <p style="font-size: 10px; margin-top: 10px;">Este es un mensaje automático, por favor no responder.</p>
+    </div>
     </div>
 </body>
 
