@@ -53,7 +53,7 @@ class GerenciaEstadisticasService
             ? trim($out['hasta'])
             : null;
 
-        $out['proyecto_id'] = $this->toIntOrNull($out['proyecto_id'] ?? null);
+        $out['id_proyecto'] = $this->toIntOrNull($out['id_proyecto'] ?? null);
         $out['asesor_id'] = $this->toIntOrNull($out['asesor_id'] ?? null);
         $out['estado_inmueble'] = $this->toIntOrNull($out['estado_inmueble'] ?? null);
 
@@ -139,8 +139,8 @@ class GerenciaEstadisticasService
             ->where('tipo_operacion', 'venta');
         // ->whereBetween('fecha_venta', [$desde, $hasta]);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $ventasQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -185,8 +185,8 @@ class GerenciaEstadisticasService
             // ->whereBetween('fecha_venta', [$desde, $hasta])
             ->groupBy('id_proyecto');
 
-        if (!empty($filtros['proyecto_id'])) {
-            $q->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $q->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -231,7 +231,7 @@ class GerenciaEstadisticasService
 
         $metas = Meta::where('ano', $ano)
             ->where('mes', $mes)
-            ->when(!empty($filtros['proyecto_id']), fn($qq) => $qq->where('id_proyecto', $filtros['proyecto_id']))
+            ->when(!empty($filtros['id_proyecto']), fn($qq) => $qq->where('id_proyecto', $filtros['id_proyecto']))
             ->get()
             ->keyBy('id_proyecto');
 
@@ -245,8 +245,8 @@ class GerenciaEstadisticasService
             ->whereYear('fecha_venta', $ano)
             ->whereMonth('fecha_venta', $mes);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $ventasQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -300,8 +300,8 @@ class GerenciaEstadisticasService
             ->where('tipo_operacion', 'venta');
         // ->whereBetween('fecha_venta', [$desde, $hasta]);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $ventasQ->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $ventasQ->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -360,8 +360,8 @@ class GerenciaEstadisticasService
             ->where('tipo_operacion', 'separacion');
         // ->whereBetween('fecha_venta', [$desde, $hasta]);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $q->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $q->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -425,8 +425,8 @@ class GerenciaEstadisticasService
             },
         ]);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $proyectosQuery->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $proyectosQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         $proyectos = $proyectosQuery->get();
@@ -647,8 +647,8 @@ class GerenciaEstadisticasService
             // ->whereBetween('fecha_venta', [$desde, $hasta])
             ->groupBy('id_proyecto', 'id_empleado');
 
-        if (!empty($filtros['proyecto_id'])) {
-            $q->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $q->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -756,8 +756,8 @@ class GerenciaEstadisticasService
             $q->where('ventas.fecha_venta', '<=', $hasta);
         }
 
-        if (!empty($filtros['proyecto_id'])) {
-            $q->where('ventas.id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $q->where('ventas.id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -793,8 +793,8 @@ class GerenciaEstadisticasService
             $q->where('ventas.fecha_venta', '<=', $hasta);
         }
 
-        if (!empty($filtros['proyecto_id'])) {
-            $q->where('ventas.id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $q->where('ventas.id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -812,8 +812,8 @@ class GerenciaEstadisticasService
             'politicasComision.empleado.cargo',
         ]);
 
-        if (!empty($filtros['proyecto_id'])) {
-            $proyectosQuery->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $proyectosQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         $proyectos = $proyectosQuery->get();
@@ -907,8 +907,8 @@ class GerenciaEstadisticasService
         $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
             ->where('tipo_operacion', 'venta');
 
-        if (!empty($filtros['proyecto_id'])) {
-            $ventasQuery->where('id_proyecto', $filtros['proyecto_id']);
+        if (!empty($filtros['id_proyecto'])) {
+            $ventasQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
         if (!empty($filtros['asesor_id'])) {
@@ -1089,41 +1089,62 @@ class GerenciaEstadisticasService
     }
 
     public function absorcionPorTipo(array $filtros, ?Carbon $desde = null, ?Carbon $hasta = null): array
-    {
-        $filtros = $this->normalizarFiltros($filtros);
+{
+    $filtros = $this->normalizarFiltros($filtros);
 
-        $query = Venta::query()
-            ->join('apartamentos', 'ventas.id_apartamento', '=', 'apartamentos.id_apartamento')
-            ->join('tipos_apartamento', 'apartamentos.id_tipo_apartamento', '=', 'tipos_apartamento.id_tipo_apartamento')
-            ->join('proyectos', 'ventas.id_proyecto', '=', 'proyectos.id_proyecto')
-            ->where('ventas.tipo_operacion', 'venta')
-            ->whereNotNull('ventas.id_apartamento')
-            ->select(
-                DB::raw("TO_CHAR(ventas.fecha_venta, 'YYYY-MM') as mes"),
-                'proyectos.nombre as proyecto',
-                'tipos_apartamento.nombre as tipo_apartamento',
-                'tipos_apartamento.area_construida as area_construida',
-                DB::raw('COUNT(*) as cantidad')
-            )
-            ->groupBy('mes', 'proyectos.nombre', 'tipos_apartamento.nombre', 'tipos_apartamento.area_construida')
-            ->orderBy('mes')
-            ->orderBy('proyectos.nombre')
-            ->orderBy('tipo_apartamento');
+    // Construcción de la SQL base con placeholders para filtros
+    $baseSql = "
+        WITH counts AS (
+            SELECT 
+                TO_CHAR(v.fecha_venta, 'YYYY-MM') as mes,
+                p.nombre as proyecto,
+                ta.nombre as tipo_apartamento,
+                ta.area_construida,
+                COUNT(*) as cantidad
+            FROM ventas v
+            INNER JOIN apartamentos a ON v.id_apartamento = a.id_apartamento
+            INNER JOIN tipos_apartamento ta ON a.id_tipo_apartamento = ta.id_tipo_apartamento
+            INNER JOIN proyectos p ON v.id_proyecto = p.id_proyecto
+            WHERE v.tipo_operacion = 'venta'
+              AND v.id_apartamento IS NOT NULL
+    ";
 
-        if ($desde) {
-            $query->where('ventas.fecha_venta', '>=', $desde);
-        }
-        if ($hasta) {
-            $query->where('ventas.fecha_venta', '<=', $hasta);
-        }
+    $bindings = [];
 
-        if (!empty($filtros['proyecto_id'])) {
-            $query->where('ventas.id_proyecto', $filtros['proyecto_id']);
-        }
-        if (!empty($filtros['asesor_id'])) {
-            $query->where('ventas.id_empleado', $filtros['asesor_id']);
-        }
-
-        return $query->get()->toArray();
+    // Aplicar filtros dinámicamente
+    if ($desde) {
+        $baseSql .= " AND v.fecha_venta >= ?";
+        $bindings[] = $desde;
     }
+    if ($hasta) {
+        $baseSql .= " AND v.fecha_venta <= ?";
+        $bindings[] = $hasta;
+    }
+    if (!empty($filtros['id_proyecto'])) {
+        $baseSql .= " AND v.id_proyecto = ?";
+        $bindings[] = $filtros['id_proyecto'];
+    }
+    if (!empty($filtros['asesor_id'])) {
+        $baseSql .= " AND v.id_empleado = ?";
+        $bindings[] = $filtros['asesor_id'];
+    }
+
+    $baseSql .= "
+            GROUP BY mes, p.nombre, ta.nombre, ta.area_construida
+        ),
+        ranked AS (
+            SELECT *,
+                   RANK() OVER (PARTITION BY mes, proyecto ORDER BY cantidad DESC) as rnk
+            FROM counts
+        )
+        SELECT mes, proyecto, tipo_apartamento, area_construida, cantidad
+        FROM ranked
+        WHERE rnk = 1
+        ORDER BY mes, proyecto, tipo_apartamento
+    ";
+
+    $results = DB::select($baseSql, $bindings);
+
+    return collect($results)->map(fn($item) => (array) $item)->toArray();
+}
 }
