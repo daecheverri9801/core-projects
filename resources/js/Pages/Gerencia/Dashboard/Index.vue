@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import GerenciaLayout from '@/Components/GerenciaLayout.vue'
-
 import {
   Chart as ChartJS,
   ArcElement,
@@ -188,6 +187,7 @@ const props = defineProps({
   estadosInmueble: Array,
   filtros: Object,
   planPagosCI: Object,
+  absorcionPorTipo: Array,
 })
 
 const activeTab = ref('resumen')
@@ -195,6 +195,16 @@ const activeTab = ref('resumen')
 function qs(obj) {
   return new URLSearchParams(obj).toString()
 }
+
+const proyectoAbsorcionSeleccionado = ref('')
+
+const absorcionPorTipoFiltrado = computed(() => {
+  if (!props.absorcionPorTipo) return []
+  if (!proyectoAbsorcionSeleccionado.value) return props.absorcionPorTipo
+  return props.absorcionPorTipo.filter(
+    (row) => row.proyecto === proyectoAbsorcionSeleccionado.value
+  )
+})
 
 /* ==============================
    FILTROS
@@ -1067,6 +1077,65 @@ const inventarioProyectosOrdenado = computed(() => {
               <div v-if="!absorcionTabla.length" class="text-xs text-slate-400 py-2">
                 No hay ventas para construir la serie mensual.
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nueva tabla: Absorción por tipo de apartamento -->
+        <div class="lg:col-span-2 2xl:col-span-1">
+          <div class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+                Absorción mensual por tipo de apartamento
+              </h2>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-500">Proyecto</span>
+                <select
+                  v-model="proyectoAbsorcionSeleccionado"
+                  class="bg-slate-900 text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs"
+                >
+                  <option value="">Todos</option>
+                  <option v-for="p in props.proyectos" :key="p.id_proyecto" :value="p.nombre">
+                    {{ p.nombre }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto" style="max-height: 400px; overflow-y: auto">
+              <table class="min-w-full text-sm">
+                <thead class="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+                  <tr class="text-slate-300">
+                    <th class="px-3 py-2 text-left">Mes</th>
+                    <th class="px-3 py-2 text-left">Proyecto</th>
+                    <th class="px-3 py-2 text-left">Tipo de apartamento</th>
+                    <th class="px-3 py-2 text-left">Área Construida</th>
+                    <th class="px-3 py-2 text-right">Cantidad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="(row, idx) in absorcionPorTipoFiltrado"
+                    :key="`${row.mes}-${row.proyecto}-${row.tipo_apartamento}-${idx}`"
+                    class="border-b border-slate-800/60 hover:bg-slate-900/40"
+                  >
+                    <td class="px-3 py-2 text-slate-200">{{ row.mes }}</td>
+                    <td class="px-3 py-2 text-slate-200">{{ row.proyecto }}</td>
+                    <td class="px-3 py-2 text-slate-200">{{ row.tipo_apartamento }}</td>
+                    <td class="px-3 py-2 text-slate-200">
+                      {{ row.area_construida ? `${row.area_construida} m²` : '—' }}
+                    </td>
+                    <td class="px-3 py-2 text-right text-slate-100 font-semibold">
+                      {{ row.cantidad }}
+                    </td>
+                  </tr>
+                  <tr v-if="!absorcionPorTipoFiltrado.length">
+                    <td colspan="5" class="px-3 py-6 text-center text-slate-400">
+                      No hay ventas de apartamentos en el rango seleccionado.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

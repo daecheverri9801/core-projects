@@ -1087,4 +1087,43 @@ class GerenciaEstadisticasService
             'totales'     => $totales,
         ];
     }
+
+    public function absorcionPorTipo(array $filtros, ?Carbon $desde = null, ?Carbon $hasta = null): array
+    {
+        $filtros = $this->normalizarFiltros($filtros);
+
+        $query = Venta::query()
+            ->join('apartamentos', 'ventas.id_apartamento', '=', 'apartamentos.id_apartamento')
+            ->join('tipos_apartamento', 'apartamentos.id_tipo_apartamento', '=', 'tipos_apartamento.id_tipo_apartamento')
+            ->join('proyectos', 'ventas.id_proyecto', '=', 'proyectos.id_proyecto')
+            ->where('ventas.tipo_operacion', 'venta')
+            ->whereNotNull('ventas.id_apartamento')
+            ->select(
+                DB::raw("TO_CHAR(ventas.fecha_venta, 'YYYY-MM') as mes"),
+                'proyectos.nombre as proyecto',
+                'tipos_apartamento.nombre as tipo_apartamento',
+                'tipos_apartamento.area_construida as area_construida',
+                DB::raw('COUNT(*) as cantidad')
+            )
+            ->groupBy('mes', 'proyectos.nombre', 'tipos_apartamento.nombre', 'tipos_apartamento.area_construida')
+            ->orderBy('mes')
+            ->orderBy('proyectos.nombre')
+            ->orderBy('tipo_apartamento');
+
+        if ($desde) {
+            $query->where('ventas.fecha_venta', '>=', $desde);
+        }
+        if ($hasta) {
+            $query->where('ventas.fecha_venta', '<=', $hasta);
+        }
+
+        if (!empty($filtros['proyecto_id'])) {
+            $query->where('ventas.id_proyecto', $filtros['proyecto_id']);
+        }
+        if (!empty($filtros['asesor_id'])) {
+            $query->where('ventas.id_empleado', $filtros['asesor_id']);
+        }
+
+        return $query->get()->toArray();
+    }
 }

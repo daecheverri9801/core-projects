@@ -47,4 +47,23 @@ class PlanAmortizacionVentaWebController extends Controller
 
         return response()->json($ventas);
     }
+
+    public function clientesPorProyecto(Request $request)
+    {
+        $clientes = Venta::where('id_proyecto', $request->id_proyecto)
+            ->where('tipo_operacion', 'venta')
+            ->with('cliente')
+            ->get()
+            ->pluck('cliente')
+            ->unique('documento')
+            ->values()
+            ->map(function ($cliente) {
+                return [
+                    'documento' => $cliente->documento,
+                    'nombre'    => $cliente->nombre,
+                ];
+            });
+
+        return response()->json($clientes);
+    }
 }

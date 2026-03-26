@@ -37,6 +37,7 @@ class GerenciaDashboardWebController extends Controller
 
         $planPagosCI = $service->planPagosCI($filtros);
         $dashboard = $service->obtenerDashboard($filtros);
+        $absorcionPorTipo = $service->absorcionPorTipo($filtros);
 
         return Inertia::render('Gerencia/Dashboard/Index', array_merge($dashboard, [
             'proyectos'       => Proyecto::orderBy('nombre')->get(),
@@ -44,6 +45,7 @@ class GerenciaDashboardWebController extends Controller
             'estadosInmueble' => EstadoInmueble::orderBy('nombre')->get(),
             'filtros'         => $filtros,
             'planPagosCI'     => $planPagosCI,
+            'absorcionPorTipo' => $absorcionPorTipo,
             'empleado' => $empleado,
         ]));
     }

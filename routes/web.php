@@ -381,6 +381,8 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
         [PlanAmortizacionVentaWebController::class, 'exportPdf']
     )->name('plan-amortizacion-venta.exportPdf');
 
+    Route::get('/plan-amortizacion-venta/clientes-por-proyecto', [PlanAmortizacionVentaWebController::class, 'clientesPorProyecto']);
+
     // 10. Pagos
     Route::resource('pagos', PagoWebController::class)->names([
         'index' => 'pagos.index',

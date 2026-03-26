@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import VentasLayout from '@/Components/VentasLayout.vue'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -14,10 +14,36 @@ const proyectoId = ref('')
 const clienteId = ref('')
 const ventasCliente = ref([])
 const ventaSeleccionada = ref(null)
-
+const clientesFiltrados = ref([])
 const amortizacion = ref([])
 const cargando = ref(false)
 const mostrarResumen = ref(false)
+
+// Función para cargar clientes del proyecto seleccionado
+async function cargarClientes() {
+  if (!proyectoId.value) {
+    clientesFiltrados.value = []
+    clienteId.value = ''
+    ventasCliente.value = []
+    ventaSeleccionada.value = null
+    return
+  }
+
+  const res = await fetch(
+    `/plan-amortizacion-venta/clientes-por-proyecto?id_proyecto=${proyectoId.value}`
+  )
+  clientesFiltrados.value = await res.json()
+  clienteId.value = ''
+  ventasCliente.value = []
+  ventaSeleccionada.value = null
+  mostrarResumen.value = false
+  amortizacion.value = []
+}
+
+// Observar cambios en proyectoId para cargar los clientes correspondientes
+watch(proyectoId, () => {
+  cargarClientes()
+})
 
 /* --------------------------
    FORMATO MONEDA
@@ -295,11 +321,7 @@ function exportPDF() {
         <!-- Proyecto -->
         <div>
           <label class="font-semibold text-brand-800">Proyecto</label>
-          <select
-            v-model="proyectoId"
-            @change="cargarVentas"
-            class="w-full border rounded-lg p-2 shadow-sm"
-          >
+          <select v-model="proyectoId" class="w-full border rounded-lg p-2 shadow-sm">
             <option value="">Seleccione...</option>
             <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
               {{ p.nombre }}
@@ -316,8 +338,8 @@ function exportPDF() {
             class="w-full border rounded-lg p-2 shadow-sm"
           >
             <option value="">Seleccione...</option>
-            <option v-for="c in clientes" :key="c.documento" :value="c.documento">
-              {{ c.nombre }}
+            <option v-for="c in clientesFiltrados" :key="c.documento" :value="c.documento">
+              {{ c.nombre }} - {{ c.documento }}
             </option>
           </select>
         </div>

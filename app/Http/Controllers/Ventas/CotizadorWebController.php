@@ -100,7 +100,8 @@ class CotizadorWebController extends Controller
                 'direccion',
                 'telefono',
                 'correo'
-            )->get(),
+            )->orderBy('nombre', 'asc')
+                ->get(),
             'empleado'  => $empleado,
             'inmuebles' => $inmuebles,
         ]);
