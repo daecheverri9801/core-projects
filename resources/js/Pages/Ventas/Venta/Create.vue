@@ -964,7 +964,7 @@ function submit() {
                     <input
                       type="text"
                       :value="formatearMoneda(form.cuota_inicial_raw)"
-                      @input="onCuotaInicialInput($event.target.value)"
+                      readonly
                       :class="inputClass(Boolean(erroresForm.cuota_inicial), false)"
                     />
                     <p v-if="erroresForm.cuota_inicial" :class="errorClass()">
