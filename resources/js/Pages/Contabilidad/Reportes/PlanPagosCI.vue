@@ -1,6 +1,6 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ContabilidadLayout from '@/Components/ContabilidadLayout.vue'
 
 const props = defineProps({
@@ -11,12 +11,13 @@ const props = defineProps({
 })
 
 const filtros = ref({
-  ano: props.filtros?.ano || new Date().getFullYear(),
+  ano: props.filtros?.ano || '',
   mes: props.filtros?.mes || '',
   desde: props.filtros?.desde || '',
   hasta: props.filtros?.hasta || '',
-  proyecto_id: props.filtros?.proyecto_id || '',
+  id_proyecto: props.filtros?.id_proyecto || '',
   asesor_id: props.filtros?.asesor_id || '',
+  buscar_cliente: props.filtros?.buscar_cliente || '',
 })
 
 const meses = [
@@ -34,12 +35,68 @@ const meses = [
   { n: 12, name: 'Diciembre' },
 ]
 
-function aplicar() {
-  router.get(
-    '/contabilidad/reportes/plan-pagos-ci',
-    { ...filtros.value },
-    { preserveState: true, replace: true }
-  )
+let debounceTimer = null
+
+function aplicarConDebounce() {
+  clearTimeout(debounceTimer)
+
+  debounceTimer = setTimeout(() => {
+    aplicar()
+  }, 500)
+}
+
+watch(
+  () => filtros.value.buscar_cliente,
+  () => {
+    aplicarConDebounce()
+  }
+)
+
+watch(
+  () => [
+    filtros.value.ano,
+    filtros.value.mes,
+    filtros.value.desde,
+    filtros.value.hasta,
+    filtros.value.id_proyecto,
+    filtros.value.asesor_id,
+  ],
+  () => {
+    aplicar()
+  }
+)
+
+watch(
+  () => filtros.value.mes,
+  (value) => {
+    if (value) {
+      filtros.value.desde = ''
+      filtros.value.hasta = ''
+    }
+  }
+)
+
+watch(
+  () => [filtros.value.desde, filtros.value.hasta],
+  ([desde, hasta]) => {
+    if (desde || hasta) {
+      filtros.value.mes = ''
+    }
+  }
+)
+
+function limpiarFiltros() {
+  filtros.value = {
+    ano: '',
+    mes: '',
+    desde: '',
+    hasta: '',
+    id_proyecto: '',
+    asesor_id: '',
+    buscar_cliente: '',
+  }
+
+  aplicar()
 }
 
 function exportar() {
@@ -53,6 +110,18 @@ function formatMoney(v) {
     currency: 'COP',
     maximumFractionDigits: 0,
   })
+}
+
+function aplicar() {
+  router.get(
+    '/contabilidad/reportes/plan-pagos-ci',
+    { ...filtros.value },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    }
+  )
 }
 
 const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
@@ -74,10 +143,10 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
 
           <div class="flex items-center gap-3">
             <button
-              @click="aplicar"
-              class="px-5 py-2.5 rounded-lg bg-[#FFEA00] hover:bg-[#D1C000] text-[#474100] font-semibold text-sm transition"
+              @click="limpiarFiltros"
+              class="px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-sm font-semibold text-gray-700 transition"
             >
-              Aplicar
+              Limpiar filtros
             </button>
             <button
               @click="exportar"
@@ -88,13 +157,23 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
           </div>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar cliente</label>
+            <input
+              v-model="filtros.buscar_cliente"
+              type="text"
+              placeholder="Nombre o número de documento"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Año</label>
             <input
               v-model="filtros.ano"
               type="number"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+              placeholder="Año"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             />
           </div>
 
@@ -104,12 +183,12 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
               v-model="filtros.mes"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             >
-              <option value="">(Rango manual)</option>
+              <option value="">Todos / rango manual</option>
               <option v-for="m in meses" :key="m.n" :value="m.n">{{ m.name }}</option>
             </select>
           </div>
 
-          <div class="md:col-span-1">
+          <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
             <input
               v-model="filtros.desde"
@@ -117,7 +196,8 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             />
           </div>
-          <div class="md:col-span-1">
+
+          <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
             <input
               v-model="filtros.hasta"
@@ -129,7 +209,7 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Proyecto</label>
             <select
-              v-model="filtros.proyecto_id"
+              v-model="filtros.id_proyecto"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             >
               <option value="">Todos</option>

@@ -21,7 +21,7 @@ class GerenciaDashboardWebController extends Controller
         $filtros = [
             'desde'           => $request->query('desde'),
             'hasta'           => $request->query('hasta'),
-            'proyecto_id'     => $request->query('proyecto_id'),
+            'id_proyecto'     => $request->query('id_proyecto'),
             'asesor_id'       => $request->query('asesor_id'),
             'estado_inmueble' => $request->query('estado_inmueble'),
         ];
@@ -55,7 +55,7 @@ class GerenciaDashboardWebController extends Controller
         $filtros = [
             'desde'       => $request->query('desde'),
             'hasta'       => $request->query('hasta'),
-            'proyecto_id' => $request->query('proyecto_id'),
+            'id_proyecto' => $request->query('id_proyecto'),
             'asesor_id'   => $request->query('asesor_id'),
         ];
 

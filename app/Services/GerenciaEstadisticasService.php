@@ -57,6 +57,14 @@ class GerenciaEstadisticasService
         $out['asesor_id'] = $this->toIntOrNull($out['asesor_id'] ?? null);
         $out['estado_inmueble'] = $this->toIntOrNull($out['estado_inmueble'] ?? null);
 
+        $out['buscar_cliente'] = isset($out['buscar_cliente']) && is_string($out['buscar_cliente'])
+            ? trim($out['buscar_cliente'])
+            : null;
+
+        if ($out['buscar_cliente'] === '') {
+            $out['buscar_cliente'] = null;
+        }
+
         return $out;
     }
 
@@ -907,52 +915,63 @@ class GerenciaEstadisticasService
         $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
             ->where('tipo_operacion', 'venta');
 
+        // Filtro por proyecto
         if (!empty($filtros['id_proyecto'])) {
             $ventasQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
+        // Filtro por asesor
         if (!empty($filtros['asesor_id'])) {
             $ventasQuery->where('id_empleado', $filtros['asesor_id']);
         }
 
-        $ventas = $ventasQuery->get()->filter(function ($v) use ($desde, $hasta) {
-            if (!$v->fecha_venta) {
-                return false;
-            }
+        // Filtro por cliente o documento
+        if (!empty($filtros['buscar_cliente'])) {
+            $term = trim($filtros['buscar_cliente']);
 
-            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+            $ventasQuery->where(function ($q) use ($term) {
+                $q->where('documento_cliente', 'ilike', "%{$term}%")
+                    ->orWhereHas('cliente', function ($clienteQuery) use ($term) {
+                        $clienteQuery->where('nombre', 'ilike', "%{$term}%")
+                            ->orWhere('documento', 'ilike', "%{$term}%");
+                    })
+                    ->orWhereHas('apartamento', function ($apartamentoQuery) use ($term) {
+                        $apartamentoQuery->where('numero', 'ilike', "%{$term}%");
+                    })
+                    ->orWhereHas('local', function ($localQuery) use ($term) {
+                        $localQuery->where('numero', 'ilike', "%{$term}%");
+                    });
+            });
+        }
 
-            $inicioCalendario = Carbon::parse($v->fecha_venta)->startOfMonth();
-            $finCalendario = Carbon::parse($v->fecha_venta)->startOfMonth()->addMonths($plazo + 1);
+        // Filtro por fecha de venta ejecutada
+        if ($desde && $hasta) {
+            $ventasQuery->whereBetween('fecha_venta', [
+                $desde->copy()->startOfDay(),
+                $hasta->copy()->endOfDay(),
+            ]);
+        } elseif ($desde) {
+            $ventasQuery->whereDate('fecha_venta', '>=', $desde->copy()->startOfDay());
+        } elseif ($hasta) {
+            $ventasQuery->whereDate('fecha_venta', '<=', $hasta->copy()->endOfDay());
+        }
 
-            if (!$desde && !$hasta) {
-                return true;
-            }
-
-            $desdeComparar = $desde ? $desde->copy()->startOfMonth() : null;
-            $hastaComparar = $hasta ? $hasta->copy()->endOfMonth() : null;
-
-            if ($desdeComparar && $finCalendario->lt($desdeComparar)) {
-                return false;
-            }
-
-            if ($hastaComparar && $inicioCalendario->gt($hastaComparar)) {
-                return false;
-            }
-
-            return true;
-        })->values();
+        $ventas = $ventasQuery
+            ->orderBy('fecha_venta', 'asc')
+            ->get();
 
         if ($ventas->isEmpty()) {
             return ['encabezados' => [], 'filas' => [], 'totales' => []];
         }
 
-        // Encabezados del rango seleccionado, no del universo completo
+        // Encabezados del rango seleccionado
         $minMes = $desde ? $desde->copy()->startOfMonth() : null;
         $maxMes = $hasta ? $hasta->copy()->endOfMonth()->startOfMonth() : null;
 
         foreach ($ventas as $v) {
-            if (!$v->fecha_venta) continue;
+            if (!$v->fecha_venta) {
+                continue;
+            }
 
             $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
 
@@ -980,57 +999,46 @@ class GerenciaEstadisticasService
             $cursor->addMonth();
         }
 
-        $filas   = [];
+        $filas = [];
         $totales = array_fill_keys($encabezados, 0);
 
         foreach ($ventas as $v) {
             $proyectoNombre = $v->proyecto?->nombre ?? ('Proyecto ' . ($v->id_proyecto ?? '—'));
-            $clienteNombre  = $v->cliente?->nombre ?? '—';
-            $clienteDocumento = $v->documento_cliente ?? '';
+            $clienteNombre = $v->cliente?->nombre ?? '—';
+            $clienteDocumento = $v->documento_cliente ?? ($v->cliente?->documento ?? '');
 
             $inmueble = $v->apartamento?->numero
                 ? 'Apto ' . $v->apartamento->numero
                 : ($v->local?->numero ? 'Local ' . $v->local->numero : '—');
 
             $numeroOrden = $v->apartamento?->numero ?? $v->local?->numero ?? '999999';
-            $tipoOrden = $v->apartamento ? 'A' : ($v->local ? 'L' : 'Z');
 
-            $cuotaInicial   = (float) ($v->cuota_inicial ?? 0);
-            $valorMinSep    = (float) ($v->proyecto?->valor_min_separacion ?? 0);
+            $cuotaInicial = (float) ($v->cuota_inicial ?? 0);
+            $valorMinSep = (float) ($v->proyecto?->valor_min_separacion ?? 0);
 
-            // Mes 0 = separación
-            $separacion     = (float) ($v->valor_min_separacion ?? $valorMinSep);
-
-            // Último mes + 1 = restante
-            $valorRestante  = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
-
-            // Lo que se amortiza entre mes 1 y mes n
+            $separacion = (float) ($v->valor_min_separacion ?? $valorMinSep);
+            $valorRestante = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
             $saldoAmortizar = max(0, $cuotaInicial - $separacion);
 
             $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
             $frecuencia = max(1, (int) ($v->frecuencia_cuota_inicial_meses ?? 1));
-
             $numPagos = (int) ceil($plazo / $frecuencia);
 
             $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
 
             $cuotaPorPago = $numPagos > 0 ? (int) floor($saldoAmortizar / $numPagos) : 0;
-            $residuo      = $saldoAmortizar - ($cuotaPorPago * $numPagos);
+            $residuo = $saldoAmortizar - ($cuotaPorPago * $numPagos);
 
             $mesesRow = [];
 
-            // =========================
-            // MES 0: SOLO SEPARACIÓN
-            // =========================
+            // MES 0 = separación
             $mes0 = $fechaBase->format('Y-m');
             if (isset($totales[$mes0])) {
                 $mesesRow[$mes0] = ($mesesRow[$mes0] ?? 0) + $separacion;
-                $totales[$mes0]  += $separacion;
+                $totales[$mes0] += $separacion;
             }
 
-            // =========================
-            // MES 1..N: CUOTAS DE CI
-            // =========================
+            // MES 1..N = cuotas CI
             $fechaPago = $fechaBase->copy()->addMonths($frecuencia);
 
             for ($k = 1; $k <= $numPagos; $k++) {
@@ -1043,57 +1051,54 @@ class GerenciaEstadisticasService
 
                 if (isset($totales[$mes])) {
                     $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
-                    $totales[$mes]  += $valorCuota;
+                    $totales[$mes] += $valorCuota;
                 }
 
                 $fechaPago->addMonths($frecuencia);
             }
 
-            // =========================
-            // MES N+1: VALOR RESTANTE
-            // =========================
+            // MES N+1 = restante
             $mesRestante = $fechaBase->copy()->addMonths($plazo + 1)->format('Y-m');
 
             if (isset($totales[$mesRestante])) {
                 $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
-                $totales[$mesRestante]  += $valorRestante;
+                $totales[$mesRestante] += $valorRestante;
             }
 
-            // Solo agregar fila si tiene al menos un valor dentro del rango
             if (!empty($mesesRow)) {
                 $filas[] = [
                     'proyecto' => $proyectoNombre,
                     'inmueble' => $inmueble,
-                    'cliente'  => $clienteNombre,
+                    'cliente' => $clienteNombre,
                     'documento_cliente' => $clienteDocumento,
-                    'meses'    => $mesesRow,
-
+                    'meses' => $mesesRow,
                     '_orden' => $numeroOrden,
-                    '_tipo' => $tipoOrden,
-                    '_numero_raw' => $v->apartamento?->numero ?? $v->local?->numero,
                 ];
             }
         }
 
-        $filas = collect($filas)->sortBy('_orden', SORT_NATURAL)
+        $filas = collect($filas)
+            ->sortBy('_orden', SORT_NATURAL)
             ->map(function ($fila) {
-                unset($fila['_orden'], $fila['_tipo'], $fila['_numero_raw']);
+                unset($fila['_orden']);
                 return $fila;
-            })->values()->all();
+            })
+            ->values()
+            ->all();
 
         return [
             'encabezados' => $encabezados,
-            'filas'       => $filas,
-            'totales'     => $totales,
+            'filas' => $filas,
+            'totales' => $totales,
         ];
     }
 
     public function absorcionPorTipo(array $filtros, ?Carbon $desde = null, ?Carbon $hasta = null): array
-{
-    $filtros = $this->normalizarFiltros($filtros);
+    {
+        $filtros = $this->normalizarFiltros($filtros);
 
-    // Construcción de la SQL base con placeholders para filtros
-    $baseSql = "
+        // Construcción de la SQL base con placeholders para filtros
+        $baseSql = "
         WITH counts AS (
             SELECT 
                 TO_CHAR(v.fecha_venta, 'YYYY-MM') as mes,
@@ -1109,27 +1114,27 @@ class GerenciaEstadisticasService
               AND v.id_apartamento IS NOT NULL
     ";
 
-    $bindings = [];
+        $bindings = [];
 
-    // Aplicar filtros dinámicamente
-    if ($desde) {
-        $baseSql .= " AND v.fecha_venta >= ?";
-        $bindings[] = $desde;
-    }
-    if ($hasta) {
-        $baseSql .= " AND v.fecha_venta <= ?";
-        $bindings[] = $hasta;
-    }
-    if (!empty($filtros['id_proyecto'])) {
-        $baseSql .= " AND v.id_proyecto = ?";
-        $bindings[] = $filtros['id_proyecto'];
-    }
-    if (!empty($filtros['asesor_id'])) {
-        $baseSql .= " AND v.id_empleado = ?";
-        $bindings[] = $filtros['asesor_id'];
-    }
+        // Aplicar filtros dinámicamente
+        if ($desde) {
+            $baseSql .= " AND v.fecha_venta >= ?";
+            $bindings[] = $desde;
+        }
+        if ($hasta) {
+            $baseSql .= " AND v.fecha_venta <= ?";
+            $bindings[] = $hasta;
+        }
+        if (!empty($filtros['id_proyecto'])) {
+            $baseSql .= " AND v.id_proyecto = ?";
+            $bindings[] = $filtros['id_proyecto'];
+        }
+        if (!empty($filtros['asesor_id'])) {
+            $baseSql .= " AND v.id_empleado = ?";
+            $bindings[] = $filtros['asesor_id'];
+        }
 
-    $baseSql .= "
+        $baseSql .= "
             GROUP BY mes, p.nombre, ta.nombre, ta.area_construida
         ),
         ranked AS (
@@ -1143,8 +1148,8 @@ class GerenciaEstadisticasService
         ORDER BY mes, proyecto, tipo_apartamento
     ";
 
-    $results = DB::select($baseSql, $bindings);
+        $results = DB::select($baseSql, $bindings);
 
-    return collect($results)->map(fn($item) => (array) $item)->toArray();
-}
+        return collect($results)->map(fn($item) => (array) $item)->toArray();
+    }
 }

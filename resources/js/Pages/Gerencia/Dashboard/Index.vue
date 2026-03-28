@@ -212,7 +212,7 @@ const absorcionPorTipoFiltrado = computed(() => {
 const filtros = ref({
   desde: props.filtros?.desde || '',
   hasta: props.filtros?.hasta || '',
-  proyecto_id: props.filtros?.proyecto_id || '',
+  id_proyecto: props.filtros?.id_proyecto || '',
   asesor_id: props.filtros?.asesor_id || '',
   estado_inmueble: props.filtros?.estado_inmueble || '',
 })
@@ -697,7 +697,7 @@ const inventarioProyectosOrdenado = computed(() => {
         <div>
           <label class="text-slate-400 text-xs mb-1 block">Proyecto</label>
           <select
-            v-model="filtros.proyecto_id"
+            v-model="filtros.id_proyecto"
             class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
           >
             <option value="">Todos</option>
