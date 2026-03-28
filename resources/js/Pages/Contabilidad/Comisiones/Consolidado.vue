@@ -66,11 +66,7 @@ const consolidadoFiltrado = computed(() => {
   return (props.consolidadoComisiones || [])
     .map((proyecto) => {
       const empleados = [...(proyecto.empleados || [])].filter((item) => {
-        const searchable = [
-          proyecto.nombre,
-          item.cargo,
-          item.nombre_completo,
-        ]
+        const searchable = [proyecto.nombre, item.cargo, item.nombre_completo]
           .map(normalizeText)
           .join(' ')
 
@@ -92,17 +88,17 @@ const consolidadoFiltrado = computed(() => {
 })
 
 const totalEmpleados = computed(() =>
-  consolidadoFiltrado.value.reduce((acc, proyecto) => acc + Number(proyecto.empleados.length || 0), 0)
+  consolidadoFiltrado.value.reduce(
+    (acc, proyecto) => acc + Number(proyecto.empleados.length || 0),
+    0
+  )
 )
 
 const totalComisionVenta = computed(() =>
   consolidadoFiltrado.value.reduce(
     (acc, proyecto) =>
       acc +
-      proyecto.empleados.reduce(
-        (sum, item) => sum + Number(item.total_comisiones_venta || 0),
-        0
-      ),
+      proyecto.empleados.reduce((sum, item) => sum + Number(item.total_comisiones_venta || 0), 0),
     0
   )
 )
@@ -111,10 +107,7 @@ const totalComisionEquipo = computed(() =>
   consolidadoFiltrado.value.reduce(
     (acc, proyecto) =>
       acc +
-      proyecto.empleados.reduce(
-        (sum, item) => sum + Number(item.total_comisiones_equipo || 0),
-        0
-      ),
+      proyecto.empleados.reduce((sum, item) => sum + Number(item.total_comisiones_equipo || 0), 0),
     0
   )
 )
@@ -123,10 +116,7 @@ const totalComisionPagar = computed(() =>
   consolidadoFiltrado.value.reduce(
     (acc, proyecto) =>
       acc +
-      proyecto.empleados.reduce(
-        (sum, item) => sum + Number(item.total_comisiones_pagar || 0),
-        0
-      ),
+      proyecto.empleados.reduce((sum, item) => sum + Number(item.total_comisiones_pagar || 0), 0),
     0
   )
 )
@@ -164,44 +154,56 @@ const resumenCargos = computed(() => {
         </div>
 
         <!-- Filtros -->
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-          <input
-            v-model="q"
-            type="text"
-            placeholder="Buscar proyecto, cargo o empleado…"
-            class="xl:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar por:</label>
+            <input
+              v-model="q"
+              type="text"
+              placeholder="Proyecto, Cargo o Empleado"
+              class="xl:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
 
-          <select
-            v-model="selectedProyecto"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos los proyectos</option>
-            <option v-for="p in proyectosList" :key="p.id_proyecto" :value="p.id_proyecto">
-              {{ p.nombre }}
-            </option>
-          </select>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Proyecto</label>
+            <select
+              v-model="selectedProyecto"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            >
+              <option value="">Todos los proyectos</option>
+              <option v-for="p in proyectosList" :key="p.id_proyecto" :value="p.id_proyecto">
+                {{ p.nombre }}
+              </option>
+            </select>
+          </div>
 
-          <input
-            v-model="desde"
-            type="date"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+            <input
+              v-model="desde"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
 
-          <input
-            v-model="hasta"
-            type="date"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+            <input
+              v-model="hasta"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
         </div>
 
         <div class="mt-4 flex justify-end gap-2">
-          <button
+          <!-- <button
             @click="aplicarFiltros"
             class="px-4 py-2 rounded-lg bg-[#FFEA00] hover:bg-[#f2dc00] text-[#474100] text-sm font-semibold transition"
           >
             Aplicar filtros
-          </button>
+          </button> -->
 
           <button
             @click="limpiarFiltros"
@@ -222,9 +224,7 @@ const resumenCargos = computed(() => {
             <h2 class="text-lg font-bold text-gray-900">
               {{ proyecto.nombre }}
             </h2>
-            <p class="text-sm text-gray-500">
-              Consolidado de comisiones del proyecto
-            </p>
+            <p class="text-sm text-gray-500">Consolidado de comisiones del proyecto</p>
           </div>
 
           <div class="bg-gray-50 rounded-lg border border-gray-200 px-4 py-2">

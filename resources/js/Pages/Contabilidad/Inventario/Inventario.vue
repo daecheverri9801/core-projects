@@ -213,67 +213,84 @@ function estadoBadgeClass(estadoNombre) {
           </div>
         </div>
 
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-          <input
-            v-model="q"
-            type="text"
-            placeholder="Buscar inmueble, tipo, asesor o estado…"
-            class="xl:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-6 xl:grid-cols-6 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar por:</label>
+            <input
+              v-model="q"
+              type="text"
+              placeholder="Inmueble, tipo, asesor o estado…"
+              class="xl:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
 
-          <select
-            v-model="selectedProyecto"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos los proyectos</option>
-            <option v-for="p in proyectosList" :key="p.id_proyecto" :value="p.id_proyecto">
-              {{ p.nombre }}
-            </option>
-          </select>
-
-          <select
-            v-model="selectedTipo"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos los tipos</option>
-            <option value="Apartamento">Apartamento</option>
-            <option value="Local">Local</option>
-          </select>
-
-          <select
-            v-model="selectedEstado"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos los estados</option>
-            <option
-              v-for="estado in estadosInmueble"
-              :key="estado.id_estado_inmueble"
-              :value="estado.id_estado_inmueble"
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Proyecto</label>
+            <select
+              v-model="selectedProyecto"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             >
-              {{ estado.nombre }}
-            </option>
-          </select>
+              <option value="">Todos los proyectos</option>
+              <option v-for="p in proyectosList" :key="p.id_proyecto" :value="p.id_proyecto">
+                {{ p.nombre }}
+              </option>
+            </select>
+          </div>
 
-          <input
-            v-model="desde"
-            type="date"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de Inmueble</label>
+            <select
+              v-model="selectedTipo"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="Apartamento">Apartamento</option>
+              <option value="Local">Local</option>
+            </select>
+          </div>
 
-          <input
-            v-model="hasta"
-            type="date"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Estado de Inmueble</label>
+            <select
+              v-model="selectedEstado"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            >
+              <option value="">Todos los estados</option>
+              <option
+                v-for="estado in estadosInmueble"
+                :key="estado.id_estado_inmueble"
+                :value="estado.id_estado_inmueble"
+              >
+                {{ estado.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+            <input
+              v-model="desde"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+            <input
+              v-model="hasta"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
         </div>
 
         <div class="mt-4 flex justify-end gap-2">
-          <button
+          <!-- <button
             @click="aplicarFiltros"
             class="px-4 py-2 rounded-lg bg-[#FFEA00] hover:bg-[#f2dc00] text-[#474100] text-sm font-semibold transition"
           >
             Aplicar filtros
-          </button>
+          </button> -->
 
           <button
             @click="limpiarFiltros"

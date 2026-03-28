@@ -125,39 +125,52 @@ const totalValor = computed(() =>
         </div>
 
         <div class="mt-5 grid grid-cols-1 md:grid-cols-5 gap-3">
-          <input
-            v-model="q"
-            type="text"
-            placeholder="Buscar cliente / documento / proyecto / inmueble…"
-            class="md:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          />
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar por:</label>
+            <input
+              v-model="q"
+              type="text"
+              placeholder="Cliente / Documento / Proyecto / Inmueble"
+              class="md:col-span-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
 
-          <select
-            v-model="selectedProyecto"
-            @change="aplicarFiltroProyecto"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos</option>
-            <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
-              {{ p.nombre }}
-            </option>
-          </select>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Proyecto</label>
+            <select
+              v-model="selectedProyecto"
+              @change="aplicarFiltroProyecto"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            >
+              <option value="">Todos</option>
+              <option v-for="p in proyectos" :key="p.id_proyecto" :value="p.id_proyecto">
+                {{ p.nombre }}
+              </option>
+            </select>
+          </div>
 
-          <select
-            v-model="tipo"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-          >
-            <option value="">Todos los tipos</option>
-            <option value="venta">Venta</option>
-            <option value="separacion">Separación</option>
-          </select>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de Operación</label>
+            <select
+              v-model="tipo"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            >
+              <option value="">Todos los tipos</option>
+              <option value="venta">Venta</option>
+              <option value="separacion">Separación</option>
+            </select>
+          </div>
 
-          <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
             <input
               v-model="desde"
               type="date"
               class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
             />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
             <input
               v-model="hasta"
               type="date"
@@ -196,8 +209,12 @@ const totalValor = computed(() =>
               <tr v-for="v in filtered" :key="v.id_venta" class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-gray-700 text-center">{{ v.proyecto?.nombre || '—' }}</td>
                 <td class="px-4 py-3">
-                  <div class="text-gray-900 font-semibold text-center">{{ v.cliente?.nombre || '—' }}</div>
-                  <div class="text-xs text-gray-500 text-center">{{ v.documento_cliente || '—' }}</div>
+                  <div class="text-gray-900 font-semibold text-center">
+                    {{ v.cliente?.nombre || '—' }}
+                  </div>
+                  <div class="text-xs text-gray-500 text-center">
+                    {{ v.documento_cliente || '—' }}
+                  </div>
                 </td>
                 <td class="px-4 py-3 text-center">
                   <span
@@ -213,7 +230,7 @@ const totalValor = computed(() =>
                 </td>
 
                 <td class="px-4 py-3 text-gray-700 text-center">{{ inmuebleLabel(v) }}</td>
-                <td class="px-4 py-3 text-gray-600 text-center  ">{{ formatDate(v.fecha_venta) }}</td>
+                <td class="px-4 py-3 text-gray-600 text-center">{{ formatDate(v.fecha_venta) }}</td>
                 <td class="px-4 py-3 text-center font-semibold text-[#D1C000]">
                   {{ formatMoney(v.valor_total) }}
                 </td>

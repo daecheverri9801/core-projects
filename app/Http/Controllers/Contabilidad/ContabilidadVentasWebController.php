@@ -73,6 +73,7 @@ class ContabilidadVentasWebController extends Controller
             'local.torre',
             'local.pisoTorre',
 
+            'parqueadero',
             'planAmortizacion.cuotas',
             'pagos',
         ])->findOrFail($id);

@@ -51,6 +51,17 @@ const ValorRestanteCI = computed(() => {
     ? Math.max(0, (props.venta.cuota_inicial || 0) - cuotaSeparacionProyecto.value)
     : props.venta.cuota_inicial || 0
 })
+
+const ValorCuotaMensual = computed(() => {
+  const plazo = props.venta.plazo_cuota_inicial_meses ?? 1
+  const frecuencia = props.venta.frecuencia_cuota_inicial_meses ?? 1
+  if (frecuencia > 0) {
+    const numeroCuotas = Math.ceil(plazo / frecuencia)
+    return numeroCuotas > 0 ? Math.round(ValorRestanteCI.value / numeroCuotas) : 0
+  }
+  const valorCuota = numeroCuotas > 0 ? Math.round(ValorRestanteCI.value / numeroCuotas) : 0
+  return valorCuota
+})
 </script>
 
 <template>
@@ -101,9 +112,11 @@ const ValorRestanteCI = computed(() => {
               <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
                 <p class="text-xs text-gray-500 uppercase tracking-wide">Cliente</p>
                 <p class="text-base font-semibold text-gray-900 mt-1">
-                  {{ venta.cliente?.nombre || '—' }}
+                  {{ venta.cliente?.nombre || '—' }} - {{ venta.documento_cliente || '—' }}
                 </p>
-                <p class="text-sm text-gray-600 mt-1">{{ venta.documento_cliente || '—' }}</p>
+                <p class="text-sm text-gray-600 mt-1">
+                  {{ venta.cliente?.telefono || '—' }} - {{ venta.cliente?.correo || '—' }}
+                </p>
               </div>
 
               <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
@@ -122,18 +135,30 @@ const ValorRestanteCI = computed(() => {
               <p class="text-sm font-semibold text-gray-900">Inmueble</p>
               <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">Tipo</span>
+                  <span class="text-gray-600">Tipo Inmueble</span>
                   <span class="font-medium text-gray-900">{{
                     esApto ? 'Apartamento' : 'Local'
                   }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">Número</span>
-                  <span class="font-medium text-gray-900">{{ inmueble?.numero ?? '—' }}</span>
+                  <span class="text-gray-600">Tipo Apartamento</span>
+                  <span class="font-medium text-gray-900">{{
+                    inmueble?.tipo_apartamento?.nombre ?? '—'
+                  }}</span>
                 </div>
                 <div v-if="esApto" class="flex justify-between text-sm">
                   <span class="text-gray-600">Parqueadero</span>
                   <span class="font-medium text-gray-900">{{ parqueaderoTexto }}</span>
+                </div>
+                <div v-if="esApto" class="flex justify-between text-sm">
+                  <span class="text-gray-600">Parqueadero Adicional</span>
+                  <span class="font-medium text-gray-900">{{
+                    venta.parqueadero ? 'Sí' : 'No'
+                  }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Número</span>
+                  <span class="font-medium text-gray-900">{{ inmueble?.numero ?? '—' }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Torre</span>
@@ -167,17 +192,18 @@ const ValorRestanteCI = computed(() => {
                   }}</span>
                 </div>
                 <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Valor Cuota inicial</span>
+                  <span class="font-semibold text-gray-900">{{
+                    formatMoney(venta.cuota_inicial)
+                  }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Saldo restante</span>
                   <span class="font-semibold text-gray-900">{{
                     formatMoney(venta.valor_restante)
                   }}</span>
                 </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-gray-600">Cuota inicial</span>
-                  <span class="font-semibold text-gray-900">{{
-                    formatMoney(venta.cuota_inicial)
-                  }}</span>
-                </div>
+
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Pago Separación</span>
                   <span class="font-semibold text-gray-900"
@@ -188,6 +214,12 @@ const ValorRestanteCI = computed(() => {
                   <span class="text-gray-600">Valor restante CI</span>
                   <span class="font-semibold text-gray-900"
                     >{{ formatMoney(ValorRestanteCI) }}
+                  </span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-600">Valor Cuota Mensual</span>
+                  <span class="font-semibold text-gray-900"
+                    >{{ formatMoney(ValorCuotaMensual) }}
                   </span>
                 </div>
                 <div class="flex justify-between text-sm">

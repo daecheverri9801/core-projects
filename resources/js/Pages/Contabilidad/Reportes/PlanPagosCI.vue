@@ -109,20 +109,21 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
             </select>
           </div>
 
-          <div class="md:col-span-2">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Desde / Hasta</label>
-            <div class="grid grid-cols-2 gap-2">
-              <input
-                v-model="filtros.desde"
-                type="date"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-              />
-              <input
-                v-model="filtros.hasta"
-                type="date"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
-              />
-            </div>
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+            <input
+              v-model="filtros.desde"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
+          </div>
+          <div class="md:col-span-1">
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+            <input
+              v-model="filtros.hasta"
+              type="date"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent"
+            />
           </div>
 
           <div>
