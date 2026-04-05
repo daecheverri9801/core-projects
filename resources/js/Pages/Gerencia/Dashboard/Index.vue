@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import GerenciaLayout from '@/Components/GerenciaLayout.vue'
 import {
@@ -219,6 +219,22 @@ const filtros = ref({
 
 function aplicarFiltros() {
   router.get('/gerencia/dashboard', { ...filtros.value }, { preserveState: true, replace: true })
+}
+
+function limpiarFiltros() {
+  filtros.value = {
+    desde: '',
+    hasta: '',
+    id_proyecto: '',
+    asesor_id: '',
+    estado_inmueble: '',
+  }
+
+  router.get(
+    '/gerencia/dashboard',
+    {},
+    { preserveState: true, preserveScroll: true, replace: true }
+  )
 }
 
 /* ==============================
@@ -593,6 +609,15 @@ const absorcionTabla = computed(() => {
     .sort((a, b) => (a.mes > b.mes ? 1 : -1))
 })
 
+watch(
+  () => filtros.value.desde,
+  (nuevoDesde) => {
+    if (nuevoDesde && filtros.value.hasta && filtros.value.hasta < nuevoDesde) {
+      filtros.value.hasta = ''
+    }
+  }
+)
+
 const inventarioProyectosOrdenado = computed(() => {
   return (props.inventarioProyectos || []).map((p) => {
     const inmueblesOrdenados = [...(p.inmuebles || [])].sort((a, b) => {
@@ -667,12 +692,20 @@ const inventarioProyectosOrdenado = computed(() => {
         <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wide">
           Filtros de análisis
         </h2>
-        <button
-          @click="aplicarFiltros"
-          class="px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-500"
-        >
-          Aplicar filtros
-        </button>
+        <div>
+          <button
+            @click="aplicarFiltros"
+            class="px-3 py-1.5 text-xs rounded-lg bg-sky-600 text-white hover:bg-sky-500"
+          >
+            Aplicar filtros
+          </button>
+          <button
+            @click="limpiarFiltros"
+            class="px-3 py-1.5 text-xs rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+          >
+            Limpiar filtros
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
@@ -690,6 +723,7 @@ const inventarioProyectosOrdenado = computed(() => {
           <input
             type="date"
             v-model="filtros.hasta"
+            :min="filtros.desde || undefined"
             class="w-full bg-slate-800 text-slate-100 rounded p-2 border border-slate-700"
           />
         </div>

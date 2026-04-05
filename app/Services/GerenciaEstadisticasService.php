@@ -655,6 +655,17 @@ class GerenciaEstadisticasService
             // ->whereBetween('fecha_venta', [$desde, $hasta])
             ->groupBy('id_proyecto', 'id_empleado');
 
+        if ($desde && $hasta) {
+            $q->whereBetween('fecha_venta', [
+                $desde->copy()->startOfDay(),
+                $hasta->copy()->endOfDay(),
+            ]);
+        } elseif ($desde) {
+            $q->whereDate('fecha_venta', '>=', $desde->copy()->toDateString());
+        } elseif ($hasta) {
+            $q->whereDate('fecha_venta', '<=', $hasta->copy()->toDateString());
+        }
+
         if (!empty($filtros['id_proyecto'])) {
             $q->where('id_proyecto', $filtros['id_proyecto']);
         }
@@ -662,6 +673,8 @@ class GerenciaEstadisticasService
         if (!empty($filtros['asesor_id'])) {
             $q->where('id_empleado', $filtros['asesor_id']);
         }
+
+        $q->groupBy('id_proyecto', 'id_empleado');
 
         $rows = $q->get();
 

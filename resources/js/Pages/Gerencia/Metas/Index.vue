@@ -430,7 +430,7 @@ const metasOrdenadas = computed(() =>
               <option value="">Seleccione...</option>
               <option value="ventas">Ventas ($)</option>
               <option value="unidades">Unidades</option>
-              <option value="recaudos">Recaudos ($)</option>
+              <!-- <option value="recaudos">Recaudos ($)</option> -->
             </select>
           </div>
 
@@ -480,7 +480,7 @@ const metasOrdenadas = computed(() =>
             />
           </div>
 
-          <div>
+          <div v-if="form.tipo === 'ventas'">
             <label class="text-slate-400 text-xs mb-1 block">Meta ($)</label>
             <input
               type="number"
@@ -489,7 +489,7 @@ const metasOrdenadas = computed(() =>
             />
           </div>
 
-          <div>
+          <div v-if="form.tipo === 'unidades'">
             <label class="text-slate-400 text-xs mb-1 block">Meta unidades</label>
             <input
               type="number"

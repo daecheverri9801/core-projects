@@ -25,6 +25,13 @@ function aplicar() {
   )
 }
 
+function limpiar() {
+  q.value = ''
+  desde.value = ''
+  hasta.value = ''
+  aplicar()
+}
+
 watch([q], () => {
   clearTimeout(window.__gll_t)
   window.__gll_t = setTimeout(() => aplicar(), 350)
@@ -62,20 +69,28 @@ function fullName(emp) {
           <h1 class="text-2xl font-bold text-slate-100">Historial de inicios de sesión</h1>
           <p class="text-sm text-slate-400 mt-1">Registro de accesos al sistema (Gerencia).</p>
         </div>
-
-        <button
-          @click="aplicar"
-          class="px-4 py-2 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-500 transition"
-        >
-          Aplicar filtros
-        </button>
+        <div>
+          <button
+            @click="aplicar"
+            class="px-4 py-2 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-500 transition"
+          >
+            Aplicar filtros
+          </button>
+          <button
+            @click="limpiar()"
+            class="px-4 py-2 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-500 transition"
+          >
+            Limpiar filtros
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
       <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
           <div class="md:col-span-6">
-            <QuickSearch v-model="q" placeholder="Buscar por empleado (nombre/email) o IP…" />
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Buscar por:</label>
+            <QuickSearch v-model="q" placeholder="Empleado (nombre/email) o IP…" />
           </div>
 
           <div class="md:col-span-3">

@@ -159,7 +159,7 @@ const tieneFilas = computed(() => props.planPagosCI?.filas?.length)
 
         <div class="mt-6 grid grid-cols-1 md:grid-cols-6 gap-4">
           <div class="md:col-span-1">
-            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar cliente</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Buscar:</label>
             <input
               v-model="filtros.buscar_cliente"
               type="text"

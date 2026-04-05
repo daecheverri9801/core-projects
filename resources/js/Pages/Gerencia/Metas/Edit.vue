@@ -58,7 +58,7 @@ function submit() {
           <select v-model="form.tipo" class="w-full bg-slate-800 text-slate-100 rounded p-2">
             <option value="ventas">Ventas ($)</option>
             <option value="unidades">Unidades</option>
-            <option value="recaudos">Recaudos ($)</option>
+            <!-- <option value="recaudos">Recaudos ($)</option> -->
           </select>
         </div>
 
@@ -100,7 +100,7 @@ function submit() {
           />
         </div>
 
-        <div>
+        <div v-if="form.tipo === 'ventas'">
           <label class="text-slate-400 text-sm mb-1 block">Meta ($)</label>
           <input
             type="number"
@@ -109,7 +109,7 @@ function submit() {
           />
         </div>
 
-        <div>
+        <div v-if="form.tipo === 'unidades'">
           <label class="text-slate-400 text-sm mb-1 block">Meta unidades</label>
           <input
             type="number"
