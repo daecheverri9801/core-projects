@@ -136,7 +136,9 @@ class VentaWebController extends Controller
 
     public function create(Request $request)
     {
-        $clientes = Cliente::orderBy('nombre')->get();
+        $clientes = Cliente::select('nombre', 'documento', 'direccion', 'telefono', 'correo')
+            ->orderBy('nombre')
+            ->get();
         $empleados = Empleado::orderBy('nombre')->get();
 
         $apartamentos = Apartamento::with(['torre.proyecto', 'estadoInmueble'])

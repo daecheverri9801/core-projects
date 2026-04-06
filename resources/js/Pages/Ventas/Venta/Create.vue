@@ -12,6 +12,8 @@ import {
   CalendarDaysIcon,
   HomeModernIcon,
   XMarkIcon,
+  MagnifyingGlassIcon,
+  IdentificationIcon,
 } from '@heroicons/vue/24/outline'
 import { CheckCircleIcon as CheckSolid } from '@heroicons/vue/24/solid'
 
@@ -183,6 +185,76 @@ const precioParqueaderoSeleccionado = computed(() => {
   )
   return p ? Number(p.precio || 0) : 0
 })
+
+const clienteBusqueda = reactive({
+  documento: '',
+  error: '',
+})
+
+const clienteSeleccionado = ref(null)
+
+function normalizarDocumento(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function limpiarClienteSeleccionado() {
+  clienteSeleccionado.value = null
+  form.documento_cliente = ''
+}
+
+function buscarCliente() {
+  clienteBusqueda.error = ''
+
+  const documento = normalizarDocumento(clienteBusqueda.documento)
+
+  if (!documento) {
+    limpiarClienteSeleccionado()
+    clienteBusqueda.error = 'Ingresa el número de documento del cliente.'
+    return
+  }
+
+  const cliente = (props.clientes || []).find((c) => normalizarDocumento(c.documento) === documento)
+
+  if (!cliente) {
+    limpiarClienteSeleccionado()
+    clienteBusqueda.error = 'No se encontró un cliente con ese documento.'
+    return
+  }
+
+  clienteSeleccionado.value = cliente
+  form.documento_cliente = cliente.documento
+}
+
+function limpiarBusquedaCliente() {
+  clienteBusqueda.documento = ''
+  clienteBusqueda.error = ''
+  limpiarClienteSeleccionado()
+}
+
+watch(
+  () => clienteBusqueda.documento,
+  (value) => {
+    const limpio = normalizarDocumento(value)
+    if (limpio !== value) clienteBusqueda.documento = limpio
+
+    if (!limpio) {
+      clienteBusqueda.error = ''
+      limpiarClienteSeleccionado()
+      return
+    }
+
+    if (
+      clienteSeleccionado.value &&
+      normalizarDocumento(clienteSeleccionado.value.documento) !== limpio
+    ) {
+      limpiarClienteSeleccionado()
+    }
+
+    if (clienteBusqueda.error) {
+      clienteBusqueda.error = ''
+    }
+  }
+)
 
 /** ===== Modal crear cliente ===== */
 const showClienteModal = ref(false)
@@ -471,9 +543,14 @@ function submitClienteInline() {
       },
       onSuccess: () => {
         closeClienteModal()
+        const nuevoClienteDocumento = clienteInlineForm.documento
         resetClienteInlineForm()
-        const newDoc = page.props.flash?.new_cliente_documento
-        if (newDoc) form.documento_cliente = newDoc
+
+        if (nuevoClienteDocumento) {
+          clienteBusqueda.documento = nuevoClienteDocumento
+          nextTick(() => buscarCliente())
+        }
+
         clienteInlineForm.processing = false
       },
       onFinish: () => {
@@ -973,12 +1050,104 @@ function submit() {
                     </button>
                   </div>
 
-                  <select v-model="form.documento_cliente" :class="inputClass(false, false)">
-                    <option value="">Seleccione...</option>
-                    <option v-for="c in clientes" :key="c.documento" :value="c.documento">
-                      {{ c.nombre }} - {{ c.documento }}
-                    </option>
-                  </select>
+                  <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1">
+                      <input
+                        v-model="clienteBusqueda.documento"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="20"
+                        autocomplete="off"
+                        :class="inputClass(Boolean(clienteBusqueda.error), false)"
+                        placeholder="Digita el número de documento"
+                        @keyup.enter="buscarCliente"
+                      />
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        @click="buscarCliente"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e3a5f] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#2c5282] transition"
+                      >
+                        <MagnifyingGlassIcon class="w-4 h-4" />
+                        Buscar
+                      </button>
+
+                      <button
+                        type="button"
+                        @click="limpiarBusquedaCliente"
+                        class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        Limpiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <p v-if="clienteBusqueda.error" :class="errorClass()">
+                    {{ clienteBusqueda.error }}
+                  </p>
+
+                  <div
+                    v-if="clienteSeleccionado"
+                    class="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4"
+                  >
+                    <div class="flex items-center gap-2 mb-3">
+                      <IdentificationIcon class="w-5 h-5 text-sky-700" />
+                      <h3 class="text-sm font-extrabold text-sky-900">Cliente encontrado</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p class="text-xs font-semibold text-sky-700 uppercase tracking-wide">
+                          Nombre completo
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                          {{ clienteSeleccionado.nombre || '—' }}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p class="text-xs font-semibold text-sky-700 uppercase tracking-wide">
+                          Documento
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                          {{ clienteSeleccionado.documento || '—' }}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p class="text-xs font-semibold text-sky-700 uppercase tracking-wide">
+                          Dirección
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                          {{ clienteSeleccionado.direccion || '—' }}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p class="text-xs font-semibold text-sky-700 uppercase tracking-wide">
+                          Teléfono
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                          {{ clienteSeleccionado.telefono || '—' }}
+                        </p>
+                      </div>
+
+                      <div class="md:col-span-2">
+                        <p class="text-xs font-semibold text-sky-700 uppercase tracking-wide">
+                          Correo
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                          {{ clienteSeleccionado.correo || '—' }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p v-else class="text-xs text-gray-500 mt-2">
+                    Busca el cliente por número de documento y luego continúa con la operación.
+                  </p>
                 </div>
 
                 <div>
@@ -1253,6 +1422,12 @@ function submit() {
               </div>
 
               <div class="space-y-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-600">Cliente</span>
+                  <span class="font-semibold text-gray-900 text-right">
+                    {{ clienteSeleccionado?.nombre || '—' }}
+                  </span>
+                </div>
                 <div class="flex items-center justify-between">
                   <span class="text-gray-600">Tipo</span>
                   <span class="font-semibold text-gray-900">
