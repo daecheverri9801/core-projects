@@ -225,16 +225,27 @@ const dialogOptions = ref({
 })
 
 const filtered = computed(() => {
-  const q = search.value.toLowerCase().trim()
+  const q = search.value.trim()
   if (!q) return props.clientes
-  return props.clientes.filter(
-    (c) =>
-      (c.nombre || '').toLowerCase().includes(q) ||
-      (c.documento || '').toLowerCase().includes(q) ||
-      (c.tipo_cliente?.tipo_cliente || '').toLowerCase().includes(q) ||
-      (c.telefono || '').toLowerCase().includes(q) ||
-      (c.correo || '').toLowerCase().includes(q)
-  )
+
+  const lowerQ = q.toLowerCase() // Mejora: búsqueda case-insensitive
+
+  return props.clientes.filter((c) => {
+    // Convertir cada campo a string y comparar
+    const nombre = (c.nombre || '').toLowerCase()
+    const documento = String(c.documento ?? '')
+    const tipo = (c.tipo_cliente?.tipo_cliente || '').toLowerCase()
+    const telefono = String(c.telefono ?? '')
+    const correo = (c.correo || '').toLowerCase()
+
+    return (
+      nombre.includes(lowerQ) ||
+      documento.includes(lowerQ) ||
+      tipo.includes(lowerQ) ||
+      telefono.includes(lowerQ) ||
+      correo.includes(lowerQ)
+    )
+  })
 })
 
 function confirmDelete(documento, nombre) {

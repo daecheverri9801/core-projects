@@ -1,6 +1,5 @@
 <template>
   <form @submit.prevent="$emit('submit')" class="space-y-6">
-    <!-- Información Básica -->
     <VentasCard>
       <template #header>
         <h3 class="text-lg font-semibold text-gray-900">Información Básica</h3>
@@ -17,6 +16,8 @@
             type="text"
             required
             :disabled="processing"
+            maxlength="150"
+            autocomplete="name"
             class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             :class="form.errors?.nombre ? 'border-red-500' : 'border-gray-300'"
             placeholder="Ej: Juan Carlos Pérez García"
@@ -88,6 +89,9 @@
             type="text"
             required
             :disabled="isEdit || processing"
+            inputmode="numeric"
+            maxlength="20"
+            autocomplete="off"
             class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             :class="form.errors?.documento ? 'border-red-500' : 'border-gray-300'"
             placeholder="Ej: 1053789456"
@@ -102,7 +106,6 @@
       </div>
     </VentasCard>
 
-    <!-- Información de Contacto -->
     <VentasCard>
       <template #header>
         <h3 class="text-lg font-semibold text-gray-900">Información de Contacto</h3>
@@ -116,6 +119,8 @@
             v-model="form.direccion"
             type="text"
             :disabled="processing"
+            maxlength="255"
+            autocomplete="street-address"
             class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             :class="form.errors?.direccion ? 'border-red-500' : 'border-gray-300'"
             placeholder="Ej: Calle 23 #45-67, Manizales"
@@ -132,6 +137,9 @@
             v-model="form.telefono"
             type="tel"
             :disabled="processing"
+            inputmode="numeric"
+            maxlength="15"
+            autocomplete="tel"
             class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             :class="form.errors?.telefono ? 'border-red-500' : 'border-gray-300'"
             placeholder="Ej: 3201234567"
@@ -148,6 +156,8 @@
             v-model="form.correo"
             type="email"
             :disabled="processing"
+            maxlength="255"
+            autocomplete="email"
             class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             :class="form.errors?.correo ? 'border-red-500' : 'border-gray-300'"
             placeholder="Ej: cliente@email.com"
@@ -159,7 +169,6 @@
       </div>
     </VentasCard>
 
-    <!-- Botones de Acción -->
     <div class="flex items-center justify-end gap-3 pt-4">
       <Link
         :href="cancelUrl"
@@ -168,6 +177,7 @@
       >
         Cancelar
       </Link>
+
       <button
         type="submit"
         :disabled="processing"
@@ -187,13 +197,14 @@
             r="10"
             stroke="currentColor"
             stroke-width="4"
-          ></circle>
+          />
           <path
             class="opacity-75"
             fill="currentColor"
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
+          />
         </svg>
+
         {{ processing ? 'Guardando...' : submitText }}
       </button>
     </div>

@@ -29,7 +29,7 @@ const props = defineProps({
   locales: Array,
   formasPago: Array,
   estadosInmueble: Array,
-  parqueaderos: { type: Array, default: () => [] }, // ✅ nuevo
+  parqueaderos: { type: Array, default: () => [] },
   empleadoProp: Object,
   inmueblePrecargado: Object,
   plazos_disponibles: Array,
@@ -39,8 +39,6 @@ const props = defineProps({
 
 const plazosDisponibles = ref([])
 const inmueblesDisponibles = ref([])
-
-// ✅ parqueaderos filtrados por proyecto
 const parqueaderosDisponibles = ref([])
 
 const form = useForm({
@@ -107,6 +105,7 @@ watch(
       const valoresValidos = frecuenciasDisponibles
         .map((f) => f.valor)
         .filter((v) => plazoNum % v === 0)
+
       if (!valoresValidos.includes(Number(form.frecuencia_cuota_inicial_meses))) {
         form.frecuencia_cuota_inicial_meses = valoresValidos.length > 0 ? valoresValidos[0] : ''
       }
@@ -200,6 +199,228 @@ const clienteInlineForm = reactive({
   errors: {},
 })
 
+function setClienteFieldError(field, message) {
+  clienteInlineForm.errors = {
+    ...clienteInlineForm.errors,
+    [field]: message,
+  }
+}
+
+function clearClienteFieldError(field) {
+  if (!clienteInlineForm.errors[field]) return
+
+  const newErrors = { ...clienteInlineForm.errors }
+  delete newErrors[field]
+  clienteInlineForm.errors = newErrors
+}
+
+function validateClienteNombre() {
+  const value = clienteInlineForm.nombre?.trim() || ''
+
+  if (!value) {
+    setClienteFieldError('nombre', 'El nombre es obligatorio.')
+    return false
+  }
+
+  if (value.length < 3) {
+    setClienteFieldError('nombre', 'El nombre debe tener al menos 3 caracteres.')
+    return false
+  }
+
+  if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]+$/.test(value)) {
+    setClienteFieldError('nombre', 'El nombre solo puede contener letras y espacios.')
+    return false
+  }
+
+  clearClienteFieldError('nombre')
+  return true
+}
+
+function validateClienteTipoCliente() {
+  if (!clienteInlineForm.id_tipo_cliente) {
+    setClienteFieldError('id_tipo_cliente', 'Debes seleccionar un tipo de cliente.')
+    return false
+  }
+
+  clearClienteFieldError('id_tipo_cliente')
+  return true
+}
+
+function validateClienteTipoDocumento() {
+  if (!clienteInlineForm.id_tipo_documento) {
+    setClienteFieldError('id_tipo_documento', 'Debes seleccionar un tipo de documento.')
+    return false
+  }
+
+  clearClienteFieldError('id_tipo_documento')
+  return true
+}
+
+function validateClienteDocumento() {
+  const value = (clienteInlineForm.documento || '').trim()
+
+  if (!value) {
+    setClienteFieldError('documento', 'El número de documento es obligatorio.')
+    return false
+  }
+
+  if (!/^\d+$/.test(value)) {
+    setClienteFieldError('documento', 'El documento solo puede contener números.')
+    return false
+  }
+
+  if (value.length < 5) {
+    setClienteFieldError('documento', 'El documento debe tener al menos 5 dígitos.')
+    return false
+  }
+
+  if (value.length > 20) {
+    setClienteFieldError('documento', 'El documento no puede superar los 20 dígitos.')
+    return false
+  }
+
+  clearClienteFieldError('documento')
+  return true
+}
+
+function validateClienteDireccion() {
+  const value = (clienteInlineForm.direccion || '').trim()
+
+  if (!value) {
+    clearClienteFieldError('direccion')
+    return true
+  }
+
+  if (value.length < 5) {
+    setClienteFieldError('direccion', 'La dirección debe tener al menos 5 caracteres.')
+    return false
+  }
+
+  if (value.length > 255) {
+    setClienteFieldError('direccion', 'La dirección no puede superar los 255 caracteres.')
+    return false
+  }
+
+  clearClienteFieldError('direccion')
+  return true
+}
+
+function validateClienteTelefono() {
+  const value = (clienteInlineForm.telefono || '').trim()
+
+  if (!value) {
+    clearClienteFieldError('telefono')
+    return true
+  }
+
+  if (!/^\d+$/.test(value)) {
+    setClienteFieldError('telefono', 'El teléfono solo puede contener números.')
+    return false
+  }
+
+  if (value.length < 7) {
+    setClienteFieldError('telefono', 'El teléfono debe tener al menos 7 dígitos.')
+    return false
+  }
+
+  if (value.length > 15) {
+    setClienteFieldError('telefono', 'El teléfono no puede superar los 15 dígitos.')
+    return false
+  }
+
+  clearClienteFieldError('telefono')
+  return true
+}
+
+function validateClienteCorreo() {
+  const value = (clienteInlineForm.correo || '').trim()
+
+  if (!value) {
+    clearClienteFieldError('correo')
+    return true
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!emailRegex.test(value)) {
+    setClienteFieldError('correo', 'Debes ingresar un correo electrónico válido.')
+    return false
+  }
+
+  if (value.length > 255) {
+    setClienteFieldError('correo', 'El correo no puede superar los 255 caracteres.')
+    return false
+  }
+
+  clearClienteFieldError('correo')
+  return true
+}
+
+function validateClienteInlineForm() {
+  const results = [
+    validateClienteNombre(),
+    validateClienteTipoCliente(),
+    validateClienteTipoDocumento(),
+    validateClienteDocumento(),
+    validateClienteDireccion(),
+    validateClienteTelefono(),
+    validateClienteCorreo(),
+  ]
+
+  return results.every(Boolean)
+}
+
+watch(
+  () => clienteInlineForm.nombre,
+  (value) => {
+    const limpio = (value || '').replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, '')
+    if (limpio !== value) clienteInlineForm.nombre = limpio
+    validateClienteNombre()
+  }
+)
+
+watch(
+  () => clienteInlineForm.id_tipo_cliente,
+  () => validateClienteTipoCliente()
+)
+
+watch(
+  () => clienteInlineForm.id_tipo_documento,
+  () => validateClienteTipoDocumento()
+)
+
+watch(
+  () => clienteInlineForm.documento,
+  (value) => {
+    const limpio = (value || '').replace(/\D/g, '')
+    if (limpio !== value) clienteInlineForm.documento = limpio
+    validateClienteDocumento()
+  }
+)
+
+watch(
+  () => clienteInlineForm.direccion,
+  () => validateClienteDireccion()
+)
+
+watch(
+  () => clienteInlineForm.telefono,
+  (value) => {
+    const limpio = (value || '').replace(/\D/g, '')
+    if (limpio !== value) clienteInlineForm.telefono = limpio
+    validateClienteTelefono()
+  }
+)
+
+watch(
+  () => clienteInlineForm.correo,
+  (value) => {
+    const limpio = (value || '').trimStart()
+    if (limpio !== value) clienteInlineForm.correo = limpio
+    validateClienteCorreo()
+  }
+)
+
 function openClienteModal() {
   clienteInlineForm.errors = {}
   showClienteModal.value = true
@@ -224,25 +445,28 @@ function resetClienteInlineForm() {
 }
 
 function submitClienteInline() {
-  clienteInlineForm.processing = true
   clienteInlineForm.errors = {}
+
+  if (!validateClienteInlineForm()) return
+
+  clienteInlineForm.processing = true
 
   router.post(
     '/clientes',
     {
-      nombre: clienteInlineForm.nombre,
+      nombre: clienteInlineForm.nombre.trim(),
       id_tipo_cliente: clienteInlineForm.id_tipo_cliente,
       id_tipo_documento: clienteInlineForm.id_tipo_documento,
-      documento: clienteInlineForm.documento,
-      direccion: clienteInlineForm.direccion,
-      telefono: clienteInlineForm.telefono,
-      correo: clienteInlineForm.correo,
+      documento: clienteInlineForm.documento.trim(),
+      direccion: clienteInlineForm.direccion?.trim() || '',
+      telefono: clienteInlineForm.telefono?.trim() || '',
+      correo: clienteInlineForm.correo?.trim() || '',
       redirect_to: window.location.pathname + window.location.search,
     },
     {
       preserveScroll: true,
       onError: (errors) => {
-        clienteInlineForm.errors = errors
+        clienteInlineForm.errors = errors || {}
         clienteInlineForm.processing = false
       },
       onSuccess: () => {
@@ -261,7 +485,6 @@ function submitClienteInline() {
 
 /** ===== Helpers de recálculo ===== */
 function recalcularEconomiaVenta() {
-  // total = base inmueble + parqueadero adicional
   const total = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
   form.valor_total = total
 
@@ -307,31 +530,6 @@ watch(
   }
 )
 
-// watch(
-//   () => form.fecha_limite_separacion,
-//   (fecha) => {
-//     if (form.tipo_operacion !== 'separacion') {
-//       erroresForm.fecha_limite_separacion = ''
-//       return
-//     }
-//     const maxDias = proyectoSeleccionado.value?.plazo_max_separacion_dias ?? 0
-//     const hoy = new Date()
-//     const fechaLimite = new Date(hoy)
-//     fechaLimite.setDate(hoy.getDate() + Number(maxDias))
-
-//     if (!fecha) {
-//       erroresForm.fecha_limite_separacion = ''
-//       return
-//     }
-
-//     const f = new Date(fecha)
-//     erroresForm.fecha_limite_separacion =
-//       f > fechaLimite
-//         ? `La fecha máxima permitida es ${fechaLimite.toISOString().slice(0, 10)}`
-//         : ''
-//   }
-// )
-
 watch(
   () => form.fecha_limite_separacion,
   (fecha) => {
@@ -359,19 +557,9 @@ watch(
   }
 )
 
-// const fechaMinimaSeparacion = computed(() => new Date().toISOString().split('T')[0])
-
 const fechaMinimaSeparacion = computed(
   () => form.fecha_venta || new Date().toISOString().split('T')[0]
 )
-
-// const fechaMaximaSeparacion = computed(() => {
-//   if (!proyectoSeleccionado.value) return null
-//   const dias = Number(proyectoSeleccionado.value.plazo_max_separacion_dias || 0)
-//   const fecha = new Date()
-//   fecha.setDate(fecha.getDate() + dias)
-//   return fecha.toISOString().split('T')[0]
-// })
 
 const fechaMaximaSeparacion = computed(() => {
   if (!proyectoSeleccionado.value || !form.fecha_venta) return null
@@ -406,7 +594,6 @@ onMounted(() => {
   else if (form.tipo_operacion === 'separacion') form.id_estado_inmueble = estadoSeparadoId
 })
 
-/** ===== Proyecto -> inmuebles + parqueaderos ===== */
 watch(
   () => form.id_proyecto,
   (nuevoProyecto) => {
@@ -415,7 +602,7 @@ watch(
     form.inmueble_tipo = ''
     form.valor_base = 0
     form.valor_total = 0
-    form.id_parqueadero = '' // ✅ reset
+    form.id_parqueadero = ''
     form.cuota_inicial_raw = 0
     form.cuota_inicial = 0
     form.valor_restante = 0
@@ -452,7 +639,6 @@ watch(
       })),
     ]
 
-    // ✅ Parqueaderos adicionales del proyecto (ya vienen filtrados desde backend por no vendidos)
     parqueaderosDisponibles.value = props.parqueaderos
       .filter((p) => Number(p.id_proyecto) === proyectoId)
       .map((p) => ({
@@ -462,7 +648,6 @@ watch(
   }
 )
 
-/** ===== Pre-carga desde catálogo ===== */
 onMounted(() => {
   if (props.inmueblePrecargado) {
     const inmueble = props.inmueblePrecargado
@@ -480,7 +665,6 @@ onMounted(() => {
   }
 })
 
-/** ===== Inmueble -> setear tipo, valor_base y recalcular ===== */
 watch(
   () => form.inmueble_uid,
   (newUid) => {
@@ -507,11 +691,9 @@ watch(
   }
 )
 
-/** ===== Parqueadero -> recalcular totales ===== */
 watch(
   () => form.id_parqueadero,
   () => {
-    // Solo permitir parqueadero adicional si es apartamento
     if (form.inmueble_tipo !== 'apartamento') {
       form.id_parqueadero = ''
       return
@@ -520,7 +702,6 @@ watch(
   }
 )
 
-/** ===== Cuota inicial input ===== */
 function onCuotaInicialInput(value) {
   const clean = value.replace(/[^\d]/g, '')
   const raw = clean ? Number(clean) : 0
@@ -534,7 +715,6 @@ function onCuotaInicialInput(value) {
   }
 }
 
-/** ===== Restante ===== */
 watch(
   () => form.cuota_inicial_raw,
   () => {
@@ -560,30 +740,6 @@ const camposCompletos = computed(() =>
   )
 )
 
-// watch(
-//   () => form.id_proyecto,
-//   () => {
-//     const p = proyectoSeleccionado.value
-//     if (p) {
-//       const inicio = p.fecha_inicio
-//       const plazoTotal = p.plazo_cuota_inicial_meses
-//       if (inicio && plazoTotal > 0) {
-//         const start = new Date(inicio)
-//         const now = new Date()
-//         const diffMonths =
-//           (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
-//         const plazosRestantes = Math.max(plazoTotal - diffMonths, 0)
-//         plazosDisponibles.value = Array.from({ length: plazosRestantes }, (_, i) => i + 1)
-//       } else {
-//         plazosDisponibles.value = []
-//       }
-//     } else {
-//       plazosDisponibles.value = []
-//     }
-//   },
-//   { immediate: true }
-// )
-
 function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
   if (!inicioStr || !fechaRefStr) return 0
 
@@ -592,8 +748,6 @@ function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
 
   let meses = (ref.getFullYear() - inicio.getFullYear()) * 12 + (ref.getMonth() - inicio.getMonth())
 
-  // Si el día de la fecha de referencia es menor que el día de inicio,
-  // todavía no se cumple el mes completo.
   if (ref.getDate() < inicio.getDate()) {
     meses--
   }
@@ -617,7 +771,6 @@ function actualizarPlazosDisponibles() {
   plazosDisponibles.value =
     plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
 
-  // Si el plazo seleccionado ya no es válido, lo reseteamos
   if (
     form.plazo_cuota_inicial_meses &&
     !plazosDisponibles.value.includes(Number(form.plazo_cuota_inicial_meses))
@@ -663,24 +816,10 @@ watch(proyectoSeleccionado, (nuevoProyecto) => {
 })
 
 function usarValorMinimo() {
-  if (proyectoSeleccionado.value)
+  if (proyectoSeleccionado.value) {
     form.valor_separacion = proyectoSeleccionado.value.valor_min_separacion || 0
+  }
 }
-
-// /** ===== Submit ===== */
-// function submit() {
-//   // Normalizar campos
-//   form.cuota_inicial = form.cuota_inicial_raw
-
-//   // Si no es apartamento, fuerza parqueadero null
-//   if (form.inmueble_tipo !== 'apartamento') {
-//     form.id_parqueadero = ''
-//   }
-
-//   form.post('/ventas', {
-//     preserveScroll: true,
-//   })
-// }
 
 function submit() {
   form.cuota_inicial = form.cuota_inicial_raw
@@ -705,7 +844,6 @@ function submit() {
   <VentasLayout :empleado="empleado">
     <Head title="Registrar Operación" />
 
-    <!-- Header tipo hero -->
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-6">
       <div class="bg-gradient-to-r from-[#FFEA00] to-[#FFF15C] px-6 py-6">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -760,12 +898,9 @@ function submit() {
         </ul>
       </div>
 
-      <!-- Contenido: grid form + resumen -->
       <div class="px-6 py-6 bg-white">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- FORM -->
           <form @submit.prevent="submit" class="lg:col-span-2 space-y-6">
-            <!-- Sección 1 -->
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
               <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -793,7 +928,6 @@ function submit() {
               </div>
 
               <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- Tipo -->
                 <div>
                   <label :class="labelClass()">Tipo de operación *</label>
                   <select v-model="form.tipo_operacion" :class="inputClass(false, false)">
@@ -803,7 +937,6 @@ function submit() {
                   </select>
                 </div>
 
-                <!-- Empleado -->
                 <div>
                   <label :class="labelClass()">Empleado</label>
                   <input
@@ -827,7 +960,6 @@ function submit() {
                   </p>
                 </div>
 
-                <!-- Cliente -->
                 <div class="md:col-span-2">
                   <div class="flex items-center justify-between mb-1">
                     <label :class="labelClass()">Cliente *</label>
@@ -849,7 +981,6 @@ function submit() {
                   </select>
                 </div>
 
-                <!-- Proyecto -->
                 <div>
                   <label :class="labelClass()">Proyecto *</label>
                   <select v-model="form.id_proyecto" :class="inputClass(false, false)">
@@ -860,7 +991,6 @@ function submit() {
                   </select>
                 </div>
 
-                <!-- Inmueble -->
                 <div>
                   <label :class="labelClass()">Inmueble disponible *</label>
                   <select
@@ -883,7 +1013,6 @@ function submit() {
                   </div>
                 </div>
 
-                <!-- Parqueadero adicional (opcional) -->
                 <div>
                   <label :class="labelClass()">Parqueadero adicional (opcional)</label>
                   <select
@@ -904,7 +1033,6 @@ function submit() {
                   </select>
                 </div>
 
-                <!-- Forma pago -->
                 <div>
                   <label :class="labelClass()">Forma de pago *</label>
                   <select v-model="form.id_forma_pago" :class="inputClass(false, false)">
@@ -919,7 +1047,6 @@ function submit() {
                   </select>
                 </div>
 
-                <!-- Estado auto -->
                 <div>
                   <label :class="labelClass()">Estado del inmueble *</label>
                   <input
@@ -931,7 +1058,6 @@ function submit() {
                   <input type="hidden" v-model="form.id_estado_inmueble" />
                 </div>
 
-                <!-- Descripción -->
                 <div class="md:col-span-2">
                   <label :class="labelClass()">Descripción</label>
                   <textarea v-model="form.descripcion" rows="3" :class="inputClass(false, false)" />
@@ -939,7 +1065,6 @@ function submit() {
               </div>
             </div>
 
-            <!-- Sección 2: Venta/Separación -->
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
               <div class="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
                 <BanknotesIcon class="w-5 h-5 text-[#1e3a5f]" />
@@ -947,7 +1072,6 @@ function submit() {
               </div>
 
               <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- VENTA -->
                 <template v-if="form.tipo_operacion === 'venta'">
                   <div>
                     <label :class="labelClass()">Valor total</label>
@@ -1025,7 +1149,6 @@ function submit() {
                   </div>
                 </template>
 
-                <!-- SEPARACIÓN -->
                 <template v-else-if="form.tipo_operacion === 'separacion'">
                   <div>
                     <div class="flex items-center justify-between mb-1">
@@ -1077,7 +1200,6 @@ function submit() {
                   </div>
                 </template>
 
-                <!-- Sin tipo -->
                 <template v-else>
                   <div class="md:col-span-2">
                     <div
@@ -1092,7 +1214,6 @@ function submit() {
               </div>
             </div>
 
-            <!-- CTA -->
             <div class="flex items-center justify-end gap-3">
               <button
                 type="submit"
@@ -1124,7 +1245,6 @@ function submit() {
             </div>
           </form>
 
-          <!-- RESUMEN LATERAL -->
           <div class="space-y-4">
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-5 sticky top-6">
               <div class="flex items-center gap-2 mb-3">
@@ -1236,7 +1356,6 @@ function submit() {
       </div>
     </div>
 
-    <!-- MODAL CLIENTE (scroll + tamaño correcto) -->
     <teleport to="body">
       <div v-if="showClienteModal" class="fixed inset-0 z-50">
         <div class="absolute inset-0 bg-black/40" @click="closeClienteModal" />
@@ -1247,7 +1366,6 @@ function submit() {
             role="dialog"
             aria-modal="true"
           >
-            <!-- header -->
             <div
               class="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-white"
             >
@@ -1264,7 +1382,6 @@ function submit() {
               </button>
             </div>
 
-            <!-- body scroll -->
             <div class="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-5">
               <ClienteForm
                 :form="clienteInlineForm"
