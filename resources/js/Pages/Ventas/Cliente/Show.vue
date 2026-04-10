@@ -185,6 +185,11 @@
               <span class="text-sm text-gray-600">Registrado</span>
               <span class="text-sm text-gray-900">{{ formatDate(cliente.created_at) }}</span>
             </div>
+
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span class="text-sm text-gray-600">Asesor</span>
+              <span class="text-sm text-gray-900">{{ cliente.asesor_responsable?.nombre || '—' }}</span>
+            </div>
           </div>
         </VentasCard>
 

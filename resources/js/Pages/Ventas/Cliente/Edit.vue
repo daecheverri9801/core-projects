@@ -10,6 +10,8 @@
       :form="form"
       :tipos-cliente="tiposCliente"
       :tipos-documento="tiposDocumento"
+      :empleado="empleado"
+      :cliente="cliente"
       :is-edit="true"
       submit-text="Actualizar Cliente"
       :processing="form.processing"
@@ -45,6 +47,7 @@ const form = reactive({
   direccion: props.cliente.direccion || '',
   telefono: props.cliente.telefono || '',
   correo: props.cliente.correo || '',
+  id_empleado_asesor: props.cliente.id_empleado_asesor || '',
   processing: false,
   errors: {},
 })
@@ -62,6 +65,7 @@ function submit() {
       direccion: form.direccion,
       telefono: form.telefono,
       correo: form.correo,
+      id_empleado_asesor: form.id_empleado_asesor,
     },
     {
       preserveScroll: true,

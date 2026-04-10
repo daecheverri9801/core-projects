@@ -12,6 +12,7 @@
       :form="form"
       :tipos-cliente="tiposCliente"
       :tipos-documento="tiposDocumento"
+      :empleado="empleado"
       :is-edit="false"
       submit-text="Crear Cliente"
       :processing="form.processing"
@@ -32,7 +33,7 @@ import VentasPageHeader from '../Components/VentasPageHeader.vue'
 import ClienteForm from '../Components/ClienteForm.vue'
 import { UserPlusIcon } from '@heroicons/vue/24/outline'
 
-defineProps({
+const props = defineProps({
   tiposCliente: { type: Array, default: () => [] },
   tiposDocumento: { type: Array, default: () => [] },
   empleado: { type: Object, default: null },
@@ -46,6 +47,7 @@ const form = reactive({
   direccion: '',
   telefono: '',
   correo: '',
+  id_empleado_asesor: props.empleado?.id_empleado || '',
   processing: false,
   errors: {},
 })
@@ -207,6 +209,16 @@ function validateCorreo() {
   return true
 }
 
+function validateAsesor() {
+  if (!form.id_empleado_asesor) {
+    setFieldError('id_empleado_asesor', 'No se encontró el asesor responsable.')
+    return false
+  }
+
+  clearFieldError('id_empleado_asesor')
+  return true
+}
+
 function validateForm() {
   const results = [
     validateNombre(),
@@ -216,6 +228,7 @@ function validateForm() {
     validateDireccion(),
     validateTelefono(),
     validateCorreo(),
+    validateAsesor(),
   ]
 
   return results.every(Boolean)
@@ -283,6 +296,7 @@ function resetForm() {
   form.direccion = ''
   form.telefono = ''
   form.correo = ''
+  form.id_empleado_asesor = props.empleado?.id_empleado || ''
   form.errors = {}
 }
 
@@ -303,11 +317,12 @@ function submit() {
       direccion: form.direccion?.trim() || '',
       telefono: form.telefono?.trim() || '',
       correo: form.correo?.trim() || '',
+      id_empleado_asesor: form.id_empleado_asesor,
     },
     {
       preserveScroll: true,
       onSuccess: () => {
-        resetForm()
+        form.errors = {}
       },
       onError: (errors) => {
         form.errors = errors || {}

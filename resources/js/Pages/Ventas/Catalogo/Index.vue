@@ -233,10 +233,13 @@
                 </p>
                 <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
                   <div>
-                    <span class="font-medium">Área:</span> {{ inmueble.area_construida }} m²
+                    <span class="font-medium">Área Const:</span> {{ inmueble.area_construida }} m²
                   </div>
                   <div v-if="inmueble.habitaciones">
                     <span class="font-medium">Hab:</span> {{ inmueble.habitaciones }}
+                  </div>
+                  <div>
+                    <span class="font-medium">Área Priv:</span> {{ inmueble.area_privada }} m²
                   </div>
                   <div v-if="inmueble.banos">
                     <span class="font-medium">Baños:</span> {{ inmueble.banos }}

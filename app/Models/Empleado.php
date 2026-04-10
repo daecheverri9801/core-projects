@@ -66,4 +66,9 @@ class Empleado extends Authenticatable
     {
         return $this->hasMany(PoliticaComision::class, 'id_empleado', 'id_empleado');
     }
+
+    public function clientesAsesorados()
+    {
+        return $this->hasMany(Cliente::class, 'id_empleado_asesor', 'id_empleado');
+    }
 }

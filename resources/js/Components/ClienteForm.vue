@@ -82,7 +82,7 @@
           </div>
 
           <!-- Documento -->
-          <div class="md:col-span-2">
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Número de Documento <span class="text-red-500">*</span>
             </label>
@@ -100,6 +100,30 @@
             </p>
             <p v-if="form.errors?.documento" class="text-xs text-red-500 mt-1">
               {{ form.errors.documento }}
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Asesor Responsable <span class="text-red-500">*</span>
+            </label>
+            <input
+              :value="
+                isEdit
+                  ? `${cliente?.asesor_responsable?.nombre || ''} ${cliente?.asesor_responsable?.apellido || ''}`.trim() ||
+                    'No asignado'
+                  : `${empleado?.nombre || ''} ${empleado?.apellido || ''}`.trim() ||
+                    'No disponible'
+              "
+              type="text"
+              disabled
+              class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed border-gray-300"
+              placeholder="Asesor responsable"
+            />
+            <input v-model="form.id_empleado_asesor" type="hidden" />
+            <p class="text-xs text-gray-500 mt-1">Este campo no puede ser modificado.</p>
+            <p v-if="form.errors?.id_empleado_asesor" class="text-xs text-red-500 mt-1">
+              {{ form.errors.id_empleado_asesor }}
             </p>
           </div>
         </div>
@@ -224,6 +248,8 @@ defineProps({
   form: { type: Object, required: true },
   tiposCliente: { type: Array, default: () => [] },
   tiposDocumento: { type: Array, default: () => [] },
+  empleado: { type: Object, default: null },
+  cliente: { type: Object, default: null },
   isEdit: { type: Boolean, default: false },
   submitText: { type: String, default: 'Guardar' },
   cancelUrl: { type: String, default: '/clientes' },

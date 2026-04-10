@@ -80,28 +80,56 @@
         </div>
 
         <!-- Documento -->
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Número de Documento <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="form.documento"
-            type="text"
-            required
-            :disabled="isEdit || processing"
-            inputmode="numeric"
-            maxlength="20"
-            autocomplete="off"
-            class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            :class="form.errors?.documento ? 'border-red-500' : 'border-gray-300'"
-            placeholder="Ej: 1053789456"
-          />
-          <p v-if="isEdit" class="text-xs text-gray-500 mt-1">
-            El documento no puede ser modificado
-          </p>
-          <p v-if="form.errors?.documento" class="text-xs text-red-500 mt-1">
-            {{ form.errors.documento }}
-          </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Número de Documento -->
+          <div class="md:col-span-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Número de Documento <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="form.documento"
+              type="text"
+              required
+              :disabled="isEdit || processing"
+              inputmode="numeric"
+              maxlength="20"
+              autocomplete="off"
+              class="w-full px-4 py-2.5 border rounded-lg transition focus:ring-2 focus:ring-[#FFEA00] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              :class="form.errors?.documento ? 'border-red-500' : 'border-gray-300'"
+              placeholder="Ej: 1053789456"
+            />
+            <p v-if="isEdit" class="text-xs text-gray-500 mt-1">
+              El documento no puede ser modificado
+            </p>
+            <p v-if="form.errors?.documento" class="text-xs text-red-500 mt-1">
+              {{ form.errors.documento }}
+            </p>
+          </div>
+
+          <!-- Asesor Responsable -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Asesor Responsable <span class="text-red-500">*</span>
+            </label>
+            <input
+              :value="
+                isEdit
+                  ? `${cliente?.asesor_responsable?.nombre || ''} ${cliente?.asesor_responsable?.apellido || ''}`.trim() ||
+                    'No asignado'
+                  : `${empleado?.nombre || ''} ${empleado?.apellido || ''}`.trim() ||
+                    'No disponible'
+              "
+              type="text"
+              disabled
+              class="w-full px-4 py-2.5 border rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed border-gray-300"
+              placeholder="Asesor responsable"
+            />
+            <input v-model="form.id_empleado_asesor" type="hidden" />
+            <p class="text-xs text-gray-500 mt-1">Este campo no puede ser modificado.</p>
+            <p v-if="form.errors?.id_empleado_asesor" class="text-xs text-red-500 mt-1">
+              {{ form.errors.id_empleado_asesor }}
+            </p>
+          </div>
         </div>
       </div>
     </VentasCard>
@@ -219,6 +247,8 @@ defineProps({
   form: { type: Object, required: true },
   tiposCliente: { type: Array, default: () => [] },
   tiposDocumento: { type: Array, default: () => [] },
+  empleado: { type: Object, default: null },
+  cliente: { type: Object, default: null },
   isEdit: { type: Boolean, default: false },
   submitText: { type: String, default: 'Guardar' },
   cancelUrl: { type: String, default: '/clientes' },

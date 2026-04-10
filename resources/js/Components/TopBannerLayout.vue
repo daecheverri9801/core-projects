@@ -56,7 +56,7 @@
           <transition name="fade">
             <div
               v-if="menuOpen"
-              class="absolute right-0 mt-2 w-56 rounded-2xl border border-brand-200/60 bg-white shadow-lg overflow-hidden"
+              class="absolute right-0 mt-2 w-56 rounded-2xl border border-brand-200/60 bg-white shadow-lg overflow-hidden z-20"
             >
               <div class="px-4 py-3 bg-brand-50 border-b border-brand-200/60">
                 <p class="text-xs text-gray-500">Sesión</p>

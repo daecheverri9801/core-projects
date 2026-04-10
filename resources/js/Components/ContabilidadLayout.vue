@@ -6,10 +6,8 @@
         <div class="flex items-center justify-between">
           <!-- Logo y Nombre (izquierda) -->
           <div class="flex items-center gap-3">
-            <div
-              class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center shadow-md"
-            >
-              <Logo class="w-7 h-7" />
+            <div>
+              <Logo class="h-[90px]"/>
             </div>
             <div>
               <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>

@@ -23,6 +23,7 @@ class Cliente extends Model
         'direccion',
         'telefono',
         'correo',
+        'id_empleado_asesor',
     ];
 
     // Relaciones
@@ -44,6 +45,11 @@ class Cliente extends Model
     public function apartamentos()
     {
         return $this->hasMany(Apartamento::class, 'documento', 'documento');
+    }
+
+    public function asesorResponsable()
+    {
+        return $this->belongsTo(Empleado::class, 'id_empleado_asesor', 'id_empleado');
     }
 
     public function routeNotificationForMail($notification): ?string

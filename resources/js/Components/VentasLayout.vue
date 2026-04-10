@@ -9,9 +9,9 @@
             <!-- Logo y Nombre -->
             <div class="flex items-center gap-3">
               <div
-                class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center shadow-md"
+                
               >
-                <Logo class="w-7 h-7" />
+                <Logo />
               </div>
               <div>
                 <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>
@@ -155,7 +155,7 @@ import {
   ChartBarIcon,
   PlusIcon,
   ChartBarSquareIcon,
-  Cog6ToothIcon 
+  Cog6ToothIcon,
 } from '@heroicons/vue/24/outline'
 import { useIdleLogout } from '@/composables/useIdleLogout'
 

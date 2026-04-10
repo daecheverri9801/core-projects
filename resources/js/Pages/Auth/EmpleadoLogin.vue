@@ -3,7 +3,7 @@
     <!-- Banner superior -->
     <header class="bg-brand-500/5 border-b border-brand-200/30">
       <div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-        <Logo class="w-10 h-10" />
+        <Logo class="h-[100px]" />
         <div>
           <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
           <p class="text-sm text-slate-600">Panel de Proyectos</p>

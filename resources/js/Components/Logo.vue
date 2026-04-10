@@ -2,7 +2,7 @@
   <img
     src="/images/logo-ayc.png"
     alt="Logo Constructora A&C"
-    class="h-10 w-10 object-contain"
+    class="h-[80px] object-contain"
     loading="eager"
     decoding="async"
   />

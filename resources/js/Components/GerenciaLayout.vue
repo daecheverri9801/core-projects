@@ -47,7 +47,11 @@ const cargoNombre = computed(() => empleado.value?.cargo?.nombre || 'Gerente')
     <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <img src="/images/logo-ayc.png" class="h-8" alt="Logo" />
+          <div
+            class="rounded-lg bg-white flex items-center justify-center shadow-sm border border-gray-100"
+          >
+            <img src="/images/logo-ayc.png" class="h-[80px]" alt="Logo" />
+          </div>
           <div>
             <div class="font-semibold text-slate-50">Constructora A&amp;C</div>
           </div>

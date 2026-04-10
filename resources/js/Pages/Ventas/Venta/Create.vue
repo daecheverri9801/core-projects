@@ -16,7 +16,6 @@ import {
   IdentificationIcon,
 } from '@heroicons/vue/24/outline'
 import { CheckCircleIcon as CheckSolid } from '@heroicons/vue/24/solid'
-
 import VentasLayout from '@/Components/VentasLayout.vue'
 import ClienteForm from '@/Components/ClienteForm.vue'
 
@@ -267,6 +266,7 @@ const clienteInlineForm = reactive({
   direccion: '',
   telefono: '',
   correo: '',
+  id_empleado_asesor: empleado.value?.id_empleado || '',
   processing: false,
   errors: {},
 })
@@ -428,6 +428,16 @@ function validateClienteCorreo() {
   return true
 }
 
+function validateClienteAsesor() {
+  if (!clienteInlineForm.id_empleado_asesor) {
+    setClienteFieldError('id_empleado_asesor', 'No se encontró el asesor responsable.')
+    return false
+  }
+
+  clearClienteFieldError('id_empleado_asesor')
+  return true
+}
+
 function validateClienteInlineForm() {
   const results = [
     validateClienteNombre(),
@@ -437,6 +447,7 @@ function validateClienteInlineForm() {
     validateClienteDireccion(),
     validateClienteTelefono(),
     validateClienteCorreo(),
+    validateClienteAsesor(),
   ]
 
   return results.every(Boolean)
@@ -512,6 +523,7 @@ function resetClienteInlineForm() {
   clienteInlineForm.direccion = ''
   clienteInlineForm.telefono = ''
   clienteInlineForm.correo = ''
+  clienteInlineForm.id_empleado_asesor = empleado.value?.id_empleado || ''
   clienteInlineForm.processing = false
   clienteInlineForm.errors = {}
 }
@@ -533,6 +545,7 @@ function submitClienteInline() {
       direccion: clienteInlineForm.direccion?.trim() || '',
       telefono: clienteInlineForm.telefono?.trim() || '',
       correo: clienteInlineForm.correo?.trim() || '',
+      id_empleado_asesor: clienteInlineForm.id_empleado_asesor,
       redirect_to: window.location.pathname + window.location.search,
     },
     {
@@ -1562,6 +1575,7 @@ function submit() {
                 :form="clienteInlineForm"
                 :tipos-cliente="tiposCliente"
                 :tipos-documento="tiposDocumento"
+                :empleado="empleado"
                 submit-text="Crear Cliente"
                 :processing="clienteInlineForm.processing"
                 cancel-url="#"
