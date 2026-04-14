@@ -7,7 +7,7 @@
           <!-- Logo y Nombre (izquierda) -->
           <div class="flex items-center gap-3">
             <div>
-              <Logo class="h-[90px]"/>
+              <Logo class="h-[90px]" />
             </div>
             <div>
               <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>
@@ -26,6 +26,18 @@
               "
             >
               Ventas
+            </Link>
+
+            <Link
+              href="/contabilidad/pagos"
+              class="px-4 py-2 rounded-lg text-sm font-semibold transition"
+              :class="
+                isActive('/contabilidad/pagos')
+                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  : 'text-gray-700 hover:bg-gray-100'
+              "
+            >
+              Pagos
             </Link>
 
             <Link

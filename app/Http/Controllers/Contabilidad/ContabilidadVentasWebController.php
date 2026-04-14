@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Contabilidad;
 use App\Http\Controllers\Controller;
 use App\Models\Venta;
 use App\Models\Proyecto;
+use App\Models\Pago;
 use App\Services\GerenciaEstadisticasService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -71,7 +72,8 @@ class ContabilidadVentasWebController extends Controller
             'local.pisoTorre',
             'parqueadero',
             'planAmortizacion.cuotas',
-            'pagos',
+            'pagos.conceptoPago',
+            'pagos.medioPago',
         ])->findOrFail($id);
 
         $imagenTipoAptoUrl = null;
@@ -82,6 +84,66 @@ class ContabilidadVentasWebController extends Controller
         return Inertia::render('Contabilidad/Ventas/Show', [
             'venta' => $venta,
             'imagenTipoAptoUrl' => $imagenTipoAptoUrl,
+            'empleado' => $empleado,
+        ]);
+    }
+
+    public function pagos(Request $request)
+    {
+        $empleado = $request->user()->load('cargo');
+
+        $pagos = Pago::with([
+            'venta.cliente',
+            'venta.proyecto',
+            'venta.apartamento',
+            'venta.local',
+            'venta.empleado',
+            'conceptoPago',
+            'medioPago',
+            'cuota.planAmortizacion',
+        ])
+            ->orderBy('fecha', 'desc')
+            ->get()
+            ->map(function ($pago) {
+                $venta = $pago->venta;
+
+                $inmueble = '—';
+                if ($venta?->apartamento) {
+                    $inmueble = 'Apto ' . $venta->apartamento->numero;
+                } elseif ($venta?->local) {
+                    $inmueble = 'Local ' . $venta->local->numero;
+                }
+
+                return [
+                    'id_pago' => $pago->id_pago,
+                    'fecha' => $pago->fecha,
+                    'valor' => $pago->valor,
+                    'referencia_pago' => $pago->referencia_pago,
+                    'descripcion' => $pago->descripcion,
+                    'comprobante_url' => $pago->comprobante_url,
+                    'comprobante_nombre_original' => $pago->comprobante_nombre_original,
+                    'tiene_comprobante' => $pago->tiene_comprobante,
+                    'cliente' => $venta?->cliente?->nombre,
+                    'documento_cliente' => $venta?->cliente?->documento,
+                    'proyecto' => $venta?->proyecto?->nombre,
+                    'inmueble' => $inmueble,
+                    'asesor' => $venta?->empleado
+                        ? trim(($venta->empleado->nombre ?? '') . ' ' . ($venta->empleado->apellido ?? ''))
+                        : '—',
+                    'concepto_pago' => $pago->conceptoPago?->concepto,
+                    'medio_pago' => $pago->medioPago?->medio_pago,
+                    'numero_cuota' => $pago->cuota?->numero_cuota,
+                    'id_venta' => $venta?->id_venta,
+                ];
+            });
+
+        $proyectos = Proyecto::select('id_proyecto', 'nombre')
+            ->orderBy('nombre')
+            ->get();
+
+        return Inertia::render('Contabilidad/Pagos/Index', [
+            'pagos' => $pagos,
+            'proyectos' => $proyectos,
             'empleado' => $empleado,
         ]);
     }
@@ -171,35 +233,23 @@ class ContabilidadVentasWebController extends Controller
         );
     }
 
-    /**
-     * Resuelve el rango de fechas final que debe usar el reporte.
-     *
-     * Prioridad:
-     * 1. Rango manual (desde/hasta)
-     * 2. Año + mes
-     * 3. Solo año
-     */
     private function resolverRangoPlanPagos($ano, $mes, ?string $desde, ?string $hasta): array
     {
         $desdeDate = $desde ? Carbon::parse($desde)->startOfDay() : null;
         $hastaDate = $hasta ? Carbon::parse($hasta)->endOfDay() : null;
 
-        // 1. Rango manual completo
         if ($desdeDate && $hastaDate) {
             return [$desdeDate, $hastaDate];
         }
 
-        // 2. Solo desde
         if ($desdeDate && !$hastaDate) {
             return [$desdeDate, null];
         }
 
-        // 3. Solo hasta
         if (!$desdeDate && $hastaDate) {
             return [null, $hastaDate];
         }
 
-        // 4. Año + mes
         if ($ano !== null && $ano !== '' && $mes !== null && $mes !== '') {
             $base = Carbon::createFromDate((int) $ano, (int) $mes, 1);
 
@@ -209,7 +259,6 @@ class ContabilidadVentasWebController extends Controller
             ];
         }
 
-        // 5. Solo año
         if ($ano !== null && $ano !== '') {
             return [
                 Carbon::createFromDate((int) $ano, 1, 1)->startOfDay(),
@@ -217,7 +266,6 @@ class ContabilidadVentasWebController extends Controller
             ];
         }
 
-        // 6. Sin filtros de fecha => todo el historial
         return [null, null];
     }
 }

@@ -221,11 +221,11 @@ const modulos = [
   //   href: '/plan-amortizacion-cuota',
   //   icon: ClipboardDocumentListIcon,
   // },
-  // {
-  //   name: 'Pagos',
-  //   href: '/pagos',
-  //   icon: CreditCardIcon,
-  // },
+  {
+    name: 'Pagos',
+    href: '/pagos',
+    icon: CreditCardIcon,
+  },
   // {
   //   name: 'Metas',
   //   href: '/metas',

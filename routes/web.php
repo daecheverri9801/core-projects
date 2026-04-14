@@ -385,15 +385,7 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
     Route::get('/plan-amortizacion-venta/clientes-por-proyecto', [PlanAmortizacionVentaWebController::class, 'clientesPorProyecto']);
 
     // 10. Pagos
-    Route::resource('pagos', PagoWebController::class)->names([
-        'index' => 'pagos.index',
-        'create' => 'pagos.create',
-        'store' => 'pagos.store',
-        'show' => 'pagos.show',
-        'edit' => 'pagos.edit',
-        'update' => 'pagos.update',
-        'destroy' => 'pagos.destroy',
-    ]);
+    Route::resource('pagos', PagoWebController::class);
 
     // 11. Planes de Amortización - Cuotas
     Route::resource('planes-amortizacion-cuota', PlanAmortizacionCuotaWebController::class)->names([
@@ -488,6 +480,9 @@ Route::middleware(['auth', 'check.cargo:Contador'])->prefix('contabilidad')->gro
 
     Route::get('/comisiones', [ComisionController::class, 'index'])
         ->name('contabilidad.comisiones.index');
+
+    Route::get('/pagos', [ContabilidadVentasWebController::class, 'pagos'])
+        ->name('contabilidad.pagos.index');
 });
 
 Route::get('/preview-email/{id?}', function ($id = null) {

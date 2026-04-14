@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Pago extends Model
 {
@@ -21,13 +22,22 @@ class Pago extends Model
         'descripcion',
         'valor',
         'id_cuota',
+        'comprobante_path',
+        'comprobante_nombre_original',
+        'comprobante_mime',
+        'comprobante_size',
     ];
 
     protected $casts = [
         'fecha' => 'datetime',
+        'valor' => 'decimal:2',
     ];
 
-    // Relaciones
+    protected $appends = [
+        'comprobante_url',
+        'tiene_comprobante',
+    ];
+
     public function venta()
     {
         return $this->belongsTo(Venta::class, 'id_venta', 'id_venta');
@@ -46,5 +56,19 @@ class Pago extends Model
     public function cuota()
     {
         return $this->belongsTo(PlanAmortizacionCuota::class, 'id_cuota', 'id_cuota');
+    }
+
+    public function getComprobanteUrlAttribute(): ?string
+    {
+        if (!$this->comprobante_path) {
+            return null;
+        }
+
+        return Storage::url($this->comprobante_path);
+    }
+
+    public function getTieneComprobanteAttribute(): bool
+    {
+        return !empty($this->comprobante_path);
     }
 }
