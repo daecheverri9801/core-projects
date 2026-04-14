@@ -71,4 +71,9 @@ class Empleado extends Authenticatable
     {
         return $this->hasMany(Cliente::class, 'id_empleado_asesor', 'id_empleado');
     }
+
+    public function bitacorasClientes()
+    {
+        return $this->hasMany(ClienteBitacora::class, 'id_empleado', 'id_empleado');
+    }
 }

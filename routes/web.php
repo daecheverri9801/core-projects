@@ -46,6 +46,7 @@ use App\Http\Controllers\Admin\LoginLogController as AdminLoginLogController;
 use App\Http\Controllers\Gerencia\LoginLogController as GerenciaLoginLogController;
 use App\Http\Controllers\Contabilidad\ContabilidadVentasWebController;
 use App\Http\Controllers\Contabilidad\ComisionController;
+use App\Http\Controllers\Ventas\ClienteBitacoraController;
 
 Route::get('/', [EmpleadoAuthController::class, 'showLoginForm'])->name('home');
 Route::post('/login', [EmpleadoAuthController::class, 'login'])->name('login.empleado');
@@ -419,6 +420,15 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
     // Route::get('/metas', [MetasDashboardController::class, 'index'])->name('ventas.metas.index');
     // Route::get('/metas/pendientes-mes-actual', [MetasDashboardController::class, 'pendientesMesActual'])
     //     ->name('ventas.metas.pendientesMesActual');
+
+    Route::post('/clientes/{documento}/bitacoras', [ClienteBitacoraController::class, 'store'])
+        ->name('clientes.bitacoras.store');
+
+    Route::put('/clientes/{documento}/bitacoras/{idBitacora}', [ClienteBitacoraController::class, 'update'])
+        ->name('clientes.bitacoras.update');
+
+    Route::delete('/clientes/{documento}/bitacoras/{idBitacora}', [ClienteBitacoraController::class, 'destroy'])
+        ->name('clientes.bitacoras.destroy');
 });
 
 Route::middleware(['auth', 'check.cargo:Gerente'])->group(function () {

@@ -108,6 +108,11 @@ class ClienteWebController extends Controller
             'tipoCliente',
             'tipoDocumento',
             'asesorResponsable:id_empleado,nombre,apellido',
+            'bitacoras' => function ($q) {
+                $q->with([
+                    'empleado:id_empleado,nombre,apellido'
+                ])->orderByDesc('fecha')->orderByDesc('created_at');
+            },
             'ventas' => function ($q) {
                 $q->with([
                     'proyecto:id_proyecto,nombre',

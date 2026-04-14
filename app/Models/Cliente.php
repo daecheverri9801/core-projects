@@ -56,4 +56,11 @@ class Cliente extends Model
     {
         return $this->correo;
     }
+
+    public function bitacoras()
+    {
+        return $this->hasMany(ClienteBitacora::class, 'documento_cliente', 'documento')
+            ->orderByDesc('fecha')
+            ->orderByDesc('created_at');
+    }
 }
