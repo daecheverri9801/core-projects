@@ -188,6 +188,7 @@ const props = defineProps({
   filtros: Object,
   planPagosCI: Object,
   absorcionPorTipo: Array,
+  apartamentosVendidosPorTipo: Array,
 })
 
 const activeTab = ref('resumen')
@@ -197,6 +198,7 @@ function qs(obj) {
 }
 
 const proyectoAbsorcionSeleccionado = ref('')
+const proyectoApartamentosVendidosSeleccionado = ref('')
 
 const absorcionPorTipoFiltrado = computed(() => {
   if (!props.absorcionPorTipo) return []
@@ -617,6 +619,92 @@ watch(
     }
   }
 )
+
+const apartamentosVendidosPorTipoFiltrado = computed(() => {
+  const rows = props.apartamentosVendidosPorTipo || []
+
+  const filtrados = proyectoApartamentosVendidosSeleccionado.value
+    ? rows.filter((row) => row.proyecto === proyectoApartamentosVendidosSeleccionado.value)
+    : rows
+
+  return [...filtrados].sort((a, b) => {
+    const pa = String(a.proyecto || '')
+    const pb = String(b.proyecto || '')
+
+    if (pa !== pb) return pa.localeCompare(pb)
+
+    const ta = String(a.tipo_apartamento || '')
+    const tb = String(b.tipo_apartamento || '')
+
+    return ta.localeCompare(tb)
+  })
+})
+
+const apartamentosVendidosPorTipoData = computed(() => {
+  const rows = apartamentosVendidosPorTipoFiltrado.value || []
+
+  const labels = rows.map((r) =>
+    proyectoApartamentosVendidosSeleccionado.value
+      ? `${r.tipo_apartamento}`
+      : `${r.proyecto} · ${r.tipo_apartamento}`
+  )
+
+  const data = rows.map((r) => Number(r.cantidad || 0))
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Apartamentos vendidos',
+        data,
+        backgroundColor: 'rgba(56, 189, 248, 0.78)',
+        borderColor: 'rgba(56, 189, 248, 1)',
+        borderWidth: 1.5,
+        borderRadius: 10,
+        maxBarThickness: 20,
+      },
+    ],
+  }
+})
+
+const apartamentosVendidosPorTipoOptions = computed(() => {
+  const totalRows = apartamentosVendidosPorTipoFiltrado.value?.length || 0
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    layout: { padding: { top: 10, right: 40, left: 8, bottom: 0 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label(ctx) {
+            return `Ventas: ${Math.round(Number(ctx.parsed.x || 0))}`
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: {
+          color: '#9ca3af',
+          precision: 0,
+        },
+        grid: { color: 'rgba(55, 65, 81, 0.35)' },
+      },
+      y: {
+        ticks: {
+          color: '#9ca3af',
+          autoSkip: false,
+          font: { size: totalRows > 12 ? 9 : 10 },
+        },
+        grid: { display: false },
+      },
+    },
+  }
+})
 
 const inventarioProyectosOrdenado = computed(() => {
   return (props.inventarioProyectos || []).map((p) => {
@@ -1115,7 +1203,7 @@ const inventarioProyectosOrdenado = computed(() => {
           </div>
         </div>
 
-        <!-- Nueva tabla: Absorción por tipo de apartamento -->
+        <!-- Grafica 5 -->
         <div class="lg:col-span-2 2xl:col-span-1">
           <div class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4">
             <div class="flex justify-between items-center mb-3">
@@ -1169,6 +1257,111 @@ const inventarioProyectosOrdenado = computed(() => {
                     </td>
                   </tr>
                 </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grafica 5 -->
+        <div
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-sky-500/60 hover:shadow-[0_0_25px_rgba(56,189,248,0.25)]"
+        >
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Apartamentos vendidos por tipo y proyecto
+            </h2>
+
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-slate-500">Proyecto</span>
+              <select
+                v-model="proyectoApartamentosVendidosSeleccionado"
+                class="bg-slate-900 text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs"
+              >
+                <option value="">Todos</option>
+                <option v-for="p in props.proyectos" :key="p.id_proyecto" :value="p.nombre">
+                  {{ p.nombre }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="h-[260px] sm:h-[300px]">
+            <Bar
+              :data="apartamentosVendidosPorTipoData"
+              :options="apartamentosVendidosPorTipoOptions"
+            />
+          </div>
+        </div>
+
+        <div
+          class="group bg-slate-900/80 border border-slate-800 rounded-2xl p-4 transition transform hover:-translate-y-1 hover:border-sky-500/60 hover:shadow-[0_0_25px_rgba(56,189,248,0.25)]"
+        >
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-xs font-semibold text-slate-100 uppercase tracking-wide">
+              Apartamentos vendidos por tipo y proyecto
+            </h2>
+          </div>
+
+          <div class="mt-3 border-t border-slate-800 pt-3">
+            <div class="flex items-center justify-between">
+              <p class="text-[11px] text-slate-400">Detalle ordenado</p>
+              <p class="text-[11px] text-slate-500">
+                {{ apartamentosVendidosPorTipoFiltrado.length }} registro(s)
+              </p>
+            </div>
+
+            <div
+              class="mt-2 max-h-[500px] overflow-auto rounded-xl border border-slate-800 bg-slate-950/30"
+            >
+              <table class="min-w-full text-xs">
+                <thead class="sticky top-0 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+                  <tr class="text-slate-300">
+                    <th class="px-3 py-2 text-left font-semibold">Proyecto</th>
+                    <th class="px-3 py-2 text-left font-semibold">Tipo</th>
+                    <th class="px-3 py-2 text-right font-semibold">Ventas</th>
+                  </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr
+                    v-for="(row, idx) in apartamentosVendidosPorTipoFiltrado"
+                    :key="`${row.id_proyecto}-${row.id_tipo_apartamento}-${idx}`"
+                    class="hover:bg-slate-900/40"
+                  >
+                    <td class="px-3 py-2 text-slate-200">
+                      {{ row.proyecto }}
+                    </td>
+                    <td class="px-3 py-2 text-slate-100">
+                      {{ row.tipo_apartamento }}
+                    </td>
+                    <td class="px-3 py-2 text-right text-slate-100 font-semibold tabular-nums">
+                      {{ row.cantidad }}
+                    </td>
+                  </tr>
+
+                  <tr v-if="!apartamentosVendidosPorTipoFiltrado.length">
+                    <td colspan="3" class="px-3 py-6 text-center text-slate-400">
+                      No hay tipos de apartamento para mostrar.
+                    </td>
+                  </tr>
+                </tbody>
+
+                <tfoot
+                  v-if="apartamentosVendidosPorTipoFiltrado.length"
+                  class="sticky bottom-0 bg-slate-900/95 backdrop-blur border-t border-slate-800"
+                >
+                  <tr class="text-slate-200 font-semibold">
+                    <td colspan="2" class="px-3 py-2 text-right">Total</td>
+                    <td class="px-3 py-2 text-right tabular-nums">
+                      {{
+                        apartamentosVendidosPorTipoFiltrado.reduce(
+                          (acc, row) => acc + Number(row.cantidad || 0),
+                          0
+                        )
+                      }}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>

@@ -226,6 +226,87 @@ class GerenciaEstadisticasService
         })->values()->all();
     }
 
+    public function apartamentosVendidosPorTipo(array $filtros): array
+    {
+        $filtros = $this->normalizarFiltros($filtros);
+
+        $proyectosQuery = \App\Models\Proyecto::query()
+            ->with([
+                'torres.apartamentos.tipoApartamento',
+                'torres.apartamentos.ventas' => function ($q) use ($filtros) {
+                    $q->where('tipo_operacion', 'venta');
+
+                    if (!empty($filtros['asesor_id'])) {
+                        $q->where('id_empleado', $filtros['asesor_id']);
+                    }
+
+                    if (!empty($filtros['desde'])) {
+                        $q->whereDate('fecha_venta', '>=', $filtros['desde']);
+                    }
+
+                    if (!empty($filtros['hasta'])) {
+                        $q->whereDate('fecha_venta', '<=', $filtros['hasta']);
+                    }
+                },
+            ]);
+
+        if (!empty($filtros['id_proyecto'])) {
+            $proyectosQuery->where('id_proyecto', $filtros['id_proyecto']);
+        }
+
+        $proyectos = $proyectosQuery->get();
+
+        $resultado = [];
+
+        foreach ($proyectos as $proyecto) {
+            $conteoPorTipo = [];
+
+            foreach ($proyecto->torres as $torre) {
+                foreach ($torre->apartamentos as $apartamento) {
+                    $tipo = $apartamento->tipoApartamento;
+
+                    if (!$tipo) {
+                        continue;
+                    }
+
+                    $idTipo = $tipo->id_tipo_apartamento;
+                    $nombreTipo = $tipo->nombre ?? 'Sin tipo';
+
+                    if (!isset($conteoPorTipo[$idTipo])) {
+                        $conteoPorTipo[$idTipo] = [
+                            'id_proyecto' => $proyecto->id_proyecto,
+                            'proyecto' => $proyecto->nombre,
+                            'id_tipo_apartamento' => $idTipo,
+                            'tipo_apartamento' => $nombreTipo,
+                            'cantidad' => 0,
+                        ];
+                    }
+
+                    $cantidadVentas = $apartamento->ventas->count();
+                    $conteoPorTipo[$idTipo]['cantidad'] += $cantidadVentas;
+                }
+            }
+
+            $filasProyecto = array_values($conteoPorTipo);
+
+            usort($filasProyecto, function ($a, $b) {
+                $cmpCantidad = (int) $a['cantidad'] <=> (int) $b['cantidad'];
+                if ($cmpCantidad !== 0) {
+                    return $cmpCantidad;
+                }
+
+                return strcmp(
+                    (string) ($a['tipo_apartamento'] ?? ''),
+                    (string) ($b['tipo_apartamento'] ?? '')
+                );
+            });
+
+            $resultado = array_merge($resultado, $filasProyecto);
+        }
+
+        return $resultado;
+    }
+
     /* ===========================================================
      * PROYECCIÓN VS REAL (usa Meta)
      * =========================================================== */
