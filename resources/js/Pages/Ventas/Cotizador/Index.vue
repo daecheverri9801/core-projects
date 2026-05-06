@@ -78,7 +78,7 @@ const planesPagoProyecto = computed(() => {
   if (!proyecto.value) return []
 
   if (proyectoTienePlanesPago.value) {
-    return proyecto.value.planes_pago || []
+    return (proyecto.value.planes_pago || []).filter(planDisponiblePorPerfil)
   }
 
   return planCondicionesProyecto.value ? [planCondicionesProyecto.value] : []
@@ -290,6 +290,28 @@ function baseDescuentoLabel(base) {
   }
 
   return labels[base] || '—'
+}
+
+function normalizarTextoPermiso(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+const puedeUsarPlanEspecialManual = computed(() => {
+  const cargo = normalizarTextoPermiso(empleado.value?.cargo?.nombre)
+
+  return cargo === 'directora comercial'
+})
+
+function planDisponiblePorPerfil(plan) {
+  if (plan?.tipo_plan !== 'especial_manual') {
+    return true
+  }
+
+  return puedeUsarPlanEspecialManual.value
 }
 
 function descuentoTexto(plan) {

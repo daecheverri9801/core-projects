@@ -597,59 +597,63 @@ class VentaService
         }
 
         if (($plan['tipo_plan'] ?? null) === 'especial_manual') {
-            if (($plan['tipo_plan'] ?? null) === 'especial_manual') {
-                $plazo = (int) ($data['plazo_cuota_inicial_meses'] ?? 0);
+            if (!$this->empleadoAutenticadoPuedeUsarPlanEspecialManual()) {
+                throw ValidationException::withMessages([
+                    'id_plan_pago_proyecto' => 'El plan especial manual solo está habilitado para Directoras Comerciales.',
+                ]);
+            }
 
-                if ($plazo < 1) {
+            $plazo = (int) ($data['plazo_cuota_inicial_meses'] ?? 0);
+
+            if ($plazo < 1) {
+                throw ValidationException::withMessages([
+                    'plazo_cuota_inicial_meses' => 'Debes seleccionar el plazo de cuota inicial para el plan especial.',
+                ]);
+            }
+
+            $plazoMaximoProyecto = (int) ($proyecto->plazo_cuota_inicial_meses ?? 0);
+
+            if ($plazoMaximoProyecto > 0 && $plazo > $plazoMaximoProyecto) {
+                throw ValidationException::withMessages([
+                    'plazo_cuota_inicial_meses' => "El plazo del plan especial no puede superar {$plazoMaximoProyecto} meses, que es el plazo de financiación configurado en el proyecto.",
+                ]);
+            }
+
+            $cuotasManual = $data['cuotas_manual_ci'] ?? [];
+
+            if (!is_array($cuotasManual) || empty($cuotasManual)) {
+                throw ValidationException::withMessages([
+                    'cuotas_manual_ci' => 'Debes registrar las cuotas mensuales del plan especial.',
+                ]);
+            }
+
+            if (count($cuotasManual) !== $plazo) {
+                throw ValidationException::withMessages([
+                    'cuotas_manual_ci' => 'La cantidad de cuotas debe coincidir con el plazo seleccionado.',
+                ]);
+            }
+
+            foreach ($cuotasManual as $index => $cuotaManual) {
+                if (empty($cuotaManual['fecha_vencimiento'])) {
                     throw ValidationException::withMessages([
-                        'plazo_cuota_inicial_meses' => 'Debes seleccionar el plazo de cuota inicial para el plan especial.',
+                        "cuotas_manual_ci.$index.fecha_vencimiento" => 'La cuota no tiene mes asignado.',
                     ]);
                 }
 
-                $plazoMaximoProyecto = (int) ($proyecto->plazo_cuota_inicial_meses ?? 0);
-
-                if ($plazoMaximoProyecto > 0 && $plazo > $plazoMaximoProyecto) {
+                if (!isset($cuotaManual['valor_cuota']) || (float) $cuotaManual['valor_cuota'] <= 0) {
                     throw ValidationException::withMessages([
-                        'plazo_cuota_inicial_meses' => "El plazo del plan especial no puede superar {$plazoMaximoProyecto} meses, que es el plazo de financiación configurado en el proyecto.",
+                        "cuotas_manual_ci.$index.valor_cuota" => 'El valor de la cuota debe ser mayor a cero.',
                     ]);
                 }
+            }
 
-                $cuotasManual = $data['cuotas_manual_ci'] ?? [];
+            $totalManual = collect($cuotasManual)->sum(fn($c) => (float) ($c['valor_cuota'] ?? 0));
+            $saldoCI = (float) ($resumen['saldo_cuota_inicial'] ?? 0);
 
-                if (!is_array($cuotasManual) || empty($cuotasManual)) {
-                    throw ValidationException::withMessages([
-                        'cuotas_manual_ci' => 'Debes registrar las cuotas mensuales del plan especial.',
-                    ]);
-                }
-
-                if (count($cuotasManual) !== $plazo) {
-                    throw ValidationException::withMessages([
-                        'cuotas_manual_ci' => 'La cantidad de cuotas debe coincidir con el plazo seleccionado.',
-                    ]);
-                }
-
-                foreach ($cuotasManual as $index => $cuotaManual) {
-                    if (empty($cuotaManual['fecha_vencimiento'])) {
-                        throw ValidationException::withMessages([
-                            "cuotas_manual_ci.$index.fecha_vencimiento" => 'La cuota no tiene mes asignado.',
-                        ]);
-                    }
-
-                    if (!isset($cuotaManual['valor_cuota']) || (float) $cuotaManual['valor_cuota'] <= 0) {
-                        throw ValidationException::withMessages([
-                            "cuotas_manual_ci.$index.valor_cuota" => 'El valor de la cuota debe ser mayor a cero.',
-                        ]);
-                    }
-                }
-
-                $totalManual = collect($cuotasManual)->sum(fn($c) => (float) ($c['valor_cuota'] ?? 0));
-                $saldoCI = (float) ($resumen['saldo_cuota_inicial'] ?? 0);
-
-                if (round($totalManual) !== round($saldoCI)) {
-                    throw ValidationException::withMessages([
-                        'cuotas_manual_ci' => 'La suma de cuotas manuales debe ser igual al saldo de cuota inicial.',
-                    ]);
-                }
+            if (round($totalManual) !== round($saldoCI)) {
+                throw ValidationException::withMessages([
+                    'cuotas_manual_ci' => 'La suma de cuotas manuales debe ser igual al saldo de cuota inicial.',
+                ]);
             }
         }
     }
@@ -913,5 +917,28 @@ class VentaService
         Parqueadero::where('id_parqueadero', $idParqueadero)
             ->when($idApartamento, fn($q) => $q->where('id_apartamento', $idApartamento))
             ->update(['id_apartamento' => null]);
+    }
+
+    protected function empleadoAutenticadoPuedeUsarPlanEspecialManual(): bool
+    {
+        $empleado = request()->user()->load('cargo');
+
+        if (!$empleado) {
+            return false;
+        }
+
+        $empleado->loadMissing('cargo');
+
+        $cargo = strtolower(
+            trim(
+                str_replace(
+                    ['á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú'],
+                    ['a', 'e', 'i', 'o', 'u', 'a', 'e', 'i', 'o', 'u'],
+                    $empleado->cargo->nombre ?? ''
+                )
+            )
+        );
+
+        return $cargo === 'directora comercial';
     }
 }

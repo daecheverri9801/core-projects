@@ -115,7 +115,7 @@ const planesPagoProyecto = computed(() => {
   if (!proyectoSeleccionado.value) return []
 
   if (proyectoTienePlanesPago.value) {
-    return proyectoSeleccionado.value.planes_pago || []
+    return (proyectoSeleccionado.value.planes_pago || []).filter(planDisponiblePorPerfil)
   }
 
   return planCondicionesProyecto.value ? [planCondicionesProyecto.value] : []
@@ -896,6 +896,34 @@ function fechaCuotaISO(date) {
   return date.toISOString().slice(0, 10)
 }
 
+function normalizarTextoPermiso(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+const puedeUsarPlanEspecialManual = computed(() => {
+  const cargo = normalizarTextoPermiso(empleado.value?.cargo?.nombre)
+
+  return cargo === 'directora comercial'
+})
+
+function planDisponiblePorPerfil(plan) {
+  if (plan?.tipo_plan !== 'especial_manual') {
+    return true
+  }
+
+  return puedeUsarPlanEspecialManual.value
+}
+
+const proyectoTienePlanEspecialManual = computed(() => {
+  return (proyectoSeleccionado.value?.planes_pago || []).some(
+    (plan) => plan.tipo_plan === 'especial_manual'
+  )
+})
+
 /** ===== Validaciones dinámicas ===== */
 watch(
   [() => form.cuota_inicial_raw, () => form.id_plan_pago_proyecto, () => resumenPlanVenta.value],
@@ -1085,6 +1113,15 @@ watch(
 watch(
   () => form.id_plan_pago_proyecto,
   () => {
+    const planActual = planPagoSeleccionado.value
+
+    if (planActual?.tipo_plan === 'especial_manual' && !puedeUsarPlanEspecialManual.value) {
+      form.id_plan_pago_proyecto = ''
+      form.plazo_cuota_inicial_meses = ''
+      form.frecuencia_cuota_inicial_meses = ''
+      form.cuotas_manual_ci = []
+      return
+    }
     form.plazo_cuota_inicial_meses = ''
     form.frecuencia_cuota_inicial_meses = ''
     form.cuotas_manual_ci = []
@@ -1260,10 +1297,7 @@ function actualizarPlazosDisponibles() {
       return
     }
 
-    plazosDisponibles.value = Array.from(
-      { length: maxPlazoProyecto },
-      (_, i) => i + 1
-    )
+    plazosDisponibles.value = Array.from({ length: maxPlazoProyecto }, (_, i) => i + 1)
 
     if (
       form.plazo_cuota_inicial_meses &&
@@ -1307,9 +1341,7 @@ function actualizarPlazosDisponibles() {
   const plazosRestantes = Math.max(plazoTotal - mesesTranscurridos, 0)
 
   plazosDisponibles.value =
-    plazosRestantes > 0
-      ? Array.from({ length: plazosRestantes }, (_, i) => i + 1)
-      : []
+    plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
 
   if (
     form.plazo_cuota_inicial_meses &&
