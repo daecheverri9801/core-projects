@@ -33,13 +33,55 @@ const inmuebleId = ref('')
 const planPagoId = ref('')
 const plazo = ref('')
 const cargando = ref(false)
+const PLAN_PROYECTO_DEFAULT_ID = '__condiciones_proyecto__'
 
 const proyecto = computed(
   () => props.proyectos.find((p) => String(p.id_proyecto) === String(proyectoId.value)) || null
 )
 
+const proyectoTienePlanesPago = computed(() => {
+  return Array.isArray(proyecto.value?.planes_pago) && proyecto.value.planes_pago.length > 0
+})
+
+const planCondicionesProyecto = computed(() => {
+  if (!proyecto.value) return null
+
+  const porcentajeCuotaInicial = Number(proyecto.value.porcentaje_cuota_inicial_min || 0)
+  const porcentajeEscritura = Math.max(100 - porcentajeCuotaInicial, 0)
+
+  return {
+    id_plan_pago_proyecto: PLAN_PROYECTO_DEFAULT_ID,
+    codigo: 'Plan Estandar',
+    nombre: 'Plan Estandar',
+    descripcion:
+      'Plan generado automáticamente con los parámetros económicos generales del proyecto.',
+    orden: 1,
+    tipo_plan: 'condiciones_proyecto',
+    valor_separacion: Number(proyecto.value.valor_min_separacion || 0),
+    porcentaje_cuota_inicial: porcentajeCuotaInicial,
+    plazo_cuota_inicial_meses: Number(proyecto.value.plazo_cuota_inicial_meses || 0),
+    frecuencia_cuota_inicial_meses: 1,
+    plazo_pago_total_dias: null,
+    porcentaje_escritura: porcentajeEscritura,
+    tipo_descuento: 'ninguno',
+    valor_descuento: null,
+    base_descuento: 'ninguna',
+    beneficio_comercial: null,
+    permite_plazo_manual: false,
+    permite_cuotas_manuales: false,
+    activo: true,
+    es_plan_default_proyecto: true,
+  }
+})
+
 const planesPagoProyecto = computed(() => {
-  return proyecto.value?.planes_pago || []
+  if (!proyecto.value) return []
+
+  if (proyectoTienePlanesPago.value) {
+    return proyecto.value.planes_pago || []
+  }
+
+  return planCondicionesProyecto.value ? [planCondicionesProyecto.value] : []
 })
 
 const planPago = computed(() => {
@@ -108,8 +150,19 @@ const inmueble = computed(() => {
 
 watch(proyectoId, () => {
   inmuebleId.value = ''
-  planPagoId.value = ''
   plazo.value = ''
+
+  if (!proyecto.value) {
+    planPagoId.value = ''
+    return
+  }
+
+  if (!proyectoTienePlanesPago.value && planCondicionesProyecto.value) {
+    planPagoId.value = PLAN_PROYECTO_DEFAULT_ID
+    return
+  }
+
+  planPagoId.value = ''
 })
 
 watch(planPagoId, () => {
@@ -153,16 +206,44 @@ function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
   return Math.max(meses, 0)
 }
 
+function esPlanCuotaInicialMensual(plan) {
+  return ['cuota_inicial_mensual', 'condiciones_proyecto'].includes(plan?.tipo_plan)
+}
+
 const requierePlazoMensual = computed(() => {
-  return planPago.value?.tipo_plan === 'cuota_inicial_mensual'
+  return esPlanCuotaInicialMensual(planPago.value)
 })
+
+// const plazosDisponibles = computed(() => {
+//   if (!proyecto.value || !planPago.value) return []
+//   if (!requierePlazoMensual.value) return []
+
+//   const plazoTotal = Number(planPago.value.plazo_cuota_inicial_meses || 0)
+//   if (!plazoTotal || !proyecto.value.fecha_inicio) return []
+
+//   const hoy = new Date()
+//   const hoyStr = hoy.toISOString().slice(0, 10)
+//   const mesesTranscurridos = calcularMesesEntreFechas(proyecto.value.fecha_inicio, hoyStr)
+//   const plazosRestantes = Math.max(plazoTotal - mesesTranscurridos, 0)
+
+//   return plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
+// })
 
 const plazosDisponibles = computed(() => {
   if (!proyecto.value || !planPago.value) return []
   if (!requierePlazoMensual.value) return []
 
   const plazoTotal = Number(planPago.value.plazo_cuota_inicial_meses || 0)
-  if (!plazoTotal || !proyecto.value.fecha_inicio) return []
+
+  if (!plazoTotal) return []
+
+  /**
+   * Si el proyecto no tiene fecha_inicio, dejamos disponibles todos los meses
+   * configurados en las condiciones económicas.
+   */
+  if (!proyecto.value.fecha_inicio) {
+    return Array.from({ length: plazoTotal }, (_, i) => i + 1)
+  }
 
   const hoy = new Date()
   const hoyStr = hoy.toISOString().slice(0, 10)
@@ -195,6 +276,7 @@ function tipoPlanLabel(tipo) {
     cuota_inicial_contado: 'Cuota inicial de contado',
     pago_total_diferido: 'Pago total diferido',
     especial_manual: 'Plan especial manual',
+    condiciones_proyecto: 'Condiciones económicas del proyecto',
   }
 
   return labels[tipo] || tipo || '—'
@@ -229,7 +311,7 @@ function descuentoTexto(plan) {
 function plazoPlanTexto(plan) {
   if (!plan) return '—'
 
-  if (plan.tipo_plan === 'cuota_inicial_mensual') {
+  if (esPlanCuotaInicialMensual(plan)) {
     return `${plan.plazo_cuota_inicial_meses || 0} meses`
   }
 
@@ -298,7 +380,7 @@ const resumenCotizacion = computed(() => {
     precioConDescuento = Math.max(valorTotal - descuento, 0)
     precioBaseCalculo = precioConDescuento
 
-    if (plan.tipo_plan === 'cuota_inicial_mensual') {
+    if (esPlanCuotaInicialMensual(plan)) {
       cuotaInicialBruta = Math.round(precioBaseCalculo * (porcentajeCuotaInicial / 100))
       cuotaInicial = cuotaInicialBruta
       saldoCuotaInicial = Math.max(cuotaInicial - cuotaSeparacion, 0)
@@ -336,13 +418,13 @@ const resumenCotizacion = computed(() => {
     }
   }
 
+  if (esPlanCuotaInicialMensual(plan)) {
+    valorMensual = numeroCuotas > 0 ? Math.round(saldoCuotaInicial / numeroCuotas) : 0
+  }
+
   if (plan.tipo_plan === 'cuota_inicial_contado') {
     numeroCuotas = 1
     valorMensual = saldoCuotaInicial
-  }
-
-  if (plan.tipo_plan === 'cuota_inicial_mensual') {
-    valorMensual = numeroCuotas > 0 ? Math.round(saldoCuotaInicial / numeroCuotas) : 0
   }
 
   if (plan.tipo_plan === 'especial_manual') {
@@ -872,10 +954,12 @@ function construirTablaPagosCotizacion({ plan, plazo, resumen, formatMoney }) {
   const monthBase = fechaBase.getMonth()
 
   const cuotaSeparacion = Math.round(Number(resumen?.cuotaSeparacion || 0))
+  const cuotaInicial = Math.round(Number(resumen?.cuotaInicial || 0))
   const saldoCuotaInicial = Math.round(Number(resumen?.saldoCuotaInicial || 0))
-  const saldoEscritura = Math.round(Number(resumen?.saldoEscritura || 0))
   const saldoPagoDiferido = Math.round(Number(resumen?.saldoPagoDiferido || 0))
   const totalCotizado = Math.round(Number(resumen?.totalCotizado || 0))
+
+  const valorRestanteInmueble = Math.max(totalCotizado - cuotaInicial, 0)
 
   const aplicaSeparacion = cuotaSeparacion > 0
   const totalCuotasSeleccionadas = Math.max(Number(plazo || 0), 0)
@@ -900,91 +984,68 @@ function construirTablaPagosCotizacion({ plan, plazo, resumen, formatMoney }) {
 
   let numeroCuota = 1
 
-  /**
-   * CUOTA #1: separación, si aplica.
-   * La separación forma parte de la cuota inicial, saldo contado o precio con descuento.
-   */
   if (aplicaSeparacion) {
     let saldoDespuesSeparacion = 0
 
     if (plan.tipo_plan === 'pago_total_diferido') {
-      saldoDespuesSeparacion = saldoPagoDiferido
+      saldoDespuesSeparacion = Math.max(totalCotizado - cuotaSeparacion, 0)
     } else {
       saldoDespuesSeparacion = saldoCuotaInicial
     }
 
-    agregarFila(numeroCuota, 'Separación', cuotaSeparacion, saldoDespuesSeparacion)
-
+    agregarFila(numeroCuota, 'Valor Separación', cuotaSeparacion, saldoDespuesSeparacion)
     numeroCuota++
   }
 
-  /**
-   * PLAN 01 / PLAN 02
-   * Cuota inicial mensual.
-   *
-   * Si hay separación, esta ocupa la cuota #1.
-   * Las cuotas restantes de la cuota inicial empiezan desde la cuota #2.
-   * La cuota n+1 corresponde al saldo de escrituración, si aplica.
-   */
-  if (plan.tipo_plan === 'cuota_inicial_mensual') {
+  if (esPlanCuotaInicialMensual(plan)) {
     const cuotasParaSaldoCuotaInicial = aplicaSeparacion
       ? Math.max(totalCuotasSeleccionadas - 1, 0)
       : totalCuotasSeleccionadas
 
     if (saldoCuotaInicial > 0 && cuotasParaSaldoCuotaInicial > 0) {
-      let saldoPendiente = saldoCuotaInicial
+      let saldoPendienteCuotaInicial = saldoCuotaInicial
       const valorCuotaBase = Math.round(saldoCuotaInicial / cuotasParaSaldoCuotaInicial)
 
       for (let i = 1; i <= cuotasParaSaldoCuotaInicial; i++) {
         const esUltimaCuotaInicial = i === cuotasParaSaldoCuotaInicial
+
         const valorCuota = esUltimaCuotaInicial
-          ? saldoPendiente
-          : Math.min(valorCuotaBase, saldoPendiente)
+          ? saldoPendienteCuotaInicial
+          : Math.min(valorCuotaBase, saldoPendienteCuotaInicial)
 
-        saldoPendiente -= valorCuota
+        saldoPendienteCuotaInicial -= valorCuota
 
-        agregarFila(numeroCuota, labelMes(aplicaSeparacion ? i : i - 1), valorCuota, saldoPendiente)
+        agregarFila(
+          numeroCuota,
+          labelMes(aplicaSeparacion ? i : i - 1),
+          valorCuota,
+          saldoPendienteCuotaInicial
+        )
 
         numeroCuota++
       }
     }
 
-    if (saldoEscritura > 0) {
-      agregarFila(numeroCuota, 'Valor Restante', saldoEscritura, 0)
+    if (valorRestanteInmueble > 0) {
+      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
     }
 
     return tabla
   }
 
-  /**
-   * PLAN 03
-   * Cuota inicial de contado.
-   *
-   * Cuota #1: separación, si aplica.
-   * Cuota #2: saldo de cuota inicial contado.
-   * Cuota siguiente: saldo de escrituración, si aplica.
-   */
   if (plan.tipo_plan === 'cuota_inicial_contado') {
     if (saldoCuotaInicial > 0) {
       agregarFila(numeroCuota, 'Contado', saldoCuotaInicial, 0)
-
       numeroCuota++
     }
 
-    if (saldoEscritura > 0) {
-      agregarFila(numeroCuota, 'Escritura', saldoEscritura, 0)
+    if (valorRestanteInmueble > 0) {
+      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
     }
 
     return tabla
   }
 
-  /**
-   * PLAN 04
-   * Pago total diferido.
-   *
-   * Cuota #1: separación.
-   * Cuota #2: saldo restante a los días definidos en el plan.
-   */
   if (plan.tipo_plan === 'pago_total_diferido') {
     const saldoDiferido =
       saldoPagoDiferido > 0 ? saldoPagoDiferido : Math.max(totalCotizado - cuotaSeparacion, 0)
@@ -996,21 +1057,14 @@ function construirTablaPagosCotizacion({ plan, plazo, resumen, formatMoney }) {
     return tabla
   }
 
-  /**
-   * PLAN 05
-   * Especial manual.
-   *
-   * Cuota #1: separación, si aplica.
-   * Las cuotas de cuota inicial se definen manualmente en la venta.
-   * Se muestra el saldo de escrituración si aplica.
-   */
   if (plan.tipo_plan === 'especial_manual') {
-    agregarFila(numeroCuota, 'Por definir', 'Definido al momento de la venta', saldoCuotaInicial)
+    if (saldoCuotaInicial > 0) {
+      agregarFila(numeroCuota, 'Manual', 'Definido al momento de la venta', saldoCuotaInicial)
+      numeroCuota++
+    }
 
-    numeroCuota++
-
-    if (saldoEscritura > 0) {
-      agregarFila(numeroCuota, 'Escritura', saldoEscritura, 0)
+    if (valorRestanteInmueble > 0) {
+      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
     }
 
     return tabla
@@ -1499,8 +1553,10 @@ async function generarPDF() {
                 </div>
               </div>
 
+              <!-- Plan de venta -->
               <div>
                 <label :class="labelClass()">Plan de venta</label>
+
                 <div class="relative">
                   <select
                     v-model="planPagoId"
@@ -1509,6 +1565,7 @@ async function generarPDF() {
                     class="pl-11"
                   >
                     <option value="">Seleccione...</option>
+
                     <option
                       v-for="plan in planesPagoProyecto"
                       :key="plan.id_plan_pago_proyecto"
@@ -1518,13 +1575,6 @@ async function generarPDF() {
                     </option>
                   </select>
                 </div>
-
-                <p
-                  v-if="proyectoId && planesPagoProyecto.length === 0"
-                  class="mt-2 text-xs text-red-500"
-                >
-                  Este proyecto no tiene planes de venta activos configurados.
-              </p>
               </div>
 
               <!-- Plazo -->
@@ -1713,6 +1763,13 @@ async function generarPDF() {
                     >
                       {{ planPago.codigo }}
                     </span>
+                  </div>
+
+                  <div
+                    v-if="planPago?.es_plan_default_proyecto"
+                    class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800"
+                  >
+                    Cotización calculada con los parámetros económicos generales del proyecto.
                   </div>
 
                   <div class="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
