@@ -28,18 +28,27 @@ class PlanAmortizacionVentaWebController extends Controller
             ->where('tipo_operacion', 'venta')
             ->get()
             ->map(function ($v) {
+                $valorTotal = (float) ($v->valor_total ?? 0);
+                $cuotaInicial = (float) ($v->cuota_inicial ?? 0);
+                $valorSeparacion = (float) ($v->proyecto->valor_min_separacion ?? 0);
+
+                $saldoCuotaInicial = max($cuotaInicial - $valorSeparacion, 0);
+                $valorRestante = max($valorTotal - $cuotaInicial, 0);
+
                 return [
                     'id_venta' => $v->id_venta,
                     'proyecto' => $v->proyecto->nombre ?? '',
                     'cliente' => $v->cliente->nombre ?? '',
-                    'empleado' => $v->empleado->nombre . ' ' . $v->empleado->apellido,
-                    'inmueble' =>
-                    $v->apartamento ? ('Apto ' . $v->apartamento->numero)
-                        : ('Local ' . $v->local->numero),
-                    'valor_total' => $v->valor_total,
-                    'cuota_inicial' => $v->cuota_inicial,
-                    'valor_separacion' => $v->proyecto->valor_min_separacion,
-                    'plazo' => $v->plazo_cuota_inicial_meses,
+                    'empleado' => trim(($v->empleado->nombre ?? '') . ' ' . ($v->empleado->apellido ?? '')),
+                    'inmueble' => $v->apartamento
+                        ? ('Apto ' . $v->apartamento->numero)
+                        : ('Local ' . ($v->local->numero ?? '')),
+                    'valor_total' => $valorTotal,
+                    'cuota_inicial' => $cuotaInicial,
+                    'valor_separacion' => $valorSeparacion,
+                    'saldo_cuota_inicial' => $saldoCuotaInicial,
+                    'valor_restante' => $valorRestante,
+                    'plazo' => (int) ($v->plazo_cuota_inicial_meses ?? 0),
                     'fecha_venta' => $v->fecha_venta,
                     'forma_pago' => $v->formaPago->forma_pago ?? '',
                 ];

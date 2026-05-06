@@ -219,13 +219,21 @@ function generarAmortizacion() {
   setTimeout(() => {
     const v = ventaSeleccionada.value
 
-    const cuotaInicial = v.cuota_inicial
-    const valorSeparacion = v.valor_separacion ?? 0
-    const saldoCuotaInicial = cuotaInicial - valorSeparacion
-    const plazo = v.plazo
+    const valorTotal = Number(v.valor_total || 0)
+    const cuotaInicial = Number(v.cuota_inicial || 0)
+    const valorSeparacion = Number(v.valor_separacion || 0)
+    const saldoCuotaInicial = Math.max(cuotaInicial - valorSeparacion, 0)
+    const valorRestante = Math.max(valorTotal - cuotaInicial, 0)
+    const plazo = Number(v.plazo || 0)
 
     if (!v.fecha_venta) {
       alert('La venta no tiene fecha de venta definida.')
+      cargando.value = false
+      return
+    }
+
+    if (plazo <= 1) {
+      alert('El plazo debe ser mayor a 1 para generar separación, cuotas y valor restante.')
       cargando.value = false
       return
     }
@@ -234,35 +242,91 @@ function generarAmortizacion() {
     const yearBase = fechaVenta.getFullYear()
     const monthBase = fechaVenta.getMonth()
 
-    const cuotaMensual = Math.round(saldoCuotaInicial / plazo)
-    const residuo = saldoCuotaInicial - cuotaMensual * plazo
+    amortizacion.value = []
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cuota 1: Valor de separación
+    |--------------------------------------------------------------------------
+    */
+    const fechaSeparacion = new Date(yearBase, monthBase, 1)
+    const fechaSeparacionStr = `${fechaSeparacion.getFullYear()}-${String(
+      fechaSeparacion.getMonth() + 1
+    ).padStart(2, '0')}`
+
+    amortizacion.value.push({
+      numero: 1,
+      fecha: fechaSeparacionStr,
+      concepto: 'Separación',
+      valor_cuota: valorSeparacion,
+      saldo_final: saldoCuotaInicial,
+    })
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cuotas 2 hasta N: Saldo cuota inicial
+    |--------------------------------------------------------------------------
+    | Se divide el saldo de cuota inicial entre las cuotas restantes del plazo.
+    | Ejemplo: plazo 12
+    | Cuota 1 = separación
+    | Cuotas 2 a 12 = saldo cuota inicial
+    | Cuota 13 = valor restante
+    */
+    const cuotasSaldoInicial = plazo - 1
+    const cuotaMensual = Math.round(saldoCuotaInicial / cuotasSaldoInicial)
+    const residuo = saldoCuotaInicial - cuotaMensual * cuotasSaldoInicial
 
     let saldo = saldoCuotaInicial
 
-    amortizacion.value = []
-
-    for (let i = 1; i <= plazo; i++) {
+    for (let i = 2; i <= plazo; i++) {
+      const indiceCuotaSaldo = i - 1
       const fechaCuota = new Date(yearBase, monthBase + (i - 1), 1)
+
       const fechaStr = `${fechaCuota.getFullYear()}-${String(fechaCuota.getMonth() + 1).padStart(
         2,
         '0'
       )}`
 
       let valor = cuotaMensual
-      if (i === plazo) valor += residuo
+
+      if (indiceCuotaSaldo === cuotasSaldoInicial) {
+        valor += residuo
+      }
 
       saldo -= valor
 
       amortizacion.value.push({
         numero: i,
         fecha: fechaStr,
+        concepto: 'Cuota inicial',
         valor_cuota: valor,
         saldo_final: Math.max(saldo, 0),
       })
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cuota N + 1: Valor restante por pagar
+    |--------------------------------------------------------------------------
+    */
+    const numeroCuotaRestante = plazo + 1
+    const fechaRestante = new Date(yearBase, monthBase + plazo, 1)
+
+    const fechaRestanteStr = `${fechaRestante.getFullYear()}-${String(
+      fechaRestante.getMonth() + 1
+    ).padStart(2, '0')}`
+
+    amortizacion.value.push({
+      numero: numeroCuotaRestante,
+      fecha: fechaRestanteStr,
+      concepto: 'Valor restante',
+      valor_cuota: valorRestante,
+      saldo_final: 0,
+    })
+
     ventaSeleccionada.value.saldo_cuota_inicial = saldoCuotaInicial
     ventaSeleccionada.value.valor_separacion = valorSeparacion
+    ventaSeleccionada.value.valor_restante = valorRestante
 
     mostrarResumen.value = true
     cargando.value = false
@@ -301,8 +365,8 @@ function exportPDF() {
   const asesor = v.empleado ?? '—'
   const fechaFormateada = v.fecha_venta.split('T')[0]
 
-  const saldoCuotaInicial = v.cuota_inicial - v.valor_separacion
-  const valorRestante = v.valor_total - v.cuota_inicial
+  const saldoCuotaInicial = Number(v.saldo_cuota_inicial || 0)
+  const valorRestante = Number(v.valor_restante || 0)
 
   const info = [
     `Proyecto: ${v.proyecto}`,
@@ -358,10 +422,11 @@ function exportPDF() {
     alternateRowStyles: {
       fillColor: [245, 247, 250],
     },
-    head: [['#', 'Mes', 'Valor Cuota', 'Saldo Pendiente']],
+    head: [['#', 'Mes', 'Concepto', 'Valor Cuota', 'Saldo Pendiente']],
     body: amortizacion.value.map((c) => [
       c.numero,
       c.fecha,
+      c.concepto,
       formatMoney(c.valor_cuota),
       formatMoney(c.saldo_final),
     ]),
@@ -461,7 +526,9 @@ function exportPDF() {
             >
               <div class="flex items-center gap-2">
                 <SparklesIcon class="h-5 w-5 text-[#1e3a5f]" />
-                <h2 class="text-base font-extrabold text-gray-900">Datos para generar amortización</h2>
+                <h2 class="text-base font-extrabold text-gray-900">
+                  Datos para generar amortización
+                </h2>
               </div>
 
               <div
@@ -543,9 +610,7 @@ function exportPDF() {
                       </div>
                       <div>
                         <h3 class="text-sm font-extrabold text-sky-900">Cliente encontrado</h3>
-                        <p class="text-xs text-sky-700/80">
-                          Selecciona ahora la venta asociada
-                        </p>
+                        <p class="text-xs text-sky-700/80">Selecciona ahora la venta asociada</p>
                       </div>
                     </div>
 
@@ -596,7 +661,10 @@ function exportPDF() {
                   </select>
                 </div>
 
-                <p v-if="clienteSeleccionado && ventasCliente.length === 0" class="mt-2 text-xs text-amber-600">
+                <p
+                  v-if="clienteSeleccionado && ventasCliente.length === 0"
+                  class="mt-2 text-xs text-amber-600"
+                >
                   El cliente no tiene ventas disponibles para este proyecto.
                 </p>
               </div>
@@ -614,48 +682,70 @@ function exportPDF() {
 
             <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Proyecto</div>
-                <div class="mt-1 font-semibold text-[#1e3a5f]">{{ ventaSeleccionada.proyecto }}</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Proyecto
+                </div>
+                <div class="mt-1 font-semibold text-[#1e3a5f]">
+                  {{ ventaSeleccionada.proyecto }}
+                </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Cliente
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">{{ ventaSeleccionada.cliente }}</div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Inmueble</div>
-                <div class="mt-1 font-semibold text-[#1e3a5f]">{{ ventaSeleccionada.inmueble }}</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Inmueble
+                </div>
+                <div class="mt-1 font-semibold text-[#1e3a5f]">
+                  {{ ventaSeleccionada.inmueble }}
+                </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Valor Total</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Valor Total
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
                   {{ formatMoney(ventaSeleccionada.valor_total) }}
                 </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo de Pago</div>
-                <div class="mt-1 font-semibold text-[#1e3a5f]">{{ ventaSeleccionada.forma_pago }}</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Tipo de Pago
+                </div>
+                <div class="mt-1 font-semibold text-[#1e3a5f]">
+                  {{ ventaSeleccionada.forma_pago }}
+                </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cuota Inicial</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Cuota Inicial
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
                   {{ formatMoney(ventaSeleccionada.cuota_inicial) }}
                 </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Valor Separación</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Valor Separación
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
                   {{ formatMoney(ventaSeleccionada.valor_separacion) }}
                 </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Saldo Cuota Inicial</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Saldo Cuota Inicial
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
                   {{ formatMoney(ventaSeleccionada.saldo_cuota_inicial) }}
                 </div>
@@ -669,14 +759,18 @@ function exportPDF() {
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Valor Restante</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Valor Restante
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
-                  {{ formatMoney(ventaSeleccionada.valor_total - ventaSeleccionada.cuota_inicial) }}
+                  {{ formatMoney(ventaSeleccionada.valor_restante) }}
                 </div>
               </div>
 
               <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Fecha Venta</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Fecha Venta
+                </div>
                 <div class="mt-1 font-semibold text-[#1e3a5f]">
                   {{ formatDate(ventaSeleccionada.fecha_venta) }}
                 </div>
@@ -689,7 +783,9 @@ function exportPDF() {
             v-if="amortizacion.length"
             class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden"
           >
-            <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+            >
               <h2 class="text-base font-extrabold text-gray-900">Tabla de amortización</h2>
 
               <button
@@ -705,10 +801,31 @@ function exportPDF() {
               <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-[#FFFDE6]">
                   <tr>
-                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]">#</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]">Mes</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]">Valor Cuota</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]">Saldo Pendiente</th>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                    >
+                      #
+                    </th>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                    >
+                      Mes
+                    </th>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                    >
+                      Concepto
+                    </th>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                    >
+                      Valor Cuota
+                    </th>
+                    <th
+                      class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                    >
+                      Saldo Pendiente
+                    </th>
                   </tr>
                 </thead>
 
@@ -720,6 +837,9 @@ function exportPDF() {
                   >
                     <td class="px-4 py-3 text-center text-sm text-gray-900">{{ c.numero }}</td>
                     <td class="px-4 py-3 text-center text-sm text-gray-900">{{ c.fecha }}</td>
+                    <td class="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+                      {{ c.concepto }}
+                    </td>
                     <td class="px-4 py-3 text-center text-sm font-semibold text-[#1e3a5f]">
                       {{ formatMoney(c.valor_cuota) }}
                     </td>
@@ -746,7 +866,9 @@ function exportPDF() {
 
               <div class="p-5 space-y-4">
                 <div class="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Proyecto</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Proyecto
+                  </p>
                   <p class="mt-1 text-sm font-bold text-gray-900">
                     {{ proyectoSeleccionado?.nombre || 'Pendiente' }}
                   </p>
@@ -791,7 +913,9 @@ function exportPDF() {
                   Calculando amortización. Espera un momento.
                 </div>
 
-                <div class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+                <div
+                  class="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600"
+                >
                   Primero selecciona el proyecto, luego busca el cliente por documento y finalmente
                   elige la venta para generar el plan.
                 </div>
