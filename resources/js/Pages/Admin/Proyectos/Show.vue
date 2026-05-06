@@ -58,9 +58,9 @@
           <InfoItem label="Ubicación" :value="ubicacionTexto || '—'" />
           <InfoItem label="Fecha Inicio" :value="fechaInicioTexto || '—'" />
           <InfoItem label="Fecha Finalizacion" :value="fechaFinTexto || '—'" />
-          <InfoItem label="Presupuesto Inicial" :value="presupuestoInicialTexto || '—'" />
+          <!-- <InfoItem label="Presupuesto Inicial" :value="presupuestoInicialTexto || '—'" />
           <InfoItem label="Presupuesto Final" :value="presupuestoFinalTexto || '—'" />
-          <InfoItem label="Metros Construidos" :value="metrosConstruidosTexto || '—'" />
+          <InfoItem label="Metros Construidos" :value="metrosConstruidosTexto || '—'" /> -->
           <InfoItem label="Cantidad Locales" :value="cantidadLocalesTexto || '—'" />
           <InfoItem label="Cantidad Apartamentos" :value="cantidadApartamentosTexto || '—'" />
           <InfoItem
@@ -87,6 +87,98 @@
             :value="plazoMaxSeparacionDiasTexto || '—'"
           />
           <InfoItem label="Bloques aplicados" :value="bloquesAplicadosTexto || '—'" />
+        </div>
+      </div>
+
+      <!-- Planes de venta / pago -->
+      <div class="bg-white rounded-2xl border overflow-hidden">
+        <div class="px-4 md:px-6 py-4 border-b bg-gray-50">
+          <h3 class="text-sm font-semibold text-gray-900">Planes de venta / pago</h3>
+          <p class="text-xs text-gray-600 mt-1">
+            Condiciones comerciales configuradas para este proyecto.
+          </p>
+        </div>
+
+        <div class="p-4 md:p-6">
+          <div
+            v-if="planesPago.length === 0"
+            class="rounded-2xl border border-dashed p-6 text-center"
+          >
+            <p class="text-sm font-semibold text-gray-900">Sin planes configurados</p>
+            <p class="mt-1 text-sm text-gray-600">
+              Este proyecto todavía no tiene planes de venta asociados.
+            </p>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-3 text-left font-semibold text-gray-700">Plan</th>
+                  <th class="px-3 py-3 text-left font-semibold text-gray-700">Tipo</th>
+                  <th class="px-3 py-3 text-right font-semibold text-gray-700">Separación</th>
+                  <th class="px-3 py-3 text-right font-semibold text-gray-700">% C. Inicial</th>
+                  <th class="px-3 py-3 text-right font-semibold text-gray-700">Plazo</th>
+                  <th class="px-3 py-3 text-right font-semibold text-gray-700">% Escritura</th>
+                  <th class="px-3 py-3 text-left font-semibold text-gray-700">Descuento</th>
+                  <th class="px-3 py-3 text-left font-semibold text-gray-700">Beneficio</th>
+                  <th class="px-3 py-3 text-left font-semibold text-gray-700">Estado</th>
+                </tr>
+              </thead>
+
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <tr v-for="plan in planesPago" :key="plan.id_plan_pago_proyecto">
+                  <td class="px-3 py-3">
+                    <p class="font-semibold text-gray-900">{{ plan.nombre }}</p>
+                    <p class="text-xs text-gray-500">{{ plan.codigo }}</p>
+                  </td>
+
+                  <td class="px-3 py-3 text-gray-700">
+                    {{ tipoPlanLabel(plan.tipo_plan) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-right text-gray-700">
+                    {{ formatMoney(plan.valor_separacion) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-right text-gray-700">
+                    {{ formatPercent(plan.porcentaje_cuota_inicial) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-right text-gray-700">
+                    {{ plazoPlanTexto(plan) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-right text-gray-700">
+                    {{ formatPercent(plan.porcentaje_escritura) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-gray-700">
+                    {{ descuentoTexto(plan) }}
+                  </td>
+
+                  <td class="px-3 py-3 text-gray-700 max-w-[260px]">
+                    <span class="line-clamp-2">
+                      {{ plan.beneficio_comercial || '—' }}
+                    </span>
+                  </td>
+
+                  <td class="px-3 py-3">
+                    <span
+                      class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold"
+                      :class="
+                        plan.activo
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                          : 'border-red-200 bg-red-50 text-red-800'
+                      "
+                    >
+                      {{ plan.activo ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -146,6 +238,82 @@ const proyecto = computed(
 )
 
 const idProyecto = computed(() => proyecto.value?.id_proyecto ?? '')
+
+const planesPago = computed(() => proyecto.value?.planes_pago ?? [])
+
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') return '—'
+
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(Number(value))
+}
+
+function formatPercent(value) {
+  if (value === null || value === undefined || value === '') return '—'
+
+  return `${new Intl.NumberFormat('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  }).format(Number(value))}%`
+}
+
+function tipoPlanLabel(tipo) {
+  const labels = {
+    cuota_inicial_mensual: 'Cuota inicial mensual',
+    cuota_inicial_contado: 'Cuota inicial de contado',
+    pago_total_diferido: 'Pago total diferido',
+    especial_manual: 'Especial manual',
+  }
+
+  return labels[tipo] || tipo || '—'
+}
+
+function plazoPlanTexto(plan) {
+  if (!plan) return '—'
+
+  if (plan.tipo_plan === 'cuota_inicial_mensual') {
+    return plan.plazo_cuota_inicial_meses ? `${plan.plazo_cuota_inicial_meses} meses` : '—'
+  }
+
+  if (plan.tipo_plan === 'cuota_inicial_contado') {
+    return 'Contado'
+  }
+
+  if (plan.tipo_plan === 'pago_total_diferido') {
+    return plan.plazo_pago_total_dias ? `${plan.plazo_pago_total_dias} días` : '—'
+  }
+
+  if (plan.tipo_plan === 'especial_manual') {
+    return 'Manual en venta'
+  }
+
+  return '—'
+}
+
+function descuentoTexto(plan) {
+  if (!plan || plan.tipo_descuento === 'ninguno') {
+    return 'Sin descuento'
+  }
+
+  const baseLabels = {
+    precio_total: 'sobre precio total',
+    cuota_inicial: 'sobre cuota inicial',
+    ninguna: '',
+  }
+
+  if (plan.tipo_descuento === 'valor_fijo') {
+    return `${formatMoney(plan.valor_descuento)} ${baseLabels[plan.base_descuento] || ''}`.trim()
+  }
+
+  if (plan.tipo_descuento === 'porcentaje') {
+    return `${formatPercent(plan.valor_descuento)} ${baseLabels[plan.base_descuento] || ''}`.trim()
+  }
+
+  return '—'
+}
 
 // const zonasSociales = computed(() => page.props.zonas_sociales ?? [])
 

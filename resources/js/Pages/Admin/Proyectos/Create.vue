@@ -299,6 +299,8 @@
             </div>
           </AppCard>
 
+          <PlanesPagoProyectoForm v-model="form.planes_pago" :errors="form.errors" />
+
           <!-- Prima Altura -->
           <AppCard padding="md">
             <SectionHeader
@@ -525,6 +527,7 @@ import { useForm, Link, router } from '@inertiajs/vue3'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
+import PlanesPagoProyectoForm from '@/Components/PlanesPagoProyectoForm.vue'
 
 import SectionHeader from '@/Components/SectionHeader.vue'
 import FormField from '@/Components/FormField.vue'
@@ -559,6 +562,29 @@ const InfoIcon = InformationCircleIcon
 /** Evitar mutar props directamente */
 const ubicacionesLocal = ref([...(props.ubicaciones ?? [])])
 
+function planPagoInicial() {
+  return {
+    codigo: 'PLAN-01',
+    nombre: 'Plan 01',
+    descripcion: '',
+    orden: 1,
+    tipo_plan: 'cuota_inicial_mensual',
+    valor_separacion: '',
+    porcentaje_cuota_inicial: '',
+    plazo_cuota_inicial_meses: '',
+    frecuencia_cuota_inicial_meses: 1,
+    plazo_pago_total_dias: '',
+    porcentaje_escritura: '',
+    tipo_descuento: 'ninguno',
+    valor_descuento: '',
+    base_descuento: 'ninguna',
+    beneficio_comercial: '',
+    permite_plazo_manual: false,
+    permite_cuotas_manuales: false,
+    activo: true,
+  }
+}
+
 /** Formulario proyecto */
 const form = useForm({
   nombre: '',
@@ -585,6 +611,7 @@ const form = useForm({
   prima_altura_base: null,
   prima_altura_incremento: null,
   prima_altura_activa: false,
+  planes_pago: [planPagoInicial()],
 })
 
 function submit() {

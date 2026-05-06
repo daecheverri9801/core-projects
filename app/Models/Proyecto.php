@@ -106,6 +106,13 @@ class Proyecto extends Model
         return $this->hasMany(ProyectoMetaComercial::class, 'id_proyecto', 'id_proyecto');
     }
 
+    public function planesPago()
+    {
+        return $this->hasMany(PlanPagoProyecto::class, 'id_proyecto', 'id_proyecto')
+            ->orderBy('orden')
+            ->orderBy('id_plan_pago_proyecto');
+    }
+
     public function politicaVigente()
     {
         return $this->hasOne(PoliticaPrecioProyecto::class, 'id_proyecto', 'id_proyecto')

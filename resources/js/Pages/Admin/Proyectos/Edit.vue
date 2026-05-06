@@ -317,6 +317,8 @@
             </div>
           </AppCard>
 
+          <PlanesPagoProyectoForm v-model="form.planes_pago" :errors="form.errors" />
+
           <!-- Prima Altura -->
           <AppCard padding="md">
             <SectionHeader
@@ -459,6 +461,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
 import AppCard from '@/Components/AppCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
+import PlanesPagoProyectoForm from '@/Components/PlanesPagoProyectoForm.vue'
 
 import SectionHeader from '@/Components/SectionHeader.vue'
 import FormField from '@/Components/FormField.vue'
@@ -507,6 +510,7 @@ const form = useForm({
   prima_altura_base: props.proyecto?.prima_altura_base ?? null,
   prima_altura_incremento: props.proyecto?.prima_altura_incremento ?? null,
   prima_altura_activa: props.proyecto?.prima_altura_activa ?? false,
+  planes_pago: props.proyecto?.planes_pago ?? [],
 })
 
 function submit() {

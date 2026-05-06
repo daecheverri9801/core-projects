@@ -16,22 +16,20 @@ class CotizadorWebController extends Controller
     public function index(Request $request)
     {
         $empleado = $request->user()->load('cargo');
-        // Apartamentos disponibles
+
         $apartamentos = Apartamento::with([
             'torre.proyecto',
             'tipoApartamento',
             'pisoTorre',
-            'estadoInmueble'
+            'estadoInmueble',
         ])
-            ->whereHas(
-                'estadoInmueble',
-                fn($q) =>
-                $q->whereRaw('LOWER(nombre) = ?', ['disponible'])
-            )
-            ->orderBy('numero', 'asc')
+            ->whereHas('estadoInmueble', function ($q) {
+                $q->whereRaw('LOWER(nombre) = ?', ['disponible']);
+            })
             ->whereHas('torre.proyecto', function ($q) {
                 $q->activos();
             })
+            ->orderBy('numero', 'asc')
             ->get()
             ->map(function ($a) {
                 return [
@@ -50,16 +48,13 @@ class CotizadorWebController extends Controller
                 ];
             });
 
-        // Locales disponibles
         $locales = Local::with([
             'torre.proyecto',
-            'estadoInmueble'
+            'estadoInmueble',
         ])
-            ->whereHas(
-                'estadoInmueble',
-                fn($q) =>
-                $q->whereRaw('LOWER(nombre) = ?', ['disponible'])
-            )
+            ->whereHas('estadoInmueble', function ($q) {
+                $q->whereRaw('LOWER(nombre) = ?', ['disponible']);
+            })
             ->whereHas('torre.proyecto', function ($q) {
                 $q->activos();
             })
@@ -86,22 +81,35 @@ class CotizadorWebController extends Controller
 
         return Inertia::render('Ventas/Cotizador/Index', [
             'proyectos' => Proyecto::activos()
+                ->with([
+                    'planesPago' => function ($query) {
+                        $query->activos()
+                            ->orderBy('orden')
+                            ->orderBy('id_plan_pago_proyecto');
+                    },
+                ])
                 ->select(
                     'id_proyecto',
                     'nombre',
+                    'logo_path',
                     'fecha_inicio',
                     'plazo_cuota_inicial_meses',
                     'porcentaje_cuota_inicial_min',
                     'valor_min_separacion'
-                )->get(),
-            'clientes'  => Cliente::select(
+                )
+                ->orderBy('nombre', 'asc')
+                ->get(),
+
+            'clientes' => Cliente::select(
                 'documento',
                 'nombre',
                 'direccion',
                 'telefono',
                 'correo'
-            )->orderBy('nombre', 'asc')
+            )
+                ->orderBy('nombre', 'asc')
                 ->get(),
+
             'empleado'  => $empleado,
             'inmuebles' => $inmuebles,
         ]);

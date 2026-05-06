@@ -7,6 +7,8 @@ use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\Estado;
 use App\Models\Ubicacion;
@@ -79,6 +81,40 @@ class ProyectoController extends Controller
             'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
             'activo' => 'nullable|boolean',
+            'planes_pago' => 'nullable|array|max:10',
+            'planes_pago.*.id_plan_pago_proyecto' => 'nullable|integer|exists:planes_pago_proyecto,id_plan_pago_proyecto',
+            'planes_pago.*.codigo' => 'required_with:planes_pago|string|max:30',
+            'planes_pago.*.nombre' => 'required_with:planes_pago|string|max:120',
+            'planes_pago.*.descripcion' => 'nullable|string|max:1000',
+            'planes_pago.*.orden' => 'nullable|integer|min:1|max:10',
+            'planes_pago.*.tipo_plan' => [
+                'required_with:planes_pago',
+                Rule::in([
+                    'cuota_inicial_mensual',
+                    'cuota_inicial_contado',
+                    'pago_total_diferido',
+                    'especial_manual',
+                ]),
+            ],
+            'planes_pago.*.valor_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'planes_pago.*.porcentaje_cuota_inicial' => 'nullable|numeric|min:0|max:100',
+            'planes_pago.*.plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
+            'planes_pago.*.frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
+            'planes_pago.*.plazo_pago_total_dias' => 'nullable|integer|min:1|max:3650',
+            'planes_pago.*.porcentaje_escritura' => 'nullable|numeric|min:0|max:100',
+            'planes_pago.*.tipo_descuento' => [
+                'nullable',
+                Rule::in(['ninguno', 'valor_fijo', 'porcentaje']),
+            ],
+            'planes_pago.*.valor_descuento' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'planes_pago.*.base_descuento' => [
+                'nullable',
+                Rule::in(['ninguna', 'precio_total', 'cuota_inicial']),
+            ],
+            'planes_pago.*.beneficio_comercial' => 'nullable|string|max:1000',
+            'planes_pago.*.permite_plazo_manual' => 'nullable',
+            'planes_pago.*.permite_cuotas_manuales' => 'nullable',
+            'planes_pago.*.activo' => 'nullable',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'id_estado.required' => 'El estado del proyecto es obligatorio',
@@ -87,6 +123,10 @@ class ProyectoController extends Controller
             'logo_proyecto.mimes' => 'El logo debe estar en formato JPG, JPEG, PNG o WEBP.',
             'logo_proyecto.max' => 'El logo no puede pesar más de 2 MB.',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $this->validarReglasPlanesPago($validator, $request->input('planes_pago', []));
+        });
 
         if ($validator->fails()) {
             if ($request->expectsJson()) {
@@ -102,19 +142,44 @@ class ProyectoController extends Controller
 
         // $proyecto = Proyecto::create($data);
 
+        // $data = $validator->validated();
+
+        // unset($data['logo_proyecto']);
+
+        // if (!array_key_exists('activo', $data) || $data['activo'] === null) {
+        //     $data['activo'] = true;
+        // }
+
+        // if ($request->hasFile('logo_proyecto')) {
+        //     $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
+        // }
+
+        // $proyecto = Proyecto::create($data);
+
         $data = $validator->validated();
 
-        unset($data['logo_proyecto']);
+        $planesPago = $data['planes_pago'] ?? [];
+
+        unset($data['planes_pago'], $data['logo_proyecto']);
 
         if (!array_key_exists('activo', $data) || $data['activo'] === null) {
             $data['activo'] = true;
         }
 
-        if ($request->hasFile('logo_proyecto')) {
-            $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
-        }
+        $proyecto = DB::transaction(function () use ($request, $data, $planesPago) {
+            $dataProyecto = $data;
 
-        $proyecto = Proyecto::create($data);
+            if ($request->hasFile('logo_proyecto')) {
+                $dataProyecto['logo_path'] = $request->file('logo_proyecto')
+                    ->store('proyectos/logos', 'public');
+            }
+
+            $proyecto = Proyecto::create($dataProyecto);
+
+            $this->sincronizarPlanesPago($proyecto, $planesPago);
+
+            return $proyecto;
+        });
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -133,9 +198,19 @@ class ProyectoController extends Controller
         $tab = request()->get('tab', 'detalle');
         $search = request()->get('search');
 
-        $proyecto = Proyecto::with(['ubicacion.ciudad', 'estado_proyecto', 'politicasPrecio' => function ($query) {
-            $query->orderBy('aplica_desde', 'desc');
-        }])->findOrFail($id_proyecto);
+        // $proyecto = Proyecto::with(['ubicacion.ciudad', 'estado_proyecto', 'politicasPrecio' => function ($query) {
+        //     $query->orderBy('aplica_desde', 'desc');
+        // }])->findOrFail($id_proyecto);
+        $proyecto = Proyecto::with([
+            'ubicacion.ciudad',
+            'estado_proyecto',
+            'planesPago' => function ($query) {
+                $query->orderBy('orden')->orderBy('id_plan_pago_proyecto');
+            },
+            'politicasPrecio' => function ($query) {
+                $query->orderBy('aplica_desde', 'desc');
+            },
+        ])->findOrFail($id_proyecto);
 
         $torres = Torre::with(['estado'])
             ->where('id_proyecto', $id_proyecto)
@@ -155,11 +230,26 @@ class ProyectoController extends Controller
         ]);
     }
 
+    // public function edit(Proyecto $proyecto, Request $request)
+    // {
+    //     $empleado = $request->user()->load('cargo');
+    //     $estados = Estado::all();
+    //     $ubicaciones = Ubicacion::with('ciudad')->get();
+
+    //     return Inertia::render('Admin/Proyectos/Edit', compact('proyecto', 'estados', 'ubicaciones', 'empleado'));
+    // }
+
     public function edit(Proyecto $proyecto, Request $request)
     {
         $empleado = $request->user()->load('cargo');
         $estados = Estado::all();
         $ubicaciones = Ubicacion::with('ciudad')->get();
+
+        $proyecto->load([
+            'planesPago' => function ($query) {
+                $query->orderBy('orden')->orderBy('id_plan_pago_proyecto');
+            },
+        ]);
 
         return Inertia::render('Admin/Proyectos/Edit', compact('proyecto', 'estados', 'ubicaciones', 'empleado'));
     }
@@ -190,6 +280,40 @@ class ProyectoController extends Controller
             'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
             'activo' => 'nullable|boolean',
+            'planes_pago' => 'nullable|array|max:10',
+            'planes_pago.*.id_plan_pago_proyecto' => 'nullable|integer|exists:planes_pago_proyecto,id_plan_pago_proyecto',
+            'planes_pago.*.codigo' => 'required_with:planes_pago|string|max:30',
+            'planes_pago.*.nombre' => 'required_with:planes_pago|string|max:120',
+            'planes_pago.*.descripcion' => 'nullable|string|max:1000',
+            'planes_pago.*.orden' => 'nullable|integer|min:1|max:10',
+            'planes_pago.*.tipo_plan' => [
+                'required_with:planes_pago',
+                Rule::in([
+                    'cuota_inicial_mensual',
+                    'cuota_inicial_contado',
+                    'pago_total_diferido',
+                    'especial_manual',
+                ]),
+            ],
+            'planes_pago.*.valor_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'planes_pago.*.porcentaje_cuota_inicial' => 'nullable|numeric|min:0|max:100',
+            'planes_pago.*.plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
+            'planes_pago.*.frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
+            'planes_pago.*.plazo_pago_total_dias' => 'nullable|integer|min:1|max:3650',
+            'planes_pago.*.porcentaje_escritura' => 'nullable|numeric|min:0|max:100',
+            'planes_pago.*.tipo_descuento' => [
+                'nullable',
+                Rule::in(['ninguno', 'valor_fijo', 'porcentaje']),
+            ],
+            'planes_pago.*.valor_descuento' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'planes_pago.*.base_descuento' => [
+                'nullable',
+                Rule::in(['ninguna', 'precio_total', 'cuota_inicial']),
+            ],
+            'planes_pago.*.beneficio_comercial' => 'nullable|string|max:1000',
+            'planes_pago.*.permite_plazo_manual' => 'nullable',
+            'planes_pago.*.permite_cuotas_manuales' => 'nullable',
+            'planes_pago.*.activo' => 'nullable',
         ], [
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'nombre.max' => 'El nombre no puede exceder 150 caracteres',
@@ -226,26 +350,62 @@ class ProyectoController extends Controller
         // $proyecto->update($request->all());
         // $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
+        // $data = $validator->validated();
+
+        // $eliminarLogo = (bool) ($data['logo_proyecto_eliminar'] ?? false);
+
+        // unset($data['logo_proyecto'], $data['logo_proyecto_eliminar']);
+
+        // if ($eliminarLogo && $proyecto->logo_path) {
+        //     Storage::disk('public')->delete($proyecto->logo_path);
+        //     $data['logo_path'] = null;
+        // }
+
+        // if ($request->hasFile('logo_proyecto')) {
+        //     if ($proyecto->logo_path) {
+        //         Storage::disk('public')->delete($proyecto->logo_path);
+        //     }
+
+        //     $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
+        // }
+
+        // $proyecto->update($data);
+
         $data = $validator->validated();
+
+        $planesPago = $data['planes_pago'] ?? [];
 
         $eliminarLogo = (bool) ($data['logo_proyecto_eliminar'] ?? false);
 
-        unset($data['logo_proyecto'], $data['logo_proyecto_eliminar']);
+        unset(
+            $data['planes_pago'],
+            $data['logo_proyecto'],
+            $data['logo_proyecto_eliminar']
+        );
 
-        if ($eliminarLogo && $proyecto->logo_path) {
-            Storage::disk('public')->delete($proyecto->logo_path);
-            $data['logo_path'] = null;
-        }
+        DB::transaction(function () use ($request, $proyecto, $data, $planesPago, $eliminarLogo) {
+            $dataProyecto = $data;
 
-        if ($request->hasFile('logo_proyecto')) {
-            if ($proyecto->logo_path) {
+            if ($eliminarLogo && $proyecto->logo_path) {
                 Storage::disk('public')->delete($proyecto->logo_path);
+                $dataProyecto['logo_path'] = null;
             }
 
-            $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
-        }
+            if ($request->hasFile('logo_proyecto')) {
+                if ($proyecto->logo_path) {
+                    Storage::disk('public')->delete($proyecto->logo_path);
+                }
 
-        $proyecto->update($data);
+                $dataProyecto['logo_path'] = $request->file('logo_proyecto')
+                    ->store('proyectos/logos', 'public');
+            }
+
+            $proyecto->update($dataProyecto);
+
+            if ($request->has('planes_pago')) {
+                $this->sincronizarPlanesPago($proyecto, $planesPago);
+            }
+        });
 
         $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
@@ -261,5 +421,219 @@ class ProyectoController extends Controller
         $proyecto->delete();
 
         return redirect()->route('proyectos.index')->with('success', 'Proyecto eliminado exitosamente');
+    }
+
+    private function validarReglasPlanesPago($validator, array $planes): void
+    {
+        if (empty($planes)) {
+            return;
+        }
+
+        $codigos = [];
+
+        foreach ($planes as $index => $plan) {
+            $prefix = "planes_pago.$index";
+
+            $codigo = strtoupper(trim((string) ($plan['codigo'] ?? '')));
+            $nombre = trim((string) ($plan['nombre'] ?? ''));
+            $tipoPlan = $plan['tipo_plan'] ?? null;
+
+            if ($codigo !== '') {
+                if (in_array($codigo, $codigos, true)) {
+                    $validator->errors()->add("$prefix.codigo", 'El código del plan está repetido en este proyecto.');
+                }
+
+                $codigos[] = $codigo;
+            }
+
+            if ($nombre === '') {
+                $validator->errors()->add("$prefix.nombre", 'El nombre del plan es obligatorio.');
+            }
+
+            $porcentajeCuotaInicial = $this->numeroNullable($plan['porcentaje_cuota_inicial'] ?? null);
+            $porcentajeEscritura = $this->numeroNullable($plan['porcentaje_escritura'] ?? null);
+            $plazoCuotaInicial = $this->numeroNullable($plan['plazo_cuota_inicial_meses'] ?? null);
+            $frecuenciaCuotaInicial = $this->numeroNullable($plan['frecuencia_cuota_inicial_meses'] ?? null);
+            $plazoPagoTotalDias = $this->numeroNullable($plan['plazo_pago_total_dias'] ?? null);
+
+            if ($tipoPlan === 'cuota_inicial_mensual') {
+                if ($porcentajeCuotaInicial === null || $porcentajeCuotaInicial <= 0) {
+                    $validator->errors()->add("$prefix.porcentaje_cuota_inicial", 'El porcentaje de cuota inicial es obligatorio para este tipo de plan.');
+                }
+
+                if ($plazoCuotaInicial === null || $plazoCuotaInicial <= 0) {
+                    $validator->errors()->add("$prefix.plazo_cuota_inicial_meses", 'El plazo de cuota inicial es obligatorio para este tipo de plan.');
+                }
+
+                if ($frecuenciaCuotaInicial === null || $frecuenciaCuotaInicial <= 0) {
+                    $validator->errors()->add("$prefix.frecuencia_cuota_inicial_meses", 'La frecuencia de cuota inicial es obligatoria.');
+                }
+            }
+
+            if ($tipoPlan === 'cuota_inicial_contado') {
+                if ($porcentajeCuotaInicial === null || $porcentajeCuotaInicial <= 0) {
+                    $validator->errors()->add("$prefix.porcentaje_cuota_inicial", 'El porcentaje de cuota inicial contado es obligatorio.');
+                }
+            }
+
+            if ($tipoPlan === 'pago_total_diferido') {
+                if ($plazoPagoTotalDias === null || $plazoPagoTotalDias <= 0) {
+                    $validator->errors()->add("$prefix.plazo_pago_total_dias", 'El plazo para pagar el saldo total es obligatorio.');
+                }
+            }
+
+            if ($tipoPlan === 'especial_manual') {
+                if ($porcentajeCuotaInicial === null || $porcentajeCuotaInicial <= 0) {
+                    $validator->errors()->add("$prefix.porcentaje_cuota_inicial", 'El porcentaje de cuota inicial es obligatorio para el plan especial.');
+                }
+            }
+
+            if (
+                $tipoPlan !== 'pago_total_diferido'
+                && $porcentajeCuotaInicial !== null
+                && $porcentajeEscritura !== null
+                && ($porcentajeCuotaInicial + $porcentajeEscritura) > 100
+            ) {
+                $validator->errors()->add("$prefix.porcentaje_escritura", 'La suma de cuota inicial y escritura no puede superar el 100%.');
+            }
+
+            $tipoDescuento = $plan['tipo_descuento'] ?? 'ninguno';
+            $baseDescuento = $plan['base_descuento'] ?? 'ninguna';
+            $valorDescuento = $this->numeroNullable($plan['valor_descuento'] ?? null);
+
+            if ($tipoDescuento !== 'ninguno') {
+                if ($valorDescuento === null || $valorDescuento <= 0) {
+                    $validator->errors()->add("$prefix.valor_descuento", 'El valor del descuento es obligatorio cuando el plan tiene descuento.');
+                }
+
+                if ($baseDescuento === 'ninguna') {
+                    $validator->errors()->add("$prefix.base_descuento", 'Debes seleccionar la base sobre la cual aplica el descuento.');
+                }
+
+                if ($tipoDescuento === 'porcentaje' && $valorDescuento > 100) {
+                    $validator->errors()->add("$prefix.valor_descuento", 'El descuento porcentual no puede superar el 100%.');
+                }
+
+                if ($baseDescuento === 'cuota_inicial' && $tipoPlan === 'pago_total_diferido') {
+                    $validator->errors()->add("$prefix.base_descuento", 'Un pago total diferido no debe usar descuento sobre cuota inicial.');
+                }
+            }
+        }
+    }
+
+    private function sincronizarPlanesPago(Proyecto $proyecto, array $planes): void
+    {
+        $planesNormalizados = $this->normalizarPlanesPago($planes);
+        $idsVigentes = [];
+
+        foreach ($planesNormalizados as $plan) {
+            $idPlan = $plan['id_plan_pago_proyecto'] ?? null;
+
+            unset($plan['id_plan_pago_proyecto']);
+
+            if ($idPlan) {
+                $planExistente = $proyecto->planesPago()
+                    ->where('id_plan_pago_proyecto', $idPlan)
+                    ->first();
+
+                if ($planExistente) {
+                    $planExistente->update($plan);
+                    $idsVigentes[] = $planExistente->id_plan_pago_proyecto;
+                    continue;
+                }
+            }
+
+            $nuevoPlan = $proyecto->planesPago()->create($plan);
+            $idsVigentes[] = $nuevoPlan->id_plan_pago_proyecto;
+        }
+
+        $proyecto->planesPago()
+            ->when(!empty($idsVigentes), function ($query) use ($idsVigentes) {
+                $query->whereNotIn('id_plan_pago_proyecto', $idsVigentes);
+            })
+            ->delete();
+    }
+
+    private function normalizarPlanesPago(array $planes): array
+    {
+        return collect($planes)
+            ->values()
+            ->map(function ($plan, $index) {
+                $tipoPlan = $plan['tipo_plan'] ?? 'cuota_inicial_mensual';
+                $tipoDescuento = $plan['tipo_descuento'] ?? 'ninguno';
+
+                return [
+                    'id_plan_pago_proyecto' => $plan['id_plan_pago_proyecto'] ?? null,
+                    'codigo' => strtoupper(trim((string) ($plan['codigo'] ?? ''))),
+                    'nombre' => trim((string) ($plan['nombre'] ?? '')),
+                    'descripcion' => $this->valorNullable($plan['descripcion'] ?? null),
+                    'orden' => (int) ($plan['orden'] ?? ($index + 1)),
+                    'tipo_plan' => $tipoPlan,
+
+                    'valor_separacion' => $this->numeroONull($plan['valor_separacion'] ?? 0) ?? 0,
+                    'porcentaje_cuota_inicial' => $this->numeroONull($plan['porcentaje_cuota_inicial'] ?? null),
+                    'plazo_cuota_inicial_meses' => $this->numeroONull($plan['plazo_cuota_inicial_meses'] ?? null),
+                    'frecuencia_cuota_inicial_meses' => $this->numeroONull($plan['frecuencia_cuota_inicial_meses'] ?? 1) ?? 1,
+                    'plazo_pago_total_dias' => $this->numeroONull($plan['plazo_pago_total_dias'] ?? null),
+                    'porcentaje_escritura' => $this->numeroONull($plan['porcentaje_escritura'] ?? 0) ?? 0,
+
+                    'tipo_descuento' => $tipoDescuento,
+                    'valor_descuento' => $tipoDescuento === 'ninguno'
+                        ? null
+                        : $this->numeroONull($plan['valor_descuento'] ?? null),
+                    'base_descuento' => $tipoDescuento === 'ninguno'
+                        ? 'ninguna'
+                        : ($plan['base_descuento'] ?? 'ninguna'),
+
+                    'beneficio_comercial' => $this->valorNullable($plan['beneficio_comercial'] ?? null),
+
+                    'permite_plazo_manual' => $tipoPlan === 'especial_manual'
+                        ? true
+                        : $this->booleano($plan['permite_plazo_manual'] ?? false),
+
+                    'permite_cuotas_manuales' => $tipoPlan === 'especial_manual'
+                        ? true
+                        : $this->booleano($plan['permite_cuotas_manuales'] ?? false),
+
+                    'activo' => $this->booleano($plan['activo'] ?? true),
+                ];
+            })
+            ->filter(function ($plan) {
+                return $plan['codigo'] !== '' || $plan['nombre'] !== '';
+            })
+            ->values()
+            ->all();
+    }
+
+    private function valorNullable($valor): ?string
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        return trim((string) $valor);
+    }
+
+    private function numeroONull($valor)
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        return $valor;
+    }
+
+    private function numeroNullable($valor): ?float
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        return is_numeric($valor) ? (float) $valor : null;
+    }
+
+    private function booleano($valor): bool
+    {
+        return filter_var($valor, FILTER_VALIDATE_BOOLEAN);
     }
 }
