@@ -400,10 +400,10 @@ function exportPDF() {
     <div class="space-y-6 p-4 sm:p-6">
       <!-- Header -->
       <section class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-        <div class="bg-gradient-to-r from-[#FFEA00] via-[#FFF15C] to-[#FFF9B8] px-6 py-6">
+        <div class="bg-gradient-to-r from-[#FFFFFF] via-[#F0F4F8] to-[#F0F4F8] px-6 py-6">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0">
-              <div class="flex items-center gap-3 text-[#474100]">
+              <div class="flex items-center gap-3 text-[#000000]">
                 <div
                   class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-sm"
                 >
@@ -413,7 +413,7 @@ function exportPDF() {
                   <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">
                     Plan de amortización
                   </h1>
-                  <p class="mt-1 text-sm text-[#474100]/80">
+                  <p class="mt-1 text-sm text-[#000000]/80">
                     Genera el detalle de cuotas iniciales de una venta registrada.
                   </p>
                 </div>
@@ -421,29 +421,29 @@ function exportPDF() {
             </div>
 
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div class="rounded-2xl border border-[#474100]/10 bg-white/70 px-4 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#474100]/70">
+              <div class="rounded-2xl border border-[#000000]/10 bg-white/70 px-4 py-3 shadow-sm">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#000000]/70">
                   Proyecto
                 </p>
-                <p class="mt-1 truncate text-sm font-bold text-[#474100]">
+                <p class="mt-1 truncate text-sm font-bold text-[#000000]">
                   {{ proyectoSeleccionado?.nombre || 'Pendiente' }}
                 </p>
               </div>
 
-              <div class="rounded-2xl border border-[#474100]/10 bg-white/70 px-4 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#474100]/70">
+              <div class="rounded-2xl border border-[#000000]/10 bg-white/70 px-4 py-3 shadow-sm">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#000000]/70">
                   Cliente
                 </p>
-                <p class="mt-1 truncate text-sm font-bold text-[#474100]">
+                <p class="mt-1 truncate text-sm font-bold text-[#000000]">
                   {{ clienteSeleccionado?.nombre || 'Pendiente' }}
                 </p>
               </div>
 
-              <div class="rounded-2xl border border-[#474100]/10 bg-white/70 px-4 py-3 shadow-sm">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#474100]/70">
+              <div class="rounded-2xl border border-[#000000]/10 bg-white/70 px-4 py-3 shadow-sm">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-[#000000]/70">
                   Venta
                 </p>
-                <p class="mt-1 truncate text-sm font-bold text-[#474100]">
+                <p class="mt-1 truncate text-sm font-bold text-[#000000]">
                   {{ ventaSeleccionada?.inmueble || 'Pendiente' }}
                 </p>
               </div>

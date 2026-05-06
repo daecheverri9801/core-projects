@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Proyecto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use App\Models\Estado;
 use App\Models\Ubicacion;
@@ -57,6 +58,7 @@ class ProyectoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
+            'logo_proyecto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
@@ -81,6 +83,9 @@ class ProyectoController extends Controller
             'nombre.required' => 'El nombre del proyecto es obligatorio',
             'id_estado.required' => 'El estado del proyecto es obligatorio',
             'id_ubicacion.required' => 'La ubicación del proyecto es obligatoria',
+            'logo_proyecto.image' => 'El archivo debe ser una imagen válida.',
+            'logo_proyecto.mimes' => 'El logo debe estar en formato JPG, JPEG, PNG o WEBP.',
+            'logo_proyecto.max' => 'El logo no puede pesar más de 2 MB.',
         ]);
 
         if ($validator->fails()) {
@@ -90,9 +95,23 @@ class ProyectoController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $data = $request->all();
+        // $data = $request->all();
+        // if (!array_key_exists('activo', $data) || $data['activo'] === null) {
+        //     $data['activo'] = true; // default
+        // }
+
+        // $proyecto = Proyecto::create($data);
+
+        $data = $validator->validated();
+
+        unset($data['logo_proyecto']);
+
         if (!array_key_exists('activo', $data) || $data['activo'] === null) {
-            $data['activo'] = true; // default
+            $data['activo'] = true;
+        }
+
+        if ($request->hasFile('logo_proyecto')) {
+            $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
         }
 
         $proyecto = Proyecto::create($data);
@@ -149,6 +168,8 @@ class ProyectoController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:150',
+            'logo_proyecto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'logo_proyecto_eliminar' => 'nullable|boolean',
             'descripcion' => 'nullable|string|max:500',
             'fecha_inicio' => 'nullable|date',
             'fecha_finalizacion' => 'nullable|date|after_or_equal:fecha_inicio',
@@ -193,13 +214,39 @@ class ProyectoController extends Controller
             'plazo_max_separacion_dias.integer' => 'El plazo máximo de separación debe ser un número entero.',
             'plazo_max_separacion_dias.min' => 'El plazo debe ser mínimo de 1 día.',
             'plazo_max_separacion_dias.max' => 'El plazo no puede superar los 3650 días.',
+            'logo_proyecto.image' => 'El archivo debe ser una imagen válida.',
+            'logo_proyecto.mimes' => 'El logo debe estar en formato JPG, JPEG, PNG o WEBP.',
+            'logo_proyecto.max' => 'El logo no puede pesar más de 2 MB.',
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
 
-        $proyecto->update($request->all());
+        // $proyecto->update($request->all());
+        // $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
+
+        $data = $validator->validated();
+
+        $eliminarLogo = (bool) ($data['logo_proyecto_eliminar'] ?? false);
+
+        unset($data['logo_proyecto'], $data['logo_proyecto_eliminar']);
+
+        if ($eliminarLogo && $proyecto->logo_path) {
+            Storage::disk('public')->delete($proyecto->logo_path);
+            $data['logo_path'] = null;
+        }
+
+        if ($request->hasFile('logo_proyecto')) {
+            if ($proyecto->logo_path) {
+                Storage::disk('public')->delete($proyecto->logo_path);
+            }
+
+            $data['logo_path'] = $request->file('logo_proyecto')->store('proyectos/logos', 'public');
+        }
+
+        $proyecto->update($data);
+
         $proyecto->load(['estado_proyecto', 'ubicacion.ciudad.departamento.pais']);
 
         return redirect()->route('proyectos.show', $proyecto)->with('success', 'Proyecto actualizado exitosamente');

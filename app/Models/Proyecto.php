@@ -14,6 +14,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre',
+        'logo_path',
         'descripcion',
         'fecha_inicio',
         'fecha_finalizacion',
@@ -49,11 +50,22 @@ class Proyecto extends Model
         'activo' => 'boolean',
     ];
 
+    protected $appends = [
+        'logo_url',
+    ];
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo_path
+            ? asset('storage/' . $this->logo_path)
+            : null;
+    }
+
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
     }
-    
+
     public function estado_proyecto()
     {
         return $this->belongsTo(Estado::class, 'id_estado', 'id_estado');
@@ -92,7 +104,7 @@ class Proyecto extends Model
     public function metasComerciales()
     {
         return $this->hasMany(ProyectoMetaComercial::class, 'id_proyecto', 'id_proyecto');
-    }    
+    }
 
     public function politicaVigente()
     {

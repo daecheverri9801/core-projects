@@ -521,11 +521,11 @@ function submit() {
     <aside class="xl:col-span-4">
       <div class="sticky top-6 space-y-6">
         <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div class="bg-gradient-to-r from-[#FFEA00] via-[#FFF15C] to-[#FFF9B8] px-5 py-5">
-            <h3 class="text-lg font-extrabold text-[#474100]">
+          <div class="bg-gradient-to-r from-[#FFFFFF] via-[#F0F4F8] to-[#F0F4F8] px-5 py-5">
+            <h3 class="text-lg font-extrabold text-[#000000]">
               {{ formMode === 'edit' ? 'Editar pago' : 'Registrar pago' }}
             </h3>
-            <p class="mt-1 text-sm text-[#474100]/80">
+            <p class="mt-1 text-sm text-[#000000]/80">
               Relaciona el pago con la venta, la cuota y el comprobante.
             </p>
           </div>

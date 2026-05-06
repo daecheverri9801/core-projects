@@ -45,6 +45,38 @@
                 <TextInput v-model="form.nombre" placeholder="Ej: Conjunto Residencial Aurora" />
               </FormField>
 
+              <FormField
+                label="Logo del proyecto"
+                :error="form.errors.logo_proyecto"
+                hint="JPG, PNG o WEBP. Máximo 2 MB."
+              >
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  @change="onLogoChange"
+                  class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm file:mr-4 file:rounded-lg file:border-0 file:bg-brand-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-900 hover:file:bg-brand-200"
+                />
+
+                <div
+                  v-if="logoPreview"
+                  class="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3"
+                >
+                  <img
+                    :src="logoPreview"
+                    alt="Vista previa logo proyecto"
+                    class="h-16 w-28 rounded-lg border bg-white object-contain p-2"
+                  />
+
+                  <button
+                    type="button"
+                    @click="removeLogo"
+                    class="text-sm font-semibold text-red-600 hover:text-red-700"
+                  >
+                    Quitar logo
+                  </button>
+                </div>
+              </FormField>
+
               <FormField label="Estado" required :error="form.errors.id_estado">
                 <SelectInput v-model="form.id_estado" placeholder="Seleccione un estado">
                   <option value="" disabled>Seleccione un estado</option>
@@ -530,6 +562,7 @@ const ubicacionesLocal = ref([...(props.ubicaciones ?? [])])
 /** Formulario proyecto */
 const form = useForm({
   nombre: '',
+  logo_proyecto: null,
   descripcion: '',
   fecha_inicio: '',
   fecha_finalizacion: '',
@@ -555,7 +588,23 @@ const form = useForm({
 })
 
 function submit() {
-  router.post('/proyectos', form)
+  form.post('/proyectos', {
+    forceFormData: true,
+  })
+}
+
+const logoPreview = ref(null)
+
+function onLogoChange(event) {
+  const file = event.target.files?.[0] ?? null
+
+  form.logo_proyecto = file
+  logoPreview.value = file ? URL.createObjectURL(file) : null
+}
+
+function removeLogo() {
+  form.logo_proyecto = null
+  logoPreview.value = null
 }
 
 /** Modal ubicación */

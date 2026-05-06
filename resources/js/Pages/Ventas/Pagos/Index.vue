@@ -74,15 +74,15 @@ function eliminarPago(id) {
   <VentasLayout :empleado="empleado">
     <div class="space-y-6 p-4 sm:p-6">
       <section class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-        <div class="bg-gradient-to-r from-[#FFEA00] via-[#FFF15C] to-[#FFF9B8] px-6 py-6">
+        <div class="bg-gradient-to-r from-[#FFFFFF] via-[#F0F4F8] to-[#F0F4F8] px-6 py-6">
           <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-center gap-3 text-[#474100]">
+            <div class="flex items-center gap-3 text-[#000000]">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-sm">
                 <BanknotesIcon class="h-6 w-6" />
               </div>
               <div>
                 <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Pagos registrados</h1>
-                <p class="mt-1 text-sm text-[#474100]/80">
+                <p class="mt-1 text-sm text-[#000000]/80">
                   Consulta los pagos cargados por los asesores y revisa sus comprobantes.
                 </p>
               </div>

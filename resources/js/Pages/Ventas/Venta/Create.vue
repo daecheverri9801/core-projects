@@ -935,16 +935,16 @@ function submit() {
     <Head title="Registrar Operación" />
 
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-6">
-      <div class="bg-gradient-to-r from-[#FFEA00] to-[#FFF15C] px-6 py-6">
+      <div class="bg-gradient-to-r from-[#FFFFFF] to-[#F0F4F8] px-6 py-6">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div class="min-w-0">
-            <div class="flex items-center gap-2 text-[#474100]">
+            <div class="flex items-center gap-2 text-[#000000]">
               <ClipboardDocumentCheckIcon class="w-6 h-6" />
               <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Registrar operación
               </h1>
             </div>
-            <p class="mt-1 text-sm text-[#474100]/80">
+            <p class="mt-1 text-sm text-[#000000]/80">
               Completa los datos y confirma para generar una venta o separación.
             </p>
           </div>
@@ -952,7 +952,7 @@ function submit() {
           <div class="flex items-center gap-2">
             <Link
               href="/ventas"
-              class="inline-flex items-center gap-2 rounded-xl border border-[#474100]/20 bg-white/70 px-4 py-2.5 text-sm font-semibold text-[#474100] hover:bg-white transition"
+              class="inline-flex items-center gap-2 rounded-xl border border-[#000000]/20 bg-white/70 px-4 py-2.5 text-sm font-semibold text-[#474100] hover:bg-white transition"
             >
               <ArrowLeftIcon class="w-5 h-5" />
               Volver

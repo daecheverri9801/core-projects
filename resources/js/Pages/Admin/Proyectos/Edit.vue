@@ -45,10 +45,55 @@
                 <TextInput v-model="form.nombre" placeholder="Ej: Conjunto Residencial Aurora" />
               </FormField>
 
+              <FormField
+                label="Logo del proyecto"
+                :error="form.errors.logo_proyecto"
+                hint="JPG, PNG o WEBP. Máximo 2 MB."
+              >
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  @change="onLogoChange"
+                  class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm file:mr-4 file:rounded-lg file:border-0 file:bg-brand-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-900 hover:file:bg-brand-200"
+                />
+
+                <div
+                  v-if="logoPreview"
+                  class="mt-3 flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3"
+                >
+                  <img
+                    :src="logoPreview"
+                    alt="Logo proyecto"
+                    class="h-16 w-28 rounded-lg border bg-white object-contain p-2"
+                  />
+
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-gray-900">
+                      {{ form.logo_proyecto ? 'Nuevo logo seleccionado' : 'Logo actual' }}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                      Este logo se usará en cotizaciones, ventas y operaciones del proyecto.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    @click="removeLogo"
+                    class="text-sm font-semibold text-red-600 hover:text-red-700"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              </FormField>
+
               <FormField label="Estado" required :error="form.errors.id_estado">
                 <SelectInput v-model="form.id_estado">
                   <option value="" disabled>Seleccione un estado</option>
-                  <option v-for="estado in estados" :key="estado.id_estado" :value="estado.id_estado">
+                  <option
+                    v-for="estado in estados"
+                    :key="estado.id_estado"
+                    :value="estado.id_estado"
+                  >
                     {{ estado.nombre }}
                   </option>
                 </SelectInput>
@@ -56,7 +101,11 @@
 
               <div class="md:col-span-2">
                 <FormField label="Descripción" :error="form.errors.descripcion" hint="Opcional.">
-                  <TextArea v-model="form.descripcion" rows="3" placeholder="Describe brevemente el proyecto…" />
+                  <TextArea
+                    v-model="form.descripcion"
+                    rows="3"
+                    placeholder="Describe brevemente el proyecto…"
+                  />
                 </FormField>
               </div>
             </div>
@@ -90,16 +139,46 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField label="Presupuesto inicial" :error="form.errors.presupuesto_inicial" hint="COP">
-                <TextInput v-model="form.presupuesto_inicial" type="number" step="0.01" min="0" placeholder="0" />
+              <FormField
+                label="Presupuesto inicial"
+                :error="form.errors.presupuesto_inicial"
+                hint="COP"
+              >
+                <TextInput
+                  v-model="form.presupuesto_inicial"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Presupuesto final" :error="form.errors.presupuesto_final" hint="COP">
-                <TextInput v-model="form.presupuesto_final" type="number" step="0.01" min="0" placeholder="0" />
+              <FormField
+                label="Presupuesto final"
+                :error="form.errors.presupuesto_final"
+                hint="COP"
+              >
+                <TextInput
+                  v-model="form.presupuesto_final"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Metros construidos" :error="form.errors.metros_construidos" hint="m²">
-                <TextInput v-model="form.metros_construidos" type="number" step="0.01" min="0" placeholder="0" />
+              <FormField
+                label="Metros construidos"
+                :error="form.errors.metros_construidos"
+                hint="m²"
+              >
+                <TextInput
+                  v-model="form.metros_construidos"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
             </div>
           </AppCard>
@@ -118,15 +197,33 @@
               </FormField>
 
               <FormField label="Cantidad apartamentos" :error="form.errors.cantidad_apartamentos">
-                <TextInput v-model="form.cantidad_apartamentos" type="number" min="0" placeholder="0" />
+                <TextInput
+                  v-model="form.cantidad_apartamentos"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Parqueaderos vehículo" :error="form.errors.cantidad_parqueaderos_vehiculo">
-                <TextInput v-model="form.cantidad_parqueaderos_vehiculo" type="number" min="0" placeholder="0" />
+              <FormField
+                label="Parqueaderos vehículo"
+                :error="form.errors.cantidad_parqueaderos_vehiculo"
+              >
+                <TextInput
+                  v-model="form.cantidad_parqueaderos_vehiculo"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
 
               <FormField label="Parqueaderos moto" :error="form.errors.cantidad_parqueaderos_moto">
-                <TextInput v-model="form.cantidad_parqueaderos_moto" type="number" min="0" placeholder="0" />
+                <TextInput
+                  v-model="form.cantidad_parqueaderos_moto"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                />
               </FormField>
             </div>
           </AppCard>
@@ -163,7 +260,11 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <FormField label="% Cuota inicial mínima" :error="form.errors.porcentaje_cuota_inicial_min" hint="0–100">
+              <FormField
+                label="% Cuota inicial mínima"
+                :error="form.errors.porcentaje_cuota_inicial_min"
+                hint="0–100"
+              >
                 <TextInput
                   v-model="form.porcentaje_cuota_inicial_min"
                   type="number"
@@ -174,16 +275,44 @@
                 />
               </FormField>
 
-              <FormField label="Valor mínimo separación" :error="form.errors.valor_min_separacion" hint="COP">
-                <TextInput v-model="form.valor_min_separacion" type="number" min="0" step="0.01" placeholder="0" />
+              <FormField
+                label="Valor mínimo separación"
+                :error="form.errors.valor_min_separacion"
+                hint="COP"
+              >
+                <TextInput
+                  v-model="form.valor_min_separacion"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0"
+                />
               </FormField>
 
-              <FormField label="Plazo cuota inicial (meses)" :error="form.errors.plazo_cuota_inicial_meses">
-                <TextInput v-model="form.plazo_cuota_inicial_meses" type="number" min="1" placeholder="1" />
+              <FormField
+                label="Plazo cuota inicial (meses)"
+                :error="form.errors.plazo_cuota_inicial_meses"
+              >
+                <TextInput
+                  v-model="form.plazo_cuota_inicial_meses"
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                />
               </FormField>
 
-              <FormField label="Plazo máximo separación (días)" :error="form.errors.plazo_max_separacion_dias" hint="1–365">
-                <TextInput v-model="form.plazo_max_separacion_dias" type="number" min="1" max="365" placeholder="30" />
+              <FormField
+                label="Plazo máximo separación (días)"
+                :error="form.errors.plazo_max_separacion_dias"
+                hint="1–365"
+              >
+                <TextInput
+                  v-model="form.plazo_max_separacion_dias"
+                  type="number"
+                  min="1"
+                  max="365"
+                  placeholder="30"
+                />
               </FormField>
             </div>
           </AppCard>
@@ -197,7 +326,11 @@
             />
 
             <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label="Prima altura base" :error="form.errors.prima_altura_base" hint="COP">
+              <FormField
+                label="Prima altura base"
+                :error="form.errors.prima_altura_base"
+                hint="COP"
+              >
                 <TextInput
                   v-model.number="form.prima_altura_base"
                   type="number"
@@ -207,7 +340,11 @@
                 />
               </FormField>
 
-              <FormField label="Incremento por piso" :error="form.errors.prima_altura_incremento" hint="COP">
+              <FormField
+                label="Incremento por piso"
+                :error="form.errors.prima_altura_incremento"
+                hint="COP"
+              >
                 <TextInput
                   v-model.number="form.prima_altura_incremento"
                   type="number"
@@ -297,7 +434,9 @@
             <div class="mt-2 text-sm text-gray-700 space-y-1">
               <p>
                 <span class="text-gray-500">ID:</span>
-                <span class="font-semibold text-gray-900">{{ props.proyecto?.id_proyecto ?? '—' }}</span>
+                <span class="font-semibold text-gray-900">{{
+                  props.proyecto?.id_proyecto ?? '—'
+                }}</span>
               </p>
               <p class="truncate">
                 <span class="text-gray-500">Ubicación actual:</span>
@@ -314,7 +453,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
@@ -344,6 +483,8 @@ const InfoIcon = InformationCircleIcon
 /** Form (conserva lógica) */
 const form = useForm({
   nombre: props.proyecto?.nombre || '',
+  logo_proyecto: null,
+  logo_proyecto_eliminar: false,
   descripcion: props.proyecto?.descripcion || '',
   fecha_inicio: props.proyecto?.fecha_inicio || '',
   fecha_finalizacion: props.proyecto?.fecha_finalizacion || '',
@@ -369,7 +510,30 @@ const form = useForm({
 })
 
 function submit() {
-  form.put(`/proyectos/${props.proyecto.id_proyecto}`)
+  form
+    .transform((data) => ({
+      ...data,
+      _method: 'put',
+    }))
+    .post(`/proyectos/${props.proyecto.id_proyecto}`, {
+      forceFormData: true,
+    })
+}
+
+const logoPreview = ref(props.proyecto?.logo_url || null)
+
+function onLogoChange(event) {
+  const file = event.target.files?.[0] ?? null
+
+  form.logo_proyecto = file
+  form.logo_proyecto_eliminar = false
+  logoPreview.value = file ? URL.createObjectURL(file) : props.proyecto?.logo_url || null
+}
+
+function removeLogo() {
+  form.logo_proyecto = null
+  form.logo_proyecto_eliminar = true
+  logoPreview.value = null
 }
 
 const ubicacionActualTexto = computed(() => {

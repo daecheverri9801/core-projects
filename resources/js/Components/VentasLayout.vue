@@ -81,7 +81,7 @@
       </div>
 
       <!-- Navegación de Módulos -->
-      <nav class="bg-gradient-to-r from-[#FFEA00] to-[#FFF15C]">
+      <nav class="bg-gradient-to-r from-[#FFFFFF] to-[#F0F4F8]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center space-x-1 overflow-x-auto">
             <Link
@@ -92,7 +92,7 @@
               :class="
                 isActive(modulo.href)
                   ? 'text-[#1A1700] border-[#1A1700] bg-white/20'
-                  : 'text-[#474100] border-transparent hover:bg-white/10 hover:text-[#1A1700]'
+                  : 'text-[#000000] border-transparent hover:bg-white/10 hover:text-[#1A1700]'
               "
             >
               <component :is="modulo.icon" class="w-5 h-5" />

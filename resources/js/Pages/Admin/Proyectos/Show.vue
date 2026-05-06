@@ -7,17 +7,31 @@
       <!-- Header -->
       <div class="bg-white rounded-2xl border p-4 md:p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div class="min-w-0">
-            <p class="text-xs text-gray-600">Proyectos</p>
-            <h2 class="text-xl font-semibold text-gray-900 truncate">
-              {{ proyecto?.nombre ?? 'Proyecto' }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-600">
-              {{ ubicacionTexto || '—' }}
-            </p>
-            <p class="mt-1 text-sm text-gray-600">
-              {{ descripcionTexto || '—' }}
-            </p>
+          <div class="flex items-start gap-4 min-w-0">
+            <div
+              class="flex h-20 w-28 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 p-2"
+            >
+              <img
+                v-if="proyecto?.logo_url"
+                :src="proyecto.logo_url"
+                :alt="`Logo ${proyecto?.nombre ?? 'proyecto'}`"
+                class="max-h-full max-w-full object-contain"
+              />
+              <span v-else class="text-xs font-semibold text-gray-400 text-center"> Sin logo </span>
+            </div>
+
+            <div class="min-w-0">
+              <p class="text-xs text-gray-600">Proyectos</p>
+              <h2 class="text-xl font-semibold text-gray-900 truncate">
+                {{ proyecto?.nombre ?? 'Proyecto' }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-600">
+                {{ ubicacionTexto || '—' }}
+              </p>
+              <p class="mt-1 text-sm text-gray-600">
+                {{ descripcionTexto || '—' }}
+              </p>
+            </div>
           </div>
 
           <div class="flex items-center gap-2">
@@ -36,6 +50,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InfoItem label="ID" :value="idProyecto || '—'" />
           <InfoItem label="Nombre" :value="proyecto?.nombre ?? '—'" />
+          <InfoItem label="Logo cargado" :value="proyecto?.logo_url ? 'Sí' : 'No'" />
           <InfoItem
             label="Estado"
             :value="proyecto?.estado_proyecto?.nombre ?? proyecto?.estado ?? '—'"
