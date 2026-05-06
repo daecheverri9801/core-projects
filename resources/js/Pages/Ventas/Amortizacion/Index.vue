@@ -219,118 +219,29 @@ function generarAmortizacion() {
   setTimeout(() => {
     const v = ventaSeleccionada.value
 
-    const valorTotal = Number(v.valor_total || 0)
-    const cuotaInicial = Number(v.cuota_inicial || 0)
-    const valorSeparacion = Number(v.valor_separacion || 0)
-    const saldoCuotaInicial = Math.max(cuotaInicial - valorSeparacion, 0)
-    const valorRestante = Math.max(valorTotal - cuotaInicial, 0)
-    const plazo = Number(v.plazo || 0)
-
-    if (!v.fecha_venta) {
-      alert('La venta no tiene fecha de venta definida.')
+    if (!Array.isArray(v.cuotas) || v.cuotas.length === 0) {
+      alert(
+        'Esta venta no tiene cuotas generadas. Revisa el detalle de la venta o regenera el plan.'
+      )
       cargando.value = false
       return
     }
 
-    if (plazo <= 1) {
-      alert('El plazo debe ser mayor a 1 para generar separación, cuotas y valor restante.')
-      cargando.value = false
-      return
-    }
+    amortizacion.value = v.cuotas.map((c) => ({
+      numero: c.numero,
+      fecha: c.fecha,
+      concepto: c.concepto || 'Cuota inicial',
+      valor_cuota: Number(c.valor_cuota || 0),
+      saldo_final: Number(c.saldo_final || 0),
+    }))
 
-    const fechaVenta = new Date(v.fecha_venta)
-    const yearBase = fechaVenta.getFullYear()
-    const monthBase = fechaVenta.getMonth()
-
-    amortizacion.value = []
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cuota 1: Valor de separación
-    |--------------------------------------------------------------------------
-    */
-    const fechaSeparacion = new Date(yearBase, monthBase, 1)
-    const fechaSeparacionStr = `${fechaSeparacion.getFullYear()}-${String(
-      fechaSeparacion.getMonth() + 1
-    ).padStart(2, '0')}`
-
-    amortizacion.value.push({
-      numero: 1,
-      fecha: fechaSeparacionStr,
-      concepto: 'Separación',
-      valor_cuota: valorSeparacion,
-      saldo_final: saldoCuotaInicial,
-    })
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cuotas 2 hasta N: Saldo cuota inicial
-    |--------------------------------------------------------------------------
-    | Se divide el saldo de cuota inicial entre las cuotas restantes del plazo.
-    | Ejemplo: plazo 12
-    | Cuota 1 = separación
-    | Cuotas 2 a 12 = saldo cuota inicial
-    | Cuota 13 = valor restante
-    */
-    const cuotasSaldoInicial = plazo - 1
-    const cuotaMensual = Math.round(saldoCuotaInicial / cuotasSaldoInicial)
-    const residuo = saldoCuotaInicial - cuotaMensual * cuotasSaldoInicial
-
-    let saldo = saldoCuotaInicial
-
-    for (let i = 2; i <= plazo; i++) {
-      const indiceCuotaSaldo = i - 1
-      const fechaCuota = new Date(yearBase, monthBase + (i - 1), 1)
-
-      const fechaStr = `${fechaCuota.getFullYear()}-${String(fechaCuota.getMonth() + 1).padStart(
-        2,
-        '0'
-      )}`
-
-      let valor = cuotaMensual
-
-      if (indiceCuotaSaldo === cuotasSaldoInicial) {
-        valor += residuo
-      }
-
-      saldo -= valor
-
-      amortizacion.value.push({
-        numero: i,
-        fecha: fechaStr,
-        concepto: 'Cuota inicial',
-        valor_cuota: valor,
-        saldo_final: Math.max(saldo, 0),
-      })
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cuota N + 1: Valor restante por pagar
-    |--------------------------------------------------------------------------
-    */
-    const numeroCuotaRestante = plazo + 1
-    const fechaRestante = new Date(yearBase, monthBase + plazo, 1)
-
-    const fechaRestanteStr = `${fechaRestante.getFullYear()}-${String(
-      fechaRestante.getMonth() + 1
-    ).padStart(2, '0')}`
-
-    amortizacion.value.push({
-      numero: numeroCuotaRestante,
-      fecha: fechaRestanteStr,
-      concepto: 'Valor restante',
-      valor_cuota: valorRestante,
-      saldo_final: 0,
-    })
-
-    ventaSeleccionada.value.saldo_cuota_inicial = saldoCuotaInicial
-    ventaSeleccionada.value.valor_separacion = valorSeparacion
-    ventaSeleccionada.value.valor_restante = valorRestante
+    ventaSeleccionada.value.saldo_cuota_inicial = Number(v.saldo_cuota_inicial || 0)
+    ventaSeleccionada.value.valor_separacion = Number(v.valor_separacion || 0)
+    ventaSeleccionada.value.valor_restante = Number(v.valor_restante || 0)
 
     mostrarResumen.value = true
     cargando.value = false
-  }, 400)
+  }, 300)
 }
 
 /* --------------------------

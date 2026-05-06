@@ -38,6 +38,7 @@ const props = defineProps({
   tiposDocumento: Array,
 })
 
+const PLAN_PROYECTO_DEFAULT_ID = '__condiciones_proyecto__'
 const plazosDisponibles = ref([])
 const inmueblesDisponibles = ref([])
 const parqueaderosDisponibles = ref([])
@@ -66,11 +67,256 @@ const form = useForm({
   fecha_limite_separacion: '',
   plazo_cuota_inicial_meses: '',
   frecuencia_cuota_inicial_meses: '',
+  id_plan_pago_proyecto: '',
+  cuotas_manual_ci: [],
 })
 
 const proyectoSeleccionado = computed(() =>
   props.proyectos.find((p) => p.id_proyecto === parseInt(form.id_proyecto))
 )
+
+const proyectoTienePlanesPago = computed(() => {
+  return (
+    Array.isArray(proyectoSeleccionado.value?.planes_pago) &&
+    proyectoSeleccionado.value.planes_pago.length > 0
+  )
+})
+
+const planCondicionesProyecto = computed(() => {
+  if (!proyectoSeleccionado.value) return null
+
+  const porcentajeCuotaInicial = Number(
+    proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0
+  )
+
+  return {
+    id_plan_pago_proyecto: PLAN_PROYECTO_DEFAULT_ID,
+    codigo: 'COND-PROYECTO',
+    nombre: 'Condiciones económicas del proyecto',
+    tipo_plan: 'condiciones_proyecto',
+    valor_separacion: Number(proyectoSeleccionado.value.valor_min_separacion || 0),
+    porcentaje_cuota_inicial: porcentajeCuotaInicial,
+    plazo_cuota_inicial_meses: Number(proyectoSeleccionado.value.plazo_cuota_inicial_meses || 0),
+    frecuencia_cuota_inicial_meses: 1,
+    plazo_pago_total_dias: null,
+    porcentaje_escritura: Math.max(100 - porcentajeCuotaInicial, 0),
+    tipo_descuento: 'ninguno',
+    valor_descuento: null,
+    base_descuento: 'ninguna',
+    beneficio_comercial: null,
+    permite_plazo_manual: false,
+    permite_cuotas_manuales: false,
+    activo: true,
+    es_plan_default_proyecto: true,
+  }
+})
+
+const planesPagoProyecto = computed(() => {
+  if (!proyectoSeleccionado.value) return []
+
+  if (proyectoTienePlanesPago.value) {
+    return proyectoSeleccionado.value.planes_pago || []
+  }
+
+  return planCondicionesProyecto.value ? [planCondicionesProyecto.value] : []
+})
+
+const planPagoSeleccionado = computed(() => {
+  if (!form.id_plan_pago_proyecto) return null
+
+  return (
+    planesPagoProyecto.value.find(
+      (p) => String(p.id_plan_pago_proyecto) === String(form.id_plan_pago_proyecto)
+    ) || null
+  )
+})
+
+function esPlanCuotaInicialMensual(plan) {
+  return ['cuota_inicial_mensual', 'condiciones_proyecto'].includes(plan?.tipo_plan)
+}
+
+function tipoPlanLabel(tipo) {
+  const labels = {
+    cuota_inicial_mensual: 'Cuota inicial mensual',
+    cuota_inicial_contado: 'Cuota inicial de contado',
+    pago_total_diferido: 'Pago total diferido',
+    especial_manual: 'Plan especial manual',
+    condiciones_proyecto: 'Condiciones económicas del proyecto',
+  }
+
+  return labels[tipo] || tipo || '—'
+}
+
+function calcularDescuento(valorTotal, cuotaInicialBruta, plan) {
+  if (!plan || plan.tipo_descuento === 'ninguno') return 0
+
+  const valorDescuento = Number(plan.valor_descuento || 0)
+
+  if (plan.tipo_descuento === 'valor_fijo') {
+    return Math.round(valorDescuento)
+  }
+
+  if (plan.tipo_descuento === 'porcentaje') {
+    if (plan.base_descuento === 'cuota_inicial') {
+      return Math.round(cuotaInicialBruta * (valorDescuento / 100))
+    }
+
+    if (plan.base_descuento === 'precio_total') {
+      return Math.round(valorTotal * (valorDescuento / 100))
+    }
+  }
+
+  return 0
+}
+
+const resumenPlanVenta = computed(() => {
+  if (!planPagoSeleccionado.value) return null
+
+  const plan = planPagoSeleccionado.value
+
+  const valorBruto = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
+  const porcentajeCuotaInicial = Number(plan.porcentaje_cuota_inicial || 0)
+  const porcentajeEscritura = Number(plan.porcentaje_escritura || 0)
+  const cuotaSeparacion = Number(plan.valor_separacion || 0)
+
+  const cuotaInicialBruta = Math.round(valorBruto * (porcentajeCuotaInicial / 100))
+  const valorEscrituraBruto = Math.round(valorBruto * (porcentajeEscritura / 100))
+
+  let descuento = 0
+  let totalCotizado = valorBruto
+  let cuotaInicial = cuotaInicialBruta
+  let saldoCuotaInicial = Math.max(cuotaInicial - cuotaSeparacion, 0)
+  let valorRestante = Math.max(valorBruto - cuotaInicialBruta, 0)
+  let saldoPagoDiferido = 0
+
+  /*
+  |--------------------------------------------------------------------------
+  | Descuento sobre precio total
+  |--------------------------------------------------------------------------
+  | Ejemplo Plan 04:
+  | El descuento afecta todo el valor del inmueble.
+  */
+  if (plan.tipo_descuento !== 'ninguno' && plan.base_descuento === 'precio_total') {
+    descuento = calcularDescuento(valorBruto, cuotaInicialBruta, plan)
+    totalCotizado = Math.max(valorBruto - descuento, 0)
+
+    if (esPlanCuotaInicialMensual(plan)) {
+      cuotaInicial = Math.round(totalCotizado * (porcentajeCuotaInicial / 100))
+      saldoCuotaInicial = Math.max(cuotaInicial - cuotaSeparacion, 0)
+      valorRestante = Math.max(totalCotizado - cuotaInicial, 0)
+    }
+
+    if (plan.tipo_plan === 'pago_total_diferido') {
+      cuotaInicial = cuotaSeparacion
+      saldoCuotaInicial = 0
+      saldoPagoDiferido = Math.max(totalCotizado - cuotaSeparacion, 0)
+      valorRestante = saldoPagoDiferido
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Descuento sobre cuota inicial
+  |--------------------------------------------------------------------------
+  | Ejemplo Plan 03:
+  | Valor bruto: $500.000.000
+  | CI bruta 35%: $175.000.000
+  | Descuento 2.5% sobre CI: $4.375.000
+  | CI final: $170.625.000
+  | Valor restante: 65% del valor bruto = $325.000.000
+  | Total cotizado: $170.625.000 + $325.000.000 = $495.625.000
+  */
+  if (plan.tipo_descuento !== 'ninguno' && plan.base_descuento === 'cuota_inicial') {
+    descuento = calcularDescuento(valorBruto, cuotaInicialBruta, plan)
+
+    cuotaInicial = Math.max(cuotaInicialBruta - descuento, 0)
+    saldoCuotaInicial = Math.max(cuotaInicial - cuotaSeparacion, 0)
+
+    valorRestante =
+      valorEscrituraBruto > 0 ? valorEscrituraBruto : Math.max(valorBruto - cuotaInicialBruta, 0)
+
+    totalCotizado = cuotaInicial + valorRestante
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Sin descuento + pago total diferido
+  |--------------------------------------------------------------------------
+  */
+  if (plan.tipo_descuento === 'ninguno' && plan.tipo_plan === 'pago_total_diferido') {
+    totalCotizado = valorBruto
+    cuotaInicial = cuotaSeparacion
+    saldoCuotaInicial = 0
+    saldoPagoDiferido = Math.max(totalCotizado - cuotaSeparacion, 0)
+    valorRestante = saldoPagoDiferido
+  }
+
+  return {
+    valor_total_sin_descuento: Math.round(valorBruto),
+    valor_descuento: Math.round(descuento),
+    valor_total: Math.round(totalCotizado),
+    cuota_inicial: Math.round(cuotaInicial),
+    cuota_separacion: Math.round(cuotaSeparacion),
+    saldo_cuota_inicial: Math.round(saldoCuotaInicial),
+    valor_restante: Math.round(valorRestante),
+    saldo_pago_diferido: Math.round(saldoPagoDiferido),
+  }
+})
+
+const totalCuotasManualCI = computed(() => {
+  return (form.cuotas_manual_ci || []).reduce((total, cuota) => {
+    return total + Number(cuota.valor_cuota || 0)
+  }, 0)
+})
+
+const saldoPendienteCuotasManualCI = computed(() => {
+  const saldoCI = Number(resumenPlanVenta.value?.saldo_cuota_inicial || 0)
+  return Math.max(saldoCI - totalCuotasManualCI.value, 0)
+})
+
+const diferenciaCuotasManualCI = computed(() => {
+  const saldoCI = Number(resumenPlanVenta.value?.saldo_cuota_inicial || 0)
+  return totalCuotasManualCI.value - saldoCI
+})
+
+function generarCuotasManualCI() {
+  const plan = planPagoSeleccionado.value
+
+  if (!esPlanEspecialManual(plan)) {
+    form.cuotas_manual_ci = []
+    return
+  }
+
+  const plazo = Number(form.plazo_cuota_inicial_meses || 0)
+  const saldoCI = Number(resumenPlanVenta.value?.saldo_cuota_inicial || 0)
+
+  if (!plazo || plazo < 1 || !form.fecha_venta) {
+    form.cuotas_manual_ci = []
+    return
+  }
+
+  const cuotaBase = plazo > 0 ? Math.floor(saldoCI / plazo) : 0
+  const residuo = saldoCI - cuotaBase * plazo
+
+  form.cuotas_manual_ci = Array.from({ length: plazo }, (_, index) => {
+    const numeroCuota = index + 1
+
+    /*
+     * La separación queda en el mes de la operación.
+     * Las cuotas de la CI empiezan al mes siguiente.
+     */
+    const fecha = addMonthsToDate(form.fecha_venta, numeroCuota)
+
+    const valorPorDefecto = numeroCuota === plazo ? cuotaBase + residuo : cuotaBase
+
+    return {
+      numero_cuota: numeroCuota,
+      mes_label: formatMesAnio(fecha),
+      fecha_vencimiento: fechaCuotaISO(fecha),
+      valor_cuota: valorPorDefecto,
+    }
+  })
+}
 
 const estadoNombre = computed(() => {
   const e = props.estadosInmueble.find((x) => x.id_estado_inmueble === form.id_estado_inmueble)
@@ -229,6 +475,21 @@ function limpiarBusquedaCliente() {
   clienteBusqueda.error = ''
   limpiarClienteSeleccionado()
 }
+
+watch(
+  [
+    () => form.plazo_cuota_inicial_meses,
+    () => form.fecha_venta,
+    () => form.id_plan_pago_proyecto,
+    () => resumenPlanVenta.value?.saldo_cuota_inicial,
+  ],
+  () => {
+    if (esPlanEspecialManual(planPagoSeleccionado.value)) {
+      generarCuotasManualCI()
+    }
+  },
+  { deep: true }
+)
 
 watch(
   () => clienteBusqueda.documento,
@@ -575,15 +836,28 @@ function submitClienteInline() {
 
 /** ===== Helpers de recálculo ===== */
 function recalcularEconomiaVenta() {
-  const total = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
-  form.valor_total = total
+  const totalBruto = Number(form.valor_base || 0) + Number(precioParqueaderoSeleccionado.value || 0)
 
-  if (form.tipo_operacion === 'venta' && proyectoSeleccionado.value) {
-    const porcentaje = Number(proyectoSeleccionado.value.porcentaje_cuota_inicial_min || 0)
-    const raw = total * (porcentaje / 100)
-    form.cuota_inicial_raw = raw
-    form.cuota_inicial = Math.round(raw)
-    form.valor_restante = total - Math.round(raw)
+  if (!planPagoSeleccionado.value) {
+    form.valor_total = totalBruto
+    form.valor_separacion = 0
+    form.cuota_inicial_raw = 0
+    form.cuota_inicial = 0
+    form.valor_restante = 0
+    return
+  }
+
+  const resumen = resumenPlanVenta.value
+
+  if (!resumen) return
+
+  form.valor_total = resumen.valor_total
+  form.valor_separacion = resumen.cuota_separacion
+
+  if (form.tipo_operacion === 'venta') {
+    form.cuota_inicial_raw = resumen.cuota_inicial
+    form.cuota_inicial = resumen.cuota_inicial
+    form.valor_restante = resumen.valor_restante
   } else {
     form.cuota_inicial_raw = 0
     form.cuota_inicial = 0
@@ -591,20 +865,72 @@ function recalcularEconomiaVenta() {
   }
 }
 
+function esPlanEspecialManual(plan) {
+  return plan?.tipo_plan === 'especial_manual'
+}
+
+function requierePlazoYFrecuencia(plan) {
+  return ['cuota_inicial_mensual', 'condiciones_proyecto'].includes(plan?.tipo_plan)
+}
+
+function requiereSoloPlazo(plan) {
+  return esPlanEspecialManual(plan)
+}
+
+function addMonthsToDate(dateStr, monthsToAdd) {
+  const base = dateStr ? new Date(dateStr) : new Date()
+  const year = base.getFullYear()
+  const month = base.getMonth()
+
+  return new Date(year, month + monthsToAdd, 1)
+}
+
+function formatMesAnio(date) {
+  return date.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: 'long',
+  })
+}
+
+function fechaCuotaISO(date) {
+  return date.toISOString().slice(0, 10)
+}
+
 /** ===== Validaciones dinámicas ===== */
 watch(
-  () => form.cuota_inicial_raw,
-  (valor) => {
+  [() => form.cuota_inicial_raw, () => form.id_plan_pago_proyecto, () => resumenPlanVenta.value],
+  ([valor]) => {
     if (form.tipo_operacion !== 'venta') {
       erroresForm.cuota_inicial = ''
       return
     }
-    if (!proyectoSeleccionado.value?.porcentaje_cuota_inicial_min) return
 
-    const min = form.valor_total * (proyectoSeleccionado.value.porcentaje_cuota_inicial_min / 100)
-    erroresForm.cuota_inicial =
-      valor < min ? `La cuota inicial mínima es ${formatearMoneda(min)}` : ''
-  }
+    const plan = planPagoSeleccionado.value
+
+    if (!plan || !resumenPlanVenta.value) {
+      erroresForm.cuota_inicial = ''
+      return
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validación por plan
+    |--------------------------------------------------------------------------
+    | La cuota inicial válida ya viene calculada en resumenPlanVenta.
+    | No se debe recalcular como porcentaje del valor total cotizado,
+    | porque planes como el Plan 03 tienen descuento sobre la cuota inicial.
+    */
+    const cuotaInicialCalculada = Math.round(Number(resumenPlanVenta.value.cuota_inicial || 0))
+    const valorIngresado = Math.round(Number(valor || 0))
+
+    if (valorIngresado < cuotaInicialCalculada) {
+      erroresForm.cuota_inicial = `La cuota inicial del plan es ${formatearMoneda(cuotaInicialCalculada)}`
+      return
+    }
+
+    erroresForm.cuota_inicial = ''
+  },
+  { deep: true }
 )
 
 watch(
@@ -738,6 +1064,54 @@ watch(
   }
 )
 
+watch(
+  () => form.id_proyecto,
+  () => {
+    form.id_plan_pago_proyecto = ''
+    form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
+    form.cuotas_manual_ci = []
+
+    nextTick(() => {
+      if (!proyectoSeleccionado.value) return
+
+      if (!proyectoTienePlanesPago.value && planCondicionesProyecto.value) {
+        form.id_plan_pago_proyecto = PLAN_PROYECTO_DEFAULT_ID
+      }
+    })
+  }
+)
+
+watch(
+  () => form.id_plan_pago_proyecto,
+  () => {
+    form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
+    form.cuotas_manual_ci = []
+
+    if (requierePlazoYFrecuencia(planPagoSeleccionado.value)) {
+      form.frecuencia_cuota_inicial_meses = Number(
+        planPagoSeleccionado.value?.frecuencia_cuota_inicial_meses || 1
+      )
+    }
+
+    if (esPlanEspecialManual(planPagoSeleccionado.value)) {
+      form.frecuencia_cuota_inicial_meses = ''
+    }
+
+    recalcularEconomiaVenta()
+    actualizarPlazosDisponibles()
+  }
+)
+
+watch(
+  resumenPlanVenta,
+  () => {
+    recalcularEconomiaVenta()
+  },
+  { deep: true }
+)
+
 onMounted(() => {
   if (props.inmueblePrecargado) {
     const inmueble = props.inmueblePrecargado
@@ -825,7 +1199,17 @@ const camposCompletos = computed(() =>
       form.inmueble_id &&
       form.id_forma_pago &&
       form.id_estado_inmueble &&
-      (form.tipo_operacion === 'venta' ? form.plazo_cuota_inicial_meses : true) &&
+      form.id_plan_pago_proyecto &&
+      (form.tipo_operacion === 'venta'
+        ? esPlanEspecialManual(planPagoSeleccionado.value)
+          ? form.plazo_cuota_inicial_meses &&
+            form.cuotas_manual_ci.length === Number(form.plazo_cuota_inicial_meses || 0) &&
+            Math.round(totalCuotasManualCI.value) ===
+              Math.round(Number(resumenPlanVenta.value?.saldo_cuota_inicial || 0))
+          : requierePlazoYFrecuencia(planPagoSeleccionado.value)
+            ? form.plazo_cuota_inicial_meses && form.frecuencia_cuota_inicial_meses
+            : true
+        : true) &&
       (form.tipo_operacion === 'separacion' ? form.fecha_limite_separacion : true)
   )
 )
@@ -847,19 +1231,85 @@ function calcularMesesEntreFechas(inicioStr, fechaRefStr) {
 
 function actualizarPlazosDisponibles() {
   const p = proyectoSeleccionado.value
+  const plan = planPagoSeleccionado.value
 
-  if (!p || !p.fecha_inicio || !p.plazo_cuota_inicial_meses || !form.fecha_venta) {
+  if (!p || !plan || !form.fecha_venta) {
     plazosDisponibles.value = []
     form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
     return
   }
 
-  const plazoTotal = Number(p.plazo_cuota_inicial_meses || 0)
+  /*
+  |--------------------------------------------------------------------------
+  | Plan 05 - Especial manual
+  |--------------------------------------------------------------------------
+  | El Plan 05 sí maneja plazo, pero no maneja frecuencia.
+  | El plazo máximo permitido será el plazo por defecto configurado
+  | en las condiciones económicas del proyecto.
+  */
+  if (esPlanEspecialManual(plan)) {
+    const maxPlazoProyecto = Number(p.plazo_cuota_inicial_meses || 0)
+
+    form.frecuencia_cuota_inicial_meses = ''
+
+    if (!maxPlazoProyecto || maxPlazoProyecto < 1) {
+      plazosDisponibles.value = []
+      form.plazo_cuota_inicial_meses = ''
+      form.cuotas_manual_ci = []
+      return
+    }
+
+    plazosDisponibles.value = Array.from(
+      { length: maxPlazoProyecto },
+      (_, i) => i + 1
+    )
+
+    if (
+      form.plazo_cuota_inicial_meses &&
+      !plazosDisponibles.value.includes(Number(form.plazo_cuota_inicial_meses))
+    ) {
+      form.plazo_cuota_inicial_meses = ''
+      form.cuotas_manual_ci = []
+    }
+
+    return
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Planes mensuales normales
+  |--------------------------------------------------------------------------
+  | Plan 01, Plan 02 o condiciones económicas del proyecto.
+  */
+  if (!requierePlazoYFrecuencia(plan)) {
+    plazosDisponibles.value = []
+    form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
+    return
+  }
+
+  const plazoTotal = Number(plan.plazo_cuota_inicial_meses || 0)
+
+  if (!plazoTotal) {
+    plazosDisponibles.value = []
+    form.plazo_cuota_inicial_meses = ''
+    form.frecuencia_cuota_inicial_meses = ''
+    return
+  }
+
+  if (!p.fecha_inicio) {
+    plazosDisponibles.value = Array.from({ length: plazoTotal }, (_, i) => i + 1)
+    return
+  }
+
   const mesesTranscurridos = calcularMesesEntreFechas(p.fecha_inicio, form.fecha_venta)
   const plazosRestantes = Math.max(plazoTotal - mesesTranscurridos, 0)
 
   plazosDisponibles.value =
-    plazosRestantes > 0 ? Array.from({ length: plazosRestantes }, (_, i) => i + 1) : []
+    plazosRestantes > 0
+      ? Array.from({ length: plazosRestantes }, (_, i) => i + 1)
+      : []
 
   if (
     form.plazo_cuota_inicial_meses &&
@@ -871,7 +1321,7 @@ function actualizarPlazosDisponibles() {
 }
 
 watch(
-  [() => form.id_proyecto, () => form.fecha_venta],
+  [() => form.id_proyecto, () => form.fecha_venta, () => form.id_plan_pago_proyecto],
   () => {
     actualizarPlazosDisponibles()
   },
@@ -912,7 +1362,34 @@ function usarValorMinimo() {
 }
 
 function submit() {
-  form.cuota_inicial = form.cuota_inicial_raw
+  const resumen = resumenPlanVenta.value
+
+  if (resumen) {
+    form.cuota_inicial = resumen.cuota_inicial
+    form.cuota_inicial_raw = resumen.cuota_inicial
+    form.valor_restante = resumen.valor_restante
+    form.valor_separacion = resumen.cuota_separacion
+    form.valor_total = resumen.valor_total
+  }
+
+  if (esPlanEspecialManual(planPagoSeleccionado.value)) {
+    if (!form.plazo_cuota_inicial_meses) {
+      alert('Debes seleccionar el plazo de cuota inicial para el Plan 05.')
+      return
+    }
+
+    generarCuotasManualCI()
+
+    const saldoCI = Math.round(Number(resumenPlanVenta.value?.saldo_cuota_inicial || 0))
+    const totalManual = Math.round(Number(totalCuotasManualCI.value || 0))
+
+    if (totalManual !== saldoCI) {
+      alert('La suma de las cuotas manuales debe ser igual al saldo de cuota inicial.')
+      return
+    }
+
+    form.frecuencia_cuota_inicial_meses = ''
+  }
 
   if (form.inmueble_tipo !== 'apartamento') {
     form.id_parqueadero = ''
@@ -924,7 +1401,7 @@ function submit() {
       console.log('Errores de validación:', errors)
     },
     onSuccess: () => {
-      console.log('Venta guardada correctamente')
+      console.log('Operación guardada correctamente')
     },
   })
 }
@@ -1174,6 +1651,109 @@ function submit() {
                 </div>
 
                 <div>
+                  <label :class="labelClass()">Plan de venta *</label>
+                  <select
+                    v-model="form.id_plan_pago_proyecto"
+                    :disabled="!form.id_proyecto || planesPagoProyecto.length === 0"
+                    :class="inputClass(false, !form.id_proyecto || planesPagoProyecto.length === 0)"
+                  >
+                    <option value="">Seleccione...</option>
+
+                    <option
+                      v-for="plan in planesPagoProyecto"
+                      :key="plan.id_plan_pago_proyecto"
+                      :value="plan.id_plan_pago_proyecto"
+                    >
+                      {{ plan.nombre }} - {{ tipoPlanLabel(plan.tipo_plan) }}
+                    </option>
+                  </select>
+
+                  <p v-if="form.errors.id_plan_pago_proyecto" :class="errorClass()">
+                    {{ form.errors.id_plan_pago_proyecto }}
+                  </p>
+                </div>
+
+                <div
+                  v-if="planPagoSeleccionado"
+                  class="md:col-span-2 rounded-2xl border border-[#FFEA00]/50 bg-[#FFFDE6] p-4"
+                >
+                  <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p class="text-sm font-extrabold text-[#474100]">
+                        {{ planPagoSeleccionado.nombre }}
+                      </p>
+                      <p class="mt-1 text-xs font-semibold text-[#756C00]">
+                        {{ tipoPlanLabel(planPagoSeleccionado.tipo_plan) }}
+                      </p>
+                    </div>
+
+                    <span
+                      class="rounded-full border border-[#D1C000]/50 bg-white px-3 py-1 text-xs font-bold text-[#756C00]"
+                    >
+                      {{ planPagoSeleccionado.codigo }}
+                    </span>
+                  </div>
+
+                  <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4 text-sm">
+                    <div class="rounded-xl bg-white/80 px-4 py-3">
+                      <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                        Separación
+                      </p>
+                      <p class="mt-1 font-bold text-gray-900">
+                        {{ formatearMoneda(planPagoSeleccionado.valor_separacion) }}
+                      </p>
+                    </div>
+
+                    <div class="rounded-xl bg-white/80 px-4 py-3">
+                      <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                        Cuota inicial
+                      </p>
+                      <p class="mt-1 font-bold text-gray-900">
+                        {{ Number(planPagoSeleccionado.porcentaje_cuota_inicial || 0) }}%
+                      </p>
+                    </div>
+
+                    <div class="rounded-xl bg-white/80 px-4 py-3">
+                      <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                        Descuento
+                      </p>
+                      <p class="mt-1 font-bold text-gray-900">
+                        {{
+                          planPagoSeleccionado.tipo_descuento === 'ninguno'
+                            ? 'Sin descuento'
+                            : planPagoSeleccionado.tipo_descuento === 'valor_fijo'
+                              ? formatearMoneda(planPagoSeleccionado.valor_descuento)
+                              : `${planPagoSeleccionado.valor_descuento}%`
+                        }}
+                      </p>
+                    </div>
+
+                    <div class="rounded-xl bg-white/80 px-4 py-3">
+                      <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                        Valor restante
+                      </p>
+                      <p class="mt-1 font-bold text-gray-900">
+                        {{
+                          resumenPlanVenta ? formatearMoneda(resumenPlanVenta.valor_restante) : '—'
+                        }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="planPagoSeleccionado.beneficio_comercial"
+                    class="mt-3 rounded-xl bg-white/80 px-4 py-3"
+                  >
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                      Beneficio / compromiso comercial
+                    </p>
+                    <p class="mt-1 font-bold text-gray-900">
+                      {{ planPagoSeleccionado.beneficio_comercial }}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
                   <label :class="labelClass()">Inmueble disponible *</label>
                   <select
                     v-model="form.inmueble_uid"
@@ -1278,32 +1858,46 @@ function submit() {
                     </p>
                   </div>
 
-                  <div>
+                  <div
+                    v-if="
+                      form.tipo_operacion === 'venta' &&
+                      (requierePlazoYFrecuencia(planPagoSeleccionado) ||
+                        requiereSoloPlazo(planPagoSeleccionado))
+                    "
+                  >
                     <label :class="labelClass()">Plazo cuota inicial (meses) *</label>
+
                     <select
                       v-model="form.plazo_cuota_inicial_meses"
-                      :class="inputClass(false, false)"
+                      :class="inputClass(Boolean(form.errors.plazo_cuota_inicial_meses), false)"
                     >
                       <option value="">Seleccione...</option>
                       <option v-for="p in plazosDisponibles" :key="p" :value="p">
-                        {{ p }} mes{{ p === 1 ? '' : 'es' }}
+                        {{ p }} mes{{ Number(p) === 1 ? '' : 'es' }}
                       </option>
                     </select>
+
                     <p v-if="form.errors.plazo_cuota_inicial_meses" :class="errorClass()">
                       {{ form.errors.plazo_cuota_inicial_meses }}
                     </p>
+
+                    <p v-if="esPlanEspecialManual(planPagoSeleccionado)" :class="hintClass()">
+                      Este plazo generará automáticamente las cuotas mensuales de la cuota inicial.
+                    </p>
                   </div>
 
-                  <div>
-                    <label :class="labelClass()">Frecuencia de pago cuota inicial</label>
+                  <div
+                    v-if="
+                      form.tipo_operacion === 'venta' &&
+                      requierePlazoYFrecuencia(planPagoSeleccionado)
+                    "
+                  >
+                    <label :class="labelClass()">Frecuencia Pago Cuota Inicial</label>
+
                     <select
                       v-model="form.frecuencia_cuota_inicial_meses"
-                      :disabled="!form.plazo_cuota_inicial_meses || opcionesFrecuencia.length === 0"
                       :class="
-                        inputClass(
-                          false,
-                          !form.plazo_cuota_inicial_meses || opcionesFrecuencia.length === 0
-                        )
+                        inputClass(Boolean(form.errors.frecuencia_cuota_inicial_meses), false)
                       "
                     >
                       <option value="">Seleccione...</option>
@@ -1311,12 +1905,127 @@ function submit() {
                         {{ f.etiqueta }}
                       </option>
                     </select>
-                    <p :class="hintClass()">
-                      {{
-                        opcionesFrecuencia.length === 0 && form.plazo_cuota_inicial_meses
-                          ? 'No hay frecuencias que dividan exactamente este plazo.'
-                          : 'Solo se muestran frecuencias que dividen exactamente el plazo.'
-                      }}
+
+                    <p v-if="form.errors.frecuencia_cuota_inicial_meses" :class="errorClass()">
+                      {{ form.errors.frecuencia_cuota_inicial_meses }}
+                    </p>
+                  </div>
+
+                  <div
+                    v-if="
+                      form.tipo_operacion === 'venta' && esPlanEspecialManual(planPagoSeleccionado)
+                    "
+                    class="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4"
+                  >
+                    <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <p class="text-sm font-extrabold text-amber-900">
+                          Cuotas mensuales de cuota inicial
+                        </p>
+                        <p class="mt-1 text-xs text-amber-700">
+                          Se generan automáticamente según el plazo seleccionado. Solo debes editar
+                          el valor de cada cuota.
+                        </p>
+                      </div>
+
+                      <div class="rounded-xl bg-white px-4 py-3 text-right border border-amber-100">
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                          Saldo cuota inicial
+                        </p>
+                        <p class="mt-1 text-sm font-extrabold text-amber-900">
+                          {{ formatearMoneda(resumenPlanVenta?.saldo_cuota_inicial || 0) }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="!form.plazo_cuota_inicial_meses"
+                      class="mt-4 rounded-xl bg-white p-4 text-sm text-amber-800"
+                    >
+                      Selecciona el plazo de cuota inicial para generar el listado de cuotas.
+                    </div>
+
+                    <div
+                      v-else
+                      class="mt-4 overflow-x-auto rounded-2xl border border-amber-100 bg-white"
+                    >
+                      <table class="min-w-full text-sm">
+                        <thead class="bg-amber-100/70 text-amber-900">
+                          <tr>
+                            <th class="px-4 py-3 text-center font-bold">#</th>
+                            <th class="px-4 py-3 text-left font-bold">Mes cuota</th>
+                            <th class="px-4 py-3 text-right font-bold">Valor cuota</th>
+                          </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-amber-100">
+                          <tr v-for="(cuota, index) in form.cuotas_manual_ci" :key="index">
+                            <td class="px-4 py-3 text-center font-semibold text-gray-800">
+                              {{ index + 1 }}
+                            </td>
+
+                            <td class="px-4 py-3">
+                              <div class="font-semibold text-gray-900 capitalize">
+                                {{ cuota.mes_label }}
+                              </div>
+                              <div class="text-xs text-gray-500">
+                                Fecha interna: {{ cuota.fecha_vencimiento }}
+                              </div>
+                            </td>
+
+                            <td class="px-4 py-3">
+                              <input
+                                v-model="cuota.valor_cuota"
+                                type="number"
+                                min="0"
+                                step="1"
+                                class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-right text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              />
+                            </td>
+                          </tr>
+                        </tbody>
+
+                        <tfoot class="bg-amber-50">
+                          <tr>
+                            <td colspan="2" class="px-4 py-3 text-right font-bold text-amber-900">
+                              Total cuotas
+                            </td>
+                            <td class="px-4 py-3 text-right font-extrabold text-amber-900">
+                              {{ formatearMoneda(totalCuotasManualCI) }}
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td colspan="2" class="px-4 py-3 text-right font-bold text-amber-900">
+                              Diferencia
+                            </td>
+                            <td
+                              class="px-4 py-3 text-right font-extrabold"
+                              :class="
+                                Math.round(diferenciaCuotasManualCI) === 0
+                                  ? 'text-emerald-700'
+                                  : 'text-red-700'
+                              "
+                            >
+                              {{ formatearMoneda(diferenciaCuotasManualCI) }}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+
+                    <p
+                      v-if="
+                        form.plazo_cuota_inicial_meses && Math.round(diferenciaCuotasManualCI) !== 0
+                      "
+                      class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700"
+                    >
+                      La suma de las cuotas debe ser igual al saldo de cuota inicial. Diferencia
+                      actual: {{ formatearMoneda(diferenciaCuotasManualCI) }}.
+                    </p>
+
+                    <p v-if="form.errors.cuotas_manual_ci" :class="errorClass()">
+                      {{ form.errors.cuotas_manual_ci }}
                     </p>
                   </div>
 

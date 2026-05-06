@@ -45,11 +45,13 @@ function formatDate(date) {
 
 function formatDate1(date) {
   if (!date) return '—'
-  return new Date(date).toLocaleDateString('es-CO', {
-    year: '2-digit',
-    month: '2-digit',
-    day: '2-digit'
-  }).replace(/\//g, '/') // Esto mantiene el formato dd/mm/aaaa
+  return new Date(date)
+    .toLocaleDateString('es-CO', {
+      year: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+    })
+    .replace(/\//g, '/') // Esto mantiene el formato dd/mm/aaaa
 }
 
 function getInmuebleLabel(venta) {
@@ -384,6 +386,7 @@ function clearFilters() {
                 <th class="px-5 py-3 text-center">Proyecto</th>
                 <th class="px-5 py-3 text-center">Fecha</th>
                 <th class="px-5 py-3 text-center">Tipo</th>
+                <th class="px-5 py-3 text-center">Plan</th>
                 <th class="px-5 py-3 text-center">Fecha Lim Sep</th>
                 <th class="px-5 py-3 text-center">Valor</th>
                 <th class="px-5 py-3 text-center">Frecuencia Pagos</th>
@@ -441,6 +444,15 @@ function clearFilters() {
                   >
                     {{ venta.tipo_operacion === 'separacion' ? 'Separación' : 'Venta' }}
                   </span>
+                </td>
+
+                <td class="px-5 py-3 text-center">
+                  <div class="text-xs font-semibold text-gray-900">
+                    {{ venta.plan_pago_nombre || 'Condiciones proyecto' }}
+                  </div>
+                  <div class="text-[11px] text-gray-500">
+                    {{ venta.plan_pago_tipo || '—' }}
+                  </div>
                 </td>
 
                 <td class="px-5 py-4 text-sm text-gray-700">

@@ -1006,173 +1006,229 @@ class GerenciaEstadisticasService
     {
         $filtros = $this->normalizarFiltros($filtros);
 
-        $ventasQuery = Venta::with(['proyecto', 'apartamento', 'local', 'cliente'])
+        $ventasQuery = Venta::with([
+            'proyecto',
+            'apartamento',
+            'local',
+            'cliente',
+            'planAmortizacion.cuotas' => function ($query) {
+                $query
+                    ->orderBy('fecha_vencimiento')
+                    ->orderBy('numero_cuota');
+            },
+        ])
             ->where('tipo_operacion', 'venta');
 
-        // Filtro por proyecto
         if (!empty($filtros['id_proyecto'])) {
             $ventasQuery->where('id_proyecto', $filtros['id_proyecto']);
         }
 
-        // Filtro por asesor
         if (!empty($filtros['asesor_id'])) {
             $ventasQuery->where('id_empleado', $filtros['asesor_id']);
         }
 
-        // Filtro por cliente o documento
         if (!empty($filtros['buscar_cliente'])) {
             $term = trim($filtros['buscar_cliente']);
 
             $ventasQuery->where(function ($q) use ($term) {
-                $q->where('documento_cliente', 'ilike', "%{$term}%")
+                $q->whereRaw('CAST(documento_cliente AS TEXT) ILIKE ?', ["%{$term}%"])
                     ->orWhereHas('cliente', function ($clienteQuery) use ($term) {
-                        $clienteQuery->where('nombre', 'ilike', "%{$term}%")
-                            ->orWhere('documento', 'ilike', "%{$term}%");
+                        $clienteQuery
+                            ->where('nombre', 'ilike', "%{$term}%")
+                            ->orWhereRaw('CAST(documento AS TEXT) ILIKE ?', ["%{$term}%"]);
                     })
                     ->orWhereHas('apartamento', function ($apartamentoQuery) use ($term) {
-                        $apartamentoQuery->where('numero', 'ilike', "%{$term}%");
+                        $apartamentoQuery->whereRaw('CAST(numero AS TEXT) ILIKE ?', ["%{$term}%"]);
                     })
                     ->orWhereHas('local', function ($localQuery) use ($term) {
-                        $localQuery->where('numero', 'ilike', "%{$term}%");
+                        $localQuery->whereRaw('CAST(numero AS TEXT) ILIKE ?', ["%{$term}%"]);
                     });
             });
         }
 
-        // Filtro por fecha de venta ejecutada
-        if ($desde && $hasta) {
-            $ventasQuery->whereBetween('fecha_venta', [
-                $desde->copy()->startOfDay(),
-                $hasta->copy()->endOfDay(),
-            ]);
-        } elseif ($desde) {
-            $ventasQuery->whereDate('fecha_venta', '>=', $desde->copy()->startOfDay());
-        } elseif ($hasta) {
-            $ventasQuery->whereDate('fecha_venta', '<=', $hasta->copy()->endOfDay());
-        }
-
+        /*
+    |--------------------------------------------------------------------------
+    | Importante:
+    |--------------------------------------------------------------------------
+    | No filtramos aquí con whereHas('planAmortizacion.cuotas'), porque eso
+    | desaparece ventas históricas que todavía no tienen cuotas reales generadas.
+    |
+    | Más abajo, si existen cuotas reales, se usan.
+    | Si no existen, se reconstruyen con los datos históricos de la venta.
+    */
         $ventas = $ventasQuery
             ->orderBy('fecha_venta', 'asc')
             ->get();
 
         if ($ventas->isEmpty()) {
-            return ['encabezados' => [], 'filas' => [], 'totales' => []];
+            return [
+                'encabezados' => [],
+                'filas' => [],
+                'totales' => [],
+            ];
         }
 
-        // Encabezados del rango seleccionado
-        $minMes = $desde ? $desde->copy()->startOfMonth() : null;
-        $maxMes = $hasta ? $hasta->copy()->endOfMonth()->startOfMonth() : null;
+        $cuotas = collect();
 
-        foreach ($ventas as $v) {
-            if (!$v->fecha_venta) {
+        foreach ($ventas as $venta) {
+            $cuotasVenta = collect($venta->planAmortizacion?->cuotas ?? []);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Caso 1: venta con cuotas reales
+        |--------------------------------------------------------------------------
+        | Para ventas nuevas, tomamos exactamente lo que está guardado.
+        | Para cuotas antiguas sin concepto, también se incluyen.
+        */
+            if ($cuotasVenta->isNotEmpty()) {
+                foreach ($cuotasVenta as $cuota) {
+                    if (!$cuota->fecha_vencimiento) {
+                        continue;
+                    }
+
+                    $fechaCuota = Carbon::parse($cuota->fecha_vencimiento)->startOfDay();
+
+                    if ($desde && $fechaCuota->lt($desde->copy()->startOfDay())) {
+                        continue;
+                    }
+
+                    if ($hasta && $fechaCuota->gt($hasta->copy()->endOfDay())) {
+                        continue;
+                    }
+
+                    $concepto = trim((string) ($cuota->concepto ?? ''));
+
+                    /*
+                |--------------------------------------------------------------------------
+                | Compatibilidad histórica
+                |--------------------------------------------------------------------------
+                | Si concepto viene null o vacío, se considera cuota válida.
+                | Esto evita que desaparezcan ventas generadas antes del campo concepto.
+                */
+                    $cuotas->push([
+                        'venta' => $venta,
+                        'mes' => $fechaCuota->format('Y-m'),
+                        'fecha' => $fechaCuota,
+                        'concepto' => $concepto !== '' ? $concepto : 'Cuota',
+                        'valor' => (float) ($cuota->valor_cuota ?? 0),
+                    ]);
+                }
+
                 continue;
             }
 
-            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
+            /*
+        |--------------------------------------------------------------------------
+        | Caso 2: venta histórica sin cuotas reales
+        |--------------------------------------------------------------------------
+        | Se reconstruye para que siga apareciendo en Gerencia y Contabilidad.
+        | Esta reconstrucción respeta la regla actual:
+        |
+        | - Separación en cuota #1.
+        | - Saldo cuota inicial dividido en N cuotas.
+        | - Valor restante en cuota N+1.
+        */
+            $cuotasHistoricas = $this->construirCuotasHistoricasPlanPagosCI($venta);
 
-            $inicioCalendario = Carbon::parse($v->fecha_venta)->startOfMonth();
-            $finCalendario = Carbon::parse($v->fecha_venta)->startOfMonth()->addMonths($plazo + 1);
+            foreach ($cuotasHistoricas as $cuotaHistorica) {
+                $fechaCuota = Carbon::parse($cuotaHistorica['fecha'])->startOfDay();
 
-            if ($minMes === null || $inicioCalendario->lt($minMes)) {
-                $minMes = $inicioCalendario->copy();
-            }
+                if ($desde && $fechaCuota->lt($desde->copy()->startOfDay())) {
+                    continue;
+                }
 
-            if ($maxMes === null || $finCalendario->gt($maxMes)) {
-                $maxMes = $finCalendario->copy();
+                if ($hasta && $fechaCuota->gt($hasta->copy()->endOfDay())) {
+                    continue;
+                }
+
+                $cuotas->push([
+                    'venta' => $venta,
+                    'mes' => $fechaCuota->format('Y-m'),
+                    'fecha' => $fechaCuota,
+                    'concepto' => $cuotaHistorica['concepto'],
+                    'valor' => (float) $cuotaHistorica['valor'],
+                ]);
             }
         }
 
-        if (!$minMes || !$maxMes) {
-            return ['encabezados' => [], 'filas' => [], 'totales' => []];
+        if ($cuotas->isEmpty()) {
+            return [
+                'encabezados' => [],
+                'filas' => [],
+                'totales' => [],
+            ];
         }
+
+        $minMes = $cuotas->min(fn($item) => $item['mes']);
+        $maxMes = $cuotas->max(fn($item) => $item['mes']);
+
+        $cursor = Carbon::createFromFormat('Y-m', $minMes)->startOfMonth();
+        $fin = Carbon::createFromFormat('Y-m', $maxMes)->startOfMonth();
 
         $encabezados = [];
-        $cursor = $minMes->copy();
 
-        while ($cursor <= $maxMes) {
+        while ($cursor->lte($fin)) {
             $encabezados[] = $cursor->format('Y-m');
             $cursor->addMonth();
         }
 
-        $filas = [];
         $totales = array_fill_keys($encabezados, 0);
+        $filasPorVenta = [];
 
-        foreach ($ventas as $v) {
-            $proyectoNombre = $v->proyecto?->nombre ?? ('Proyecto ' . ($v->id_proyecto ?? '—'));
-            $clienteNombre = $v->cliente?->nombre ?? '—';
-            $clienteDocumento = $v->documento_cliente ?? ($v->cliente?->documento ?? '');
+        foreach ($cuotas as $item) {
+            /** @var Venta $venta */
+            $venta = $item['venta'];
+            $mes = $item['mes'];
+            $valor = (float) ($item['valor'] ?? 0);
 
-            $inmueble = $v->apartamento?->numero
-                ? 'Apto ' . $v->apartamento->numero
-                : ($v->local?->numero ? 'Local ' . $v->local->numero : '—');
+            $key = $venta->id_venta;
 
-            $numeroOrden = $v->apartamento?->numero ?? $v->local?->numero ?? '999999';
+            if (!isset($filasPorVenta[$key])) {
+                $proyectoNombre = $venta->proyecto?->nombre ?? '—';
+                $clienteNombre = $venta->cliente?->nombre ?? '—';
+                $clienteDocumento = $venta->documento_cliente ?? $venta->cliente?->documento ?? '—';
 
-            $cuotaInicial = (float) ($v->cuota_inicial ?? 0);
-            $valorMinSep = (float) ($v->proyecto?->valor_min_separacion ?? 0);
+                $inmueble = $venta->apartamento?->numero
+                    ? 'Apto ' . $venta->apartamento->numero
+                    : (
+                        $venta->local?->numero
+                        ? 'Local ' . $venta->local->numero
+                        : '—'
+                    );
 
-            $separacion = (float) ($v->valor_min_separacion ?? $valorMinSep);
-            $valorRestante = max(0, (float) ($v->valor_total ?? 0) - $cuotaInicial);
-            $saldoAmortizar = max(0, $cuotaInicial - $separacion);
+                $numeroOrden = $venta->apartamento?->numero
+                    ?? $venta->local?->numero
+                    ?? '999999';
 
-            $plazo = max(1, (int) ($v->plazo_cuota_inicial_meses ?? 1));
-            $frecuencia = max(1, (int) ($v->frecuencia_cuota_inicial_meses ?? 1));
-            $numPagos = (int) ceil($plazo / $frecuencia);
-
-            $fechaBase = Carbon::parse($v->fecha_venta)->startOfMonth();
-
-            $cuotaPorPago = $numPagos > 0 ? (int) floor($saldoAmortizar / $numPagos) : 0;
-            $residuo = $saldoAmortizar - ($cuotaPorPago * $numPagos);
-
-            $mesesRow = [];
-
-            // MES 0 = separación
-            $mes0 = $fechaBase->format('Y-m');
-            if (isset($totales[$mes0])) {
-                $mesesRow[$mes0] = ($mesesRow[$mes0] ?? 0) + $separacion;
-                $totales[$mes0] += $separacion;
-            }
-
-            // MES 1..N = cuotas CI
-            $fechaPago = $fechaBase->copy()->addMonths($frecuencia);
-
-            for ($k = 1; $k <= $numPagos; $k++) {
-                $mes = $fechaPago->format('Y-m');
-
-                $valorCuota = $cuotaPorPago;
-                if ($k === $numPagos) {
-                    $valorCuota += $residuo;
-                }
-
-                if (isset($totales[$mes])) {
-                    $mesesRow[$mes] = ($mesesRow[$mes] ?? 0) + $valorCuota;
-                    $totales[$mes] += $valorCuota;
-                }
-
-                $fechaPago->addMonths($frecuencia);
-            }
-
-            // MES N+1 = restante
-            $mesRestante = $fechaBase->copy()->addMonths($plazo + 1)->format('Y-m');
-
-            if (isset($totales[$mesRestante])) {
-                $mesesRow[$mesRestante] = ($mesesRow[$mesRestante] ?? 0) + $valorRestante;
-                $totales[$mesRestante] += $valorRestante;
-            }
-
-            if (!empty($mesesRow)) {
-                $filas[] = [
+                $filasPorVenta[$key] = [
                     'proyecto' => $proyectoNombre,
                     'inmueble' => $inmueble,
                     'cliente' => $clienteNombre,
                     'documento_cliente' => $clienteDocumento,
-                    'meses' => $mesesRow,
+                    'plan' => $venta->plan_pago_nombre ?? 'Condiciones proyecto',
+                    'plazo_cuota_inicial_meses' => $venta->plazo_cuota_inicial_meses,
+                    'meses' => [],
                     '_orden' => $numeroOrden,
                 ];
             }
+
+            if (!isset($filasPorVenta[$key]['meses'][$mes])) {
+                $filasPorVenta[$key]['meses'][$mes] = 0;
+            }
+
+            $filasPorVenta[$key]['meses'][$mes] += $valor;
+
+            if (isset($totales[$mes])) {
+                $totales[$mes] += $valor;
+            }
         }
 
-        $filas = collect($filas)
-            ->sortBy('_orden', SORT_NATURAL)
+        $filas = collect(array_values($filasPorVenta))
+            ->sortBy(function ($fila) {
+                preg_match('/\d+/', (string) ($fila['_orden'] ?? '999999'), $matches);
+
+                return isset($matches[0]) ? (int) $matches[0] : 999999;
+            })
             ->map(function ($fila) {
                 unset($fila['_orden']);
                 return $fila;
@@ -1185,6 +1241,116 @@ class GerenciaEstadisticasService
             'filas' => $filas,
             'totales' => $totales,
         ];
+    }
+
+    private function construirCuotasHistoricasPlanPagosCI(Venta $venta): array
+    {
+        $cuotas = [];
+
+        if (!$venta->fecha_venta) {
+            return $cuotas;
+        }
+
+        $fechaInicio = Carbon::parse($venta->fecha_venta)->startOfDay();
+
+        $valorTotal = (float) ($venta->valor_total ?? 0);
+        $cuotaInicial = (float) ($venta->cuota_inicial ?? 0);
+
+        $valorSeparacion = (float) (
+            $venta->valor_separacion
+            ?? $venta->proyecto?->valor_min_separacion
+            ?? 0
+        );
+
+        $saldoCuotaInicial = (float) (
+            $venta->saldo_cuota_inicial
+            ?? max($cuotaInicial - $valorSeparacion, 0)
+        );
+
+        $valorRestante = (float) (
+            $venta->valor_restante
+            ?? max($valorTotal - $cuotaInicial, 0)
+        );
+
+        $plazo = (int) ($venta->plazo_cuota_inicial_meses ?? 0);
+        $frecuencia = max(1, (int) ($venta->frecuencia_cuota_inicial_meses ?? 1));
+
+        $numeroCuota = 1;
+
+        /*
+    |--------------------------------------------------------------------------
+    | Cuota #1: separación
+    |--------------------------------------------------------------------------
+    */
+        if ($valorSeparacion > 0) {
+            $cuotas[] = [
+                'numero' => $numeroCuota,
+                'fecha' => $fechaInicio->toDateString(),
+                'concepto' => 'Separación',
+                'valor' => round($valorSeparacion),
+                'saldo' => round($saldoCuotaInicial),
+            ];
+
+            $numeroCuota++;
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Cuotas de saldo de cuota inicial
+    |--------------------------------------------------------------------------
+    | La separación NO consume cuota del plazo.
+    | Si plazo = 36, se crean 36 cuotas de saldo CI.
+    */
+        if ($saldoCuotaInicial > 0 && $plazo > 0) {
+            $numPagosSaldo = $frecuencia > 1
+                ? (int) ceil($plazo / $frecuencia)
+                : $plazo;
+
+            $cuotaBase = (int) floor($saldoCuotaInicial / $numPagosSaldo);
+            $residuo = $saldoCuotaInicial - ($cuotaBase * $numPagosSaldo);
+
+            $saldo = $saldoCuotaInicial;
+
+            for ($i = 1; $i <= $numPagosSaldo; $i++) {
+                $valorCuota = $cuotaBase;
+
+                if ($i === $numPagosSaldo) {
+                    $valorCuota += $residuo;
+                }
+
+                $saldo = max($saldo - $valorCuota, 0);
+
+                $mesOffset = $i * $frecuencia;
+
+                $cuotas[] = [
+                    'numero' => $numeroCuota,
+                    'fecha' => $fechaInicio->copy()->addMonths($mesOffset)->toDateString(),
+                    'concepto' => 'Cuota inicial',
+                    'valor' => round($valorCuota),
+                    'saldo' => round($saldo),
+                ];
+
+                $numeroCuota++;
+            }
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Cuota n+1: valor restante
+    |--------------------------------------------------------------------------
+    | El valor restante queda después de las cuotas del saldo de cuota inicial.
+    */
+        if ($valorRestante > 0) {
+            $cuotas[] = [
+                'numero' => $numeroCuota,
+                'fecha' => $fechaInicio->copy()->addMonths(max($plazo + 1, 1))->toDateString(),
+                'concepto' => 'Valor restante',
+                'valor' => round($valorRestante),
+                'saldo' => 0,
+            ];
+        }
+
+        return $cuotas;
     }
 
     public function absorcionPorTipo(array $filtros, ?Carbon $desde = null, ?Carbon $hasta = null): array

@@ -150,7 +150,16 @@ class VentaWebController extends Controller
             ->whereHas('estadoInmueble', fn($q) => $q->where('nombre', 'Disponible'))
             ->get();
 
-        $proyectos = Proyecto::activos()->orderBy('nombre')->get();
+        $proyectos = Proyecto::activos()
+            ->with([
+                'planesPago' => function ($query) {
+                    $query->activos()
+                        ->orderBy('orden')
+                        ->orderBy('id_plan_pago_proyecto');
+                },
+            ])
+            ->orderBy('nombre')
+            ->get();
         $formasPago = FormaPago::orderBy('forma_pago')->get();
         $estadosInmueble = EstadoInmueble::orderBy('nombre')->get();
 
@@ -271,54 +280,78 @@ class VentaWebController extends Controller
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
-
             $validated = $request->validate([
-                'tipo_operacion'    => 'required|in:venta,separacion',
-                'id_empleado'       => 'required|exists:empleados,id_empleado',
+                'tipo_operacion' => 'required|in:venta,separacion',
+                'id_empleado' => 'required|exists:empleados,id_empleado',
                 'documento_cliente' => 'required|exists:clientes,documento',
-                'fecha_venta'       => 'required|date',
-                'id_proyecto'       => 'required|exists:proyectos,id_proyecto',
-                'inmueble_tipo'     => 'required|in:apartamento,local',
-                'inmueble_id'       => 'required|integer',
-                'id_forma_pago'     => 'required|exists:formas_pago,id_forma_pago',
+                'fecha_venta' => 'required|date',
+                'id_proyecto' => 'required|exists:proyectos,id_proyecto',
+                'inmueble_tipo' => 'required|in:apartamento,local',
+                'inmueble_id' => 'required|integer',
+                'id_forma_pago' => 'required|exists:formas_pago,id_forma_pago',
                 'id_estado_inmueble' => 'nullable|exists:estados_inmueble,id_estado_inmueble',
 
-                // ✅ Parqueadero adicional opcional
-                'id_parqueadero'    => 'nullable|exists:parqueaderos,id_parqueadero',
+                'id_plan_pago_proyecto' => 'nullable',
 
-                'cuota_inicial'     => 'nullable|numeric|min:0',
-                'valor_separacion'  => 'nullable|numeric|min:0',
+                'id_parqueadero' => 'nullable|exists:parqueaderos,id_parqueadero',
+
+                'cuota_inicial' => 'nullable|numeric|min:0',
+                'valor_separacion' => 'nullable|numeric|min:0',
                 'fecha_limite_separacion' => 'nullable|date',
-                'valor_total'       => 'nullable|numeric|min:0',
-                'valor_restante'    => 'nullable|numeric|min:0',
-                'descripcion'       => 'nullable|max:300',
-                'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
+                'valor_total' => 'nullable|numeric|min:0',
+                'valor_restante' => 'nullable|numeric|min:0',
+                'descripcion' => 'nullable|string|max:300',
+
+                /*
+            |--------------------------------------------------------------------------
+            | Importante:
+            |--------------------------------------------------------------------------
+            | Estos campos son nullable porque no todos los planes los usan.
+            | Plan 01 / 02 / condiciones proyecto: sí usan plazo.
+            | Plan 03 contado: no usa plazo ni frecuencia.
+            | Plan 04 pago diferido: no usa plazo CI ni frecuencia.
+            | Plan 05 especial: usa cuotas manuales.
+            */
+                'plazo_cuota_inicial_meses' => 'nullable|integer|min:1',
                 'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
+
+                'cuotas_manual_ci' => 'nullable|array',
+                'cuotas_manual_ci.*.fecha_vencimiento' => 'required_with:cuotas_manual_ci|date',
+                'cuotas_manual_ci.*.valor_cuota' => 'required_with:cuotas_manual_ci|numeric|min:1',
             ]);
 
-            $proyecto = Proyecto::findOrFail($validated['id_proyecto']);
-
-            if (($validated['tipo_operacion'] ?? null) === 'venta') {
-                $plazosDisponibles = $this->calcularPlazosDisponibles(
-                    $proyecto,
-                    $validated['fecha_venta'] ?? null
-                );
-
-                $plazoSeleccionado = (int) ($validated['plazo_cuota_inicial_meses'] ?? 0);
-
-                if ($plazoSeleccionado < 1 || !in_array($plazoSeleccionado, $plazosDisponibles, true)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'plazo_cuota_inicial_meses' => 'El plazo seleccionado no es válido para la fecha de venta indicada.',
-                    ]);
-                }
-            }
-
-            if (($validated['tipo_operacion'] ?? null) === 'venta') {
-                $validated['frecuencia_cuota_inicial_meses'] = (int)($validated['frecuencia_cuota_inicial_meses'] ?? 1);
-            } else {
+            /*
+        |--------------------------------------------------------------------------
+        | Separación
+        |--------------------------------------------------------------------------
+        | Si es separación, no debe guardar cuota inicial, plazo ni frecuencia.
+        | El valor de separación lo calculará oficialmente VentaService según
+        | el plan seleccionado.
+        */
+            if (($validated['tipo_operacion'] ?? null) === 'separacion') {
                 $validated['frecuencia_cuota_inicial_meses'] = null;
                 $validated['plazo_cuota_inicial_meses'] = null;
                 $validated['cuota_inicial'] = null;
+                $validated['valor_restante'] = null;
+                $validated['cuotas_manual_ci'] = null;
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Venta
+        |--------------------------------------------------------------------------
+        | No validamos aquí el plazo.
+        | Esa validación debe quedar únicamente en VentaService::validarVentaConPlan(),
+        | porque depende del tipo de plan seleccionado.
+        */
+            if (($validated['tipo_operacion'] ?? null) === 'venta') {
+                if (empty($validated['frecuencia_cuota_inicial_meses'])) {
+                    $validated['frecuencia_cuota_inicial_meses'] = null;
+                }
+
+                if (empty($validated['plazo_cuota_inicial_meses'])) {
+                    $validated['plazo_cuota_inicial_meses'] = null;
+                }
             }
 
             $venta = $this->ventaService->crearOperacion($validated);
@@ -356,6 +389,10 @@ class VentaWebController extends Controller
             'parqueadero', // ✅ nuevo
             'planAmortizacion.cuotas',
             'pagos',
+            'planPagoProyecto',
+            'planAmortizacion.cuotas' => function ($query) {
+                $query->orderBy('numero_cuota');
+            },
         ])->findOrFail($id);
 
         $imagenTipoAptoUrl = null;
@@ -461,7 +498,7 @@ class VentaWebController extends Controller
                 'valor_separacion'  => 'nullable|numeric|min:0',
                 'fecha_limite_separacion' => 'nullable|date|after_or_equal:today',
                 'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
-                'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:1',
+                'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:0',
             ]);
 
             // Resolver inmueble nuevo (lock)
@@ -770,7 +807,16 @@ class VentaWebController extends Controller
 
         // 4) Datasets para reutilizar la UI de Create (como pidió la vista Convertir.vue)
         $clientes = Cliente::orderBy('nombre')->get();
-        $proyectos = Proyecto::orderBy('nombre')->get(); // opcional, pero útil para resumen/consistencia
+        $proyectos = Proyecto::activos()
+            ->with([
+                'planesPago' => function ($query) {
+                    $query->activos()
+                        ->orderBy('orden')
+                        ->orderBy('id_plan_pago_proyecto');
+                },
+            ])
+            ->orderBy('nombre')
+            ->get();
         $formasPago = FormaPago::orderBy('forma_pago')->get();
         $estadosInmueble = EstadoInmueble::orderBy('nombre')->get();
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
@@ -819,153 +865,138 @@ class VentaWebController extends Controller
 
     public function convertirStore(Request $request, $id)
     {
-        return DB::transaction(function () use ($request, $id) {
+        $venta = Venta::with([
+            'apartamento',
+            'local',
+            'proyecto',
+            'parqueadero',
+        ])->findOrFail($id);
 
-            $venta = Venta::with(['apartamento', 'local'])->lockForUpdate()->findOrFail($id);
-
-            if (!$venta->esSeparacion()) {
-                return back()->withErrors(['operacion' => 'Esta operación no es una separación.']);
-            }
-
-            if ($venta->estado_operacion !== 'vigente') {
-                return back()->withErrors(['operacion' => 'Solo separaciones vigentes pueden convertirse.']);
-            }
-
-            $validated = $request->validate([
-                'id_forma_pago' => 'required|exists:formas_pago,id_forma_pago',
-                'cuota_inicial' => 'required|numeric|min:0',
-                'plazo_cuota_inicial_meses' => 'required|integer|min:1',
-                'frecuencia_cuota_inicial_meses' => 'required|integer|min:1',
-                'descripcion' => 'nullable|string|max:300',
-                'id_parqueadero' => 'nullable|exists:parqueaderos,id_parqueadero',
+        if (!$venta->esSeparacion()) {
+            return back()->withErrors([
+                'operacion' => 'Esta operación no es una separación.',
             ]);
+        }
 
-            $validated['fecha_venta'] = now()->toDateString();
+        if (($venta->estado_operacion ?? null) !== 'vigente') {
+            return back()->withErrors([
+                'operacion' => 'Solo separaciones vigentes pueden convertirse.',
+            ]);
+        }
 
-            // Si el form no envía id_parqueadero, conservar el de la separación
-            if (!array_key_exists('id_parqueadero', $validated) || $validated['id_parqueadero'] === null || $validated['id_parqueadero'] === '') {
-                $validated['id_parqueadero'] = $venta->id_parqueadero;
-            }
+        $validated = $request->validate([
+            'tipo_operacion' => 'nullable|in:venta',
 
-            $proyecto = Proyecto::findOrFail($venta->id_proyecto);
+            'id_empleado' => 'nullable|exists:empleados,id_empleado',
+            'documento_cliente' => 'nullable|exists:clientes,documento',
+            'fecha_venta' => 'nullable|date',
 
-            $inmueble = $venta->id_apartamento ? $venta->apartamento : $venta->local;
-            if (!$inmueble) {
-                return back()->withErrors(['operacion' => 'No se encontró el inmueble asociado.']);
-            }
+            'id_forma_pago' => 'required|exists:formas_pago,id_forma_pago',
+            'id_estado_inmueble' => 'nullable|exists:estados_inmueble,id_estado_inmueble',
 
-            $valorBase = (float)($inmueble->valor_final ?? $inmueble->valor_total ?? 0);
+            'id_plan_pago_proyecto' => 'nullable',
 
-            // Guardar anteriores para liberar/asignar
-            $oldParqueaderoId = $venta->id_parqueadero ? (int)$venta->id_parqueadero : null;
-            $oldApartamentoId = $venta->id_apartamento ? (int)$venta->id_apartamento : null;
+            'plazo_cuota_inicial_meses' => 'nullable|integer|min:0',
+            'frecuencia_cuota_inicial_meses' => 'nullable|integer|min:0',
 
-            $precioParq = 0.0;
+            'cuotas_manual_ci' => 'nullable|array',
+            'cuotas_manual_ci.*.fecha_vencimiento' => 'required_with:cuotas_manual_ci|date',
+            'cuotas_manual_ci.*.valor_cuota' => 'required_with:cuotas_manual_ci|numeric|min:1',
 
-            if (!empty($validated['id_parqueadero'])) {
+            'descripcion' => 'nullable|string|max:300',
+            'id_parqueadero' => 'nullable|exists:parqueaderos,id_parqueadero',
+        ]);
 
-                // parqueadero adicional solo aplica a apartamentos
-                if (!$venta->id_apartamento) {
-                    return back()->withErrors(['operacion' => 'Parqueadero adicional solo aplica a apartamentos.']);
-                }
+        /*
+    |--------------------------------------------------------------------------
+    | Datos base de conversión
+    |--------------------------------------------------------------------------
+    | La fecha de venta se toma del request si la vista la envía.
+    | Si no llega, se fija automáticamente al día actual.
+    */
+        $validated['fecha_venta'] = $validated['fecha_venta'] ?? now()->toDateString();
 
-                $p = Parqueadero::where('id_parqueadero', $validated['id_parqueadero'])
-                    ->lockForUpdate()
-                    ->firstOrFail();
+        $validated['id_empleado'] = $validated['id_empleado'] ?? $venta->id_empleado;
+        $validated['documento_cliente'] = $validated['documento_cliente'] ?? $venta->documento_cliente;
 
-                // ✅ Validación correcta con tu nuevo esquema:
-                // permitir libre (null) o asignado al MISMO apto de esta venta
-                if (!empty($p->id_apartamento) && (int)$p->id_apartamento !== (int)$venta->id_apartamento) {
-                    return back()->withErrors(['operacion' => 'El parqueadero ya está asignado a otro apartamento.']);
-                }
+        /*
+    |--------------------------------------------------------------------------
+    | Parqueadero adicional
+    |--------------------------------------------------------------------------
+    | Si la vista no envía id_parqueadero, se conserva el parqueadero que tenía
+    | la separación.
+    |
+    | Si la vista envía vacío/null, se interpreta como "sin parqueadero adicional".
+    */
+        if (!$request->has('id_parqueadero')) {
+            $validated['id_parqueadero'] = $venta->id_parqueadero;
+        } else {
+            $validated['id_parqueadero'] = $validated['id_parqueadero'] ?: null;
+        }
 
-                if (!empty($p->id_proyecto) && (int)$p->id_proyecto !== (int)$venta->id_proyecto) {
-                    return back()->withErrors(['operacion' => 'El parqueadero no pertenece al proyecto.']);
-                }
+        /*
+    |--------------------------------------------------------------------------
+    | Plan de venta
+    |--------------------------------------------------------------------------
+    | Si la separación ya tenía plan, se conserva como base.
+    | Si la vista envía otro plan, el servicio usará el nuevo.
+    */
+        if (empty($validated['id_plan_pago_proyecto']) && $venta->id_plan_pago_proyecto) {
+            $validated['id_plan_pago_proyecto'] = $venta->id_plan_pago_proyecto;
+        }
 
-                // Debe estar libre en otras operaciones
-                $ocupado = Venta::whereNotNull('id_parqueadero')
-                    ->where('id_parqueadero', $validated['id_parqueadero'])
-                    ->where('id_venta', '!=', $venta->id_venta)
-                    ->whereIn('tipo_operacion', ['venta', 'separacion'])
-                    ->exists();
+        /*
+    |--------------------------------------------------------------------------
+    | Estado vendido
+    |--------------------------------------------------------------------------
+    | Si no llega desde la vista, se resuelve por nombre.
+    */
+        if (empty($validated['id_estado_inmueble'])) {
+            $idEstadoVendido = EstadoInmueble::whereRaw('LOWER(nombre) = ?', ['vendido'])
+                ->value('id_estado_inmueble');
 
-                if ($ocupado) {
-                    return back()->withErrors(['operacion' => 'El parqueadero ya fue reservado por otra operación.']);
-                }
-
-                $precioParq = (float)($p->precio ?? 0);
-            }
-
-            $valorTotal = $valorBase + $precioParq;
-
-            // Validación negocio con total real
-            app(\App\Services\VentaService::class)->validarVenta([
-                ...$validated,
-                'tipo_operacion' => 'venta',
-                'valor_total' => $valorTotal,
-            ], $proyecto);
-
-            $valorRestante = max(0, $valorTotal - (float)$validated['cuota_inicial']);
-
-            $idEstadoVendido = EstadoInmueble::where('nombre', 'Vendido')->value('id_estado_inmueble');
             if (!$idEstadoVendido) {
-                return back()->withErrors(['operacion' => 'No existe el estado "Vendido".']);
+                return back()->withErrors([
+                    'operacion' => 'No existe el estado de inmueble "Vendido".',
+                ]);
             }
 
-            // ====== UPDATE venta ======
-            $venta->update([
-                'tipo_operacion' => 'venta',
-                'fecha_limite_separacion' => null,
-                'estado_operacion' => 'convertida',
-                'id_forma_pago' => $validated['id_forma_pago'],
+            $validated['id_estado_inmueble'] = $idEstadoVendido;
+        }
+
+        try {
+            $ventaConvertida = $this->ventaService->convertirSeparacionEnVenta($venta, [
+                'id_empleado' => $validated['id_empleado'],
+                'documento_cliente' => $validated['documento_cliente'],
                 'fecha_venta' => $validated['fecha_venta'],
-                'valor_base' => $valorBase,
-                'valor_total' => $valorTotal,
-                'cuota_inicial' => $validated['cuota_inicial'],
-                'valor_restante' => $valorRestante,
-                'plazo_cuota_inicial_meses' => $validated['plazo_cuota_inicial_meses'],
-                'frecuencia_cuota_inicial_meses' => $validated['frecuencia_cuota_inicial_meses'],
+
+                'id_forma_pago' => $validated['id_forma_pago'],
+                'id_estado_inmueble' => $validated['id_estado_inmueble'],
+
+                'id_plan_pago_proyecto' => $validated['id_plan_pago_proyecto'] ?? null,
+
+                'plazo_cuota_inicial_meses' => $validated['plazo_cuota_inicial_meses'] ?? null,
+                'frecuencia_cuota_inicial_meses' => $validated['frecuencia_cuota_inicial_meses'] ?? 1,
+
+                'cuotas_manual_ci' => $validated['cuotas_manual_ci'] ?? null,
+
                 'descripcion' => $validated['descripcion'] ?? $venta->descripcion,
-                'valor_separacion' => null,
-                'id_parqueadero' => $validated['id_parqueadero'] ?: null,
+                'id_parqueadero' => $validated['id_parqueadero'] ?? null,
             ]);
 
-            $venta->refresh();
-
-            // ====== Asignar/Liberar parqueadero.id_apartamento ======
-            $newParqueaderoId = $venta->id_parqueadero ? (int)$venta->id_parqueadero : null;
-            $newApartamentoId = $venta->id_apartamento ? (int)$venta->id_apartamento : null;
-
-            // Si cambió o se quitó, liberar el anterior
-            if ($oldParqueaderoId && $oldParqueaderoId !== $newParqueaderoId) {
-                Parqueadero::where('id_parqueadero', $oldParqueaderoId)
-                    ->when($oldApartamentoId, fn($q) => $q->where('id_apartamento', $oldApartamentoId))
-                    ->update(['id_apartamento' => null]);
-            }
-
-            // Si hay parqueadero actual, asignarlo al apartamento (idempotente)
-            if ($newParqueaderoId && $newApartamentoId) {
-                Parqueadero::where('id_parqueadero', $newParqueaderoId)
-                    ->where(function ($q) use ($newApartamentoId) {
-                        $q->whereNull('id_apartamento')
-                            ->orWhere('id_apartamento', $newApartamentoId);
-                    })
-                    ->update(['id_apartamento' => $newApartamentoId]);
-            }
-
-            // Actualizar inmueble a Vendido
-            $inmueble->update(['id_estado_inmueble' => $idEstadoVendido]);
-
-            // Regenerar plan cuota inicial
-            app(\App\Services\VentaService::class)->regenerarPlanCuotaInicial($venta);
-
-            // Recalcular precios del proyecto
-            app(\App\Services\PriceEngine::class)->recalcularProyectoPorVenta($venta);
+            app(\App\Services\PriceEngine::class)->recalcularProyectoPorVenta($ventaConvertida);
 
             return redirect()
-                ->route('ventas.show', $venta->id_venta)
+                ->route('ventas.show', $ventaConvertida->id_venta)
                 ->with('success', 'La separación fue convertida a venta correctamente.');
-        });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withErrors([
+                'operacion' => $e->getMessage() ?: 'No fue posible convertir la separación en venta.',
+            ]);
+        }
     }
 }

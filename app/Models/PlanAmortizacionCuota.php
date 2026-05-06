@@ -16,6 +16,7 @@ class PlanAmortizacionCuota extends Model
         'id_plan',
         'numero_cuota',
         'fecha_vencimiento',
+        'concepto',
         'valor_cuota',
         'valor_interes',
         'valor_capital',

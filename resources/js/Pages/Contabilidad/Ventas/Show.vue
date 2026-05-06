@@ -61,14 +61,15 @@ const parqueaderoTexto = computed(() => {
   return 'No'
 })
 
-const cuotaSeparacionProyecto = computed(() => {
-  return Number(props.venta.proyecto?.valor_min_separacion || 0)
+const cuotaSeparacionOperacion = computed(() => {
+  return Number(props.venta.valor_separacion || props.venta.proyecto?.valor_min_separacion || 0)
 })
 
 const valorRestanteCI = computed(() => {
-  return cuotaSeparacionProyecto.value
-    ? Math.max(0, (props.venta.cuota_inicial || 0) - cuotaSeparacionProyecto.value)
-    : props.venta.cuota_inicial || 0
+  return Number(
+    props.venta.saldo_cuota_inicial ??
+      Math.max(0, Number(props.venta.cuota_inicial || 0) - cuotaSeparacionOperacion.value)
+  )
 })
 
 const numeroCuotasCalculadas = computed(() => {
@@ -296,7 +297,7 @@ function comprobanteUrl(pago) {
                 <div class="flex justify-between text-sm">
                   <span class="text-gray-600">Pago separación</span>
                   <span class="font-semibold text-gray-900">{{
-                    formatMoney(cuotaSeparacionProyecto)
+                    formatMoney(cuotaSeparacionOperacion)
                   }}</span>
                 </div>
 
@@ -418,7 +419,6 @@ function comprobanteUrl(pago) {
                       <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
                         <div class="lg:col-span-8 space-y-3">
                           <div class="flex flex-wrap items-center gap-2">
-
                             <span
                               v-if="comprobanteUrl(pago)"
                               class="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"

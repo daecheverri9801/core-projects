@@ -40,6 +40,15 @@ class Venta extends Model
         'fecha_limite_separacion',
         'frecuencia_cuota_inicial_meses',
         'id_parqueadero',
+        'id_plan_pago_proyecto',
+        'plan_pago_codigo',
+        'plan_pago_nombre',
+        'plan_pago_tipo',
+        'plan_pago_snapshot',
+        'valor_total_sin_descuento',
+        'valor_descuento',
+        'saldo_cuota_inicial',
+        'cuotas_manual_ci',
     ];
 
     protected $casts = [
@@ -53,6 +62,11 @@ class Venta extends Model
         'valor_restante' => 'decimal:2',
         'valor_separacion' => 'decimal:2',
         'frecuencia_cuota_inicial_meses' => 'integer',
+        'plan_pago_snapshot' => 'array',
+        'cuotas_manual_ci' => 'array',
+        'valor_total_sin_descuento' => 'decimal:2',
+        'valor_descuento' => 'decimal:2',
+        'saldo_cuota_inicial' => 'decimal:2',
     ];
 
     // Relaciones
@@ -115,6 +129,11 @@ class Venta extends Model
     public function esSeparacion(): bool
     {
         return $this->tipo_operacion === self::TIPO_SEPARACION;
+    }
+
+    public function planPagoProyecto()
+    {
+        return $this->belongsTo(PlanPagoProyecto::class, 'id_plan_pago_proyecto', 'id_plan_pago_proyecto');
     }
 
     public function estaVencida()
