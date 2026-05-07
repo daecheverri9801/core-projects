@@ -20,6 +20,10 @@ const props = defineProps({
   clientes: Array,
   empleado: Object,
   inmuebles: Array,
+  parqueaderos: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const proyectoId = ref('')
@@ -32,6 +36,7 @@ const clienteSeleccionado = ref(null)
 const inmuebleId = ref('')
 const planPagoId = ref('')
 const plazo = ref('')
+const parqueaderoId = ref('')
 const cargando = ref(false)
 const PLAN_PROYECTO_DEFAULT_ID = '__condiciones_proyecto__'
 
@@ -148,8 +153,53 @@ const inmueble = computed(() => {
   return inmueblesFiltrados.value.find((i) => String(i.id) === String(inmuebleId.value)) || null
 })
 
+const parqueaderosDisponibles = computed(() => {
+  if (!proyectoId.value) return []
+  if (!inmueble.value || inmueble.value.tipo !== 'apartamento') return []
+
+  return (props.parqueaderos || [])
+    .filter((p) => String(p.id_proyecto) === String(proyectoId.value))
+    .map((p) => ({
+      ...p,
+      precio: Number(p.precio || 0),
+    }))
+})
+
+const parqueaderoSeleccionado = computed(() => {
+  if (!parqueaderoId.value) return null
+
+  return (
+    parqueaderosDisponibles.value.find(
+      (p) => String(p.id_parqueadero) === String(parqueaderoId.value)
+    ) || null
+  )
+})
+
+const precioParqueaderoSeleccionado = computed(() => {
+  return Number(parqueaderoSeleccionado.value?.precio || 0)
+})
+
+function normalizarTextoBasico(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+const adicionalEsDeposito = computed(() => {
+  const tipo = normalizarTextoBasico(parqueaderoSeleccionado.value?.tipo)
+  return tipo.includes('deposito') || tipo.includes('depósito')
+})
+
+const adicionalEsParqueadero = computed(() => {
+  const tipo = normalizarTextoBasico(parqueaderoSeleccionado.value?.tipo)
+  return tipo.includes('parqueadero') || tipo.includes('vehiculo') || tipo.includes('moto')
+})
+
 watch(proyectoId, () => {
   inmuebleId.value = ''
+  parqueaderoId.value = ''
   plazo.value = ''
 
   if (!proyecto.value) {
@@ -168,6 +218,19 @@ watch(proyectoId, () => {
 watch(planPagoId, () => {
   plazo.value = ''
 })
+
+watch(inmuebleId, () => {
+  parqueaderoId.value = ''
+})
+
+watch(
+  () => inmueble.value?.tipo,
+  (tipo) => {
+    if (tipo !== 'apartamento') {
+      parqueaderoId.value = ''
+    }
+  }
+)
 
 watch(
   () => clienteBusqueda.documento,
@@ -380,7 +443,9 @@ const resumenCotizacion = computed(() => {
   if (!inmueble.value || !planPago.value) return null
 
   const plan = planPago.value
-  const valorTotal = Number(inmueble.value.valor_final || 0)
+  const valorInmueble = Number(inmueble.value.valor_final || 0)
+  const valorParqueadero = Number(precioParqueaderoSeleccionado.value || 0)
+  const valorTotal = valorInmueble + valorParqueadero
   const porcentajeCuotaInicial = Number(plan.porcentaje_cuota_inicial || 0)
   const porcentajeEscritura = Number(plan.porcentaje_escritura || 0)
   const cuotaSeparacion = Number(plan.valor_separacion || 0)
@@ -455,6 +520,8 @@ const resumenCotizacion = computed(() => {
   }
 
   return {
+    valorInmueble,
+    valorParqueadero,
     valorTotal,
     precioConDescuento,
     descuento,
@@ -1137,6 +1204,10 @@ async function generarPDF() {
     const M = 12.7
     const plan = planPago.value
     const resumen = resumenCotizacion.value
+
+    const valorInmueble = Number(resumen.valorInmueble || inmueble.value.valor_final || 0)
+    const valorAdicional = Number(resumen.valorParqueadero || 0)
+    const valorTotalBruto = Number(resumen.valorTotal || 0)
     const asesor = empleado.value || {}
 
     const hoy = new Date()
@@ -1181,8 +1252,37 @@ async function generarPDF() {
       ? `${tipoApartamento.area_privada} m²`
       : '—'
 
-    const parqueaderoTexto = inmueble.value?.parqueadero ? 'Sí' : 'No'
-    const depositoTexto = inmueble.value?.deposito ? 'Sí' : 'No'
+    const adicionalSeleccionado = parqueaderoSeleccionado.value || null
+    const adicionalTipo = normalizarTextoBasico(adicionalSeleccionado?.tipo)
+    const adicionalNumero = adicionalSeleccionado?.numero || ''
+    const adicionalPrecio = Number(adicionalSeleccionado?.precio || 0)
+
+    const tieneParqueaderoBase =
+      Boolean(inmueble.value?.tiene_parqueadero) ||
+      Boolean(inmueble.value?.parqueadero) ||
+      Boolean(inmueble.value?.parqueaderos?.length)
+
+    const tieneDepositoBase = Boolean(inmueble.value?.deposito)
+
+    const adicionalCuentaComoParqueadero =
+      adicionalTipo.includes('parqueadero') ||
+      adicionalTipo.includes('vehiculo') ||
+      adicionalTipo.includes('moto')
+
+    const adicionalCuentaComoDeposito =
+      adicionalTipo.includes('deposito') || adicionalTipo.includes('depósito')
+
+    const parqueaderoTexto = tieneParqueaderoBase || adicionalCuentaComoParqueadero ? 'Sí' : 'No'
+
+    const depositoTexto = tieneDepositoBase || adicionalCuentaComoDeposito ? 'Sí' : 'No'
+
+    const adicionalTexto = adicionalSeleccionado
+      ? `${
+          adicionalSeleccionado.tipo === 'Moto' || adicionalSeleccionado.tipo === 'Vehiculo'
+            ? 'Parqueadero'
+            : adicionalSeleccionado.tipo
+        }`
+      : 'No aplica'
 
     // =========================
     // PÁGINA 1
@@ -1314,14 +1414,15 @@ async function generarPDF() {
       maxWidth: 78,
     })
 
-    drawInlineKV(doc, 'Valor Total', formatMoney(resumen.totalCotizado), M, 57, {
+    drawInlineKV(doc, 'Valor Total', formatMoney(valorTotalBruto), M, 57, {
       labelSize: 16,
       valueSize: 14,
     })
 
-    drawInlineKV(doc, 'Valor Cuota Inicial', formatMoney(resumen.cuotaInicial), 18, 65)
-    drawInlineKV(doc, 'Cuota de Separación', formatMoney(resumen.cuotaSeparacion), 18, 71)
-    drawInlineKV(doc, 'Saldo Cuota Inicial', formatMoney(resumen.saldoCuotaInicial), 18, 77)
+    drawInlineKV(doc, adicionalTexto + ' Adicional', formatMoney(valorAdicional), 18, 65)
+    drawInlineKV(doc, 'Valor Cuota Inicial', formatMoney(resumen.cuotaInicial), 18, 71)
+    drawInlineKV(doc, 'Cuota de Separación', formatMoney(resumen.cuotaSeparacion), 18, 77)
+    drawInlineKV(doc, 'Saldo Cuota Inicial', formatMoney(resumen.saldoCuotaInicial), 18, 83)
 
     drawInlineKV(
       doc,
@@ -1753,7 +1854,7 @@ async function generarPDF() {
               </div>
 
               <!-- Inmueble -->
-              <div class="md:col-span-2">
+              <div class="md:col-span-1">
                 <label :class="labelClass()">Inmueble disponible</label>
                 <div class="relative">
                   <select v-model="inmuebleId" :class="fieldClass(false)" class="pl-11">
@@ -1765,6 +1866,44 @@ async function generarPDF() {
                     </option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label :class="labelClass()">Parqueadero / Depósito adicional</label>
+                <select
+                  v-model="parqueaderoId"
+                  :disabled="!proyectoId || !inmueble || inmueble.tipo !== 'apartamento'"
+                  :class="fieldClass(!proyectoId || !inmueble || inmueble.tipo !== 'apartamento')"
+                >
+                  <option value="">Sin adicional</option>
+
+                  <option
+                    v-for="p in parqueaderosDisponibles"
+                    :key="p.id_parqueadero"
+                    :value="p.id_parqueadero"
+                  >
+                    {{ p.tipo }}
+                    · {{ formatMoney(p.precio) }}
+                  </option>
+                </select>
+
+                <p
+                  v-if="inmueble && inmueble.tipo !== 'apartamento'"
+                  class="mt-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600"
+                >
+                  Los adicionales solo aplican para apartamentos.
+                </p>
+
+                <p
+                  v-if="
+                    inmueble?.tipo === 'apartamento' &&
+                    proyectoId &&
+                    parqueaderosDisponibles.length === 0
+                  "
+                  class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700"
+                >
+                  No hay parqueaderos/depositos adicionales disponibles para este proyecto.
+                </p>
               </div>
 
               <!-- Detalle del plan -->
@@ -1921,6 +2060,22 @@ async function generarPDF() {
                           : plazoPlanTexto(planPago)
                         : 'Pendiente'
                     }}
+                  </p>
+                </div>
+
+                <div class="rounded-xl bg-white/80 px-4 py-3">
+                  <p class="text-[11px] font-semibold uppercase tracking-wide text-[#756C00]">
+                    Adicional seleccionado
+                  </p>
+                  <p class="mt-1 font-bold text-gray-900">
+                    {{
+                      parqueaderoSeleccionado
+                        ? `${parqueaderoSeleccionado.tipo}`
+                        : 'Sin adicional'
+                    }}
+                  </p>
+                  <p class="mt-1 text-xs font-semibold text-gray-600">
+                    {{ formatMoney(precioParqueaderoSeleccionado) }}
                   </p>
                 </div>
 

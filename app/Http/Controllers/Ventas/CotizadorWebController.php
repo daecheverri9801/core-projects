@@ -8,6 +8,8 @@ use App\Models\Cliente;
 use App\Models\Apartamento;
 use App\Models\Empleado;
 use App\Models\Local;
+use App\Models\Parqueadero;
+use App\Models\Venta;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 
@@ -45,6 +47,7 @@ class CotizadorWebController extends Controller
                     'pisoTorre'       => $a->pisoTorre,
                     'tipoApartamento' => $a->tipoApartamento,
                     'estadoInmueble'  => $a->estadoInmueble,
+
                 ];
             });
 
@@ -79,6 +82,30 @@ class CotizadorWebController extends Controller
 
         $inmuebles = $apartamentos->values()->merge($locales->values());
 
+        $parqueaderosOcupados = Venta::whereNotNull('id_parqueadero')
+            ->whereIn('tipo_operacion', ['venta', 'separacion'])
+            ->pluck('id_parqueadero')
+            ->filter()
+            ->values();
+
+        $parqueaderos = Parqueadero::query()
+            ->whereNull('id_apartamento')
+            ->when($parqueaderosOcupados->isNotEmpty(), function ($query) use ($parqueaderosOcupados) {
+                $query->whereNotIn('id_parqueadero', $parqueaderosOcupados);
+            })
+            ->orderBy('tipo')
+            ->orderBy('numero')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id_parqueadero' => $p->id_parqueadero,
+                    'id_proyecto' => $p->id_proyecto,
+                    'tipo' => $p->tipo,
+                    'numero' => $p->numero,
+                    'precio' => (float) ($p->precio ?? 0),
+                ];
+            });
+
         return Inertia::render('Ventas/Cotizador/Index', [
             'proyectos' => Proyecto::activos()
                 ->with([
@@ -112,6 +139,7 @@ class CotizadorWebController extends Controller
 
             'empleado'  => $empleado,
             'inmuebles' => $inmuebles,
+            'parqueaderos' => $parqueaderos,
         ]);
     }
 }
