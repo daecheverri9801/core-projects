@@ -1422,7 +1422,7 @@ async function generarPDF() {
     drawInlineKV(doc, adicionalTexto + ' Adicional', formatMoney(valorAdicional), 18, 65)
     drawInlineKV(doc, 'Valor Cuota Inicial', formatMoney(resumen.cuotaInicial), 18, 71)
     drawInlineKV(doc, 'Cuota de Separación', formatMoney(resumen.cuotaSeparacion), 18, 77)
-    drawInlineKV(doc, 'Saldo Cuota Inicial', formatMoney(resumen.saldoCuotaInicial), 18, 83)
+    drawInlineKV(doc, 'Saldo Cuota Inicial', formatMoney(resumen.saldoCuotaInicial), 113, 77)
 
     drawInlineKV(
       doc,
@@ -1446,10 +1446,10 @@ async function generarPDF() {
       71
     )
 
-    drawInlineKV(doc, 'Saldo Escrituración', formatMoney(resumen.saldoEscritura), 113, 77)
+    drawInlineKV(doc, 'Saldo Escrituración', formatMoney(resumen.saldoEscritura), 18, 83)
 
     if (resumen.descuento > 0) {
-      drawInlineKV(doc, 'Descuento Aplicado', formatMoney(resumen.descuento), 18, 83)
+      drawInlineKV(doc, 'Descuento Aplicado', formatMoney(resumen.descuento), 113, 83)
     }
 
     if (plan.tipo_plan === 'pago_total_diferido') {
@@ -1457,8 +1457,8 @@ async function generarPDF() {
         doc,
         `Saldo a ${plan.plazo_pago_total_dias || 60} días`,
         formatMoney(resumen.saldoPagoDiferido),
-        113,
-        83
+        18,
+        90
       )
     }
 
