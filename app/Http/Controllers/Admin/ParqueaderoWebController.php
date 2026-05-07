@@ -56,7 +56,7 @@ class ParqueaderoWebController extends Controller
             'proyectos' => $proyectos,
             'torres' => [],
             'apartamentos' => [], // se cargan por torre
-            'tipos' => ['Vehiculo', 'Moto'],
+            'tipos' => ['Vehiculo', 'Moto', 'Deposito Sencillo', 'Deposito Doble'],
             'empleado' => $empleado,
         ]);
     }
@@ -67,7 +67,7 @@ class ParqueaderoWebController extends Controller
             'id_torre' => 'required|exists:torres,id_torre',
             'parqueaderos' => 'required|array|min:1',
             'parqueaderos.*.numero' => 'required|string|max:20',
-            'parqueaderos.*.tipo' => 'required|string|in:Vehiculo,Moto|max:20',
+            'parqueaderos.*.tipo' => 'required|string|in:Vehiculo,Moto,Deposito Sencillo,Deposito Doble|max:20',
             'parqueaderos.*.precio' => 'nullable|numeric|min:0',
             'parqueaderos.*.id_apartamento' => 'nullable|exists:apartamentos,id_apartamento',
         ], [
@@ -76,7 +76,7 @@ class ParqueaderoWebController extends Controller
             'parqueaderos.required' => 'Debes agregar al menos un parqueadero',
             'parqueaderos.*.numero.required' => 'El número es obligatorio',
             'parqueaderos.*.tipo.required' => 'El tipo es obligatorio',
-            'parqueaderos.*.tipo.in' => 'El tipo debe ser Vehiculo o Moto',
+            'parqueaderos.*.tipo.in' => 'El tipo debe ser Vehiculo, Moto, Deposito Sencillo o Deposito Doble',
             'parqueaderos.*.precio.numeric' => 'El precio debe ser numérico',
             'parqueaderos.*.id_apartamento.exists' => 'El apartamento seleccionado no existe',
         ]);
@@ -242,7 +242,7 @@ class ParqueaderoWebController extends Controller
             'proyectos' => $proyectos,
             'torres' => $torres,
             'apartamentos' => $apartamentos,
-            'tipos' => ['Vehiculo', 'Moto'],
+            'tipos' => ['Vehiculo', 'Moto', 'Deposito Sencillo', 'Deposito Doble'],
             'empleado' => $empleado,
         ]);
     }
@@ -253,7 +253,7 @@ class ParqueaderoWebController extends Controller
 
         $validated = $request->validate([
             'numero' => 'required|string|max:20',
-            'tipo' => 'required|string|in:Vehiculo,Moto|max:20',
+            'tipo' => 'required|string|in:Vehiculo,Moto,Deposito Sencillo,Deposito Doble|max:20',
             'precio' => 'nullable|numeric|min:0',
             'id_apartamento' => 'nullable|exists:apartamentos,id_apartamento',
         ]);

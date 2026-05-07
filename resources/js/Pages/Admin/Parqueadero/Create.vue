@@ -277,7 +277,7 @@ import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 const props = defineProps({
   proyectos: { type: Array, default: () => [] },
   torres: { type: Array, default: () => [] },
-  tipos: { type: Array, default: () => ['Vehiculo', 'Moto'] },
+  tipos: { type: Array, default: () => ['Vehiculo', 'Moto', 'Deposito Sencillo', 'Deposito Doble'] },
   empleado: { type: Object, default: null },
 })
 

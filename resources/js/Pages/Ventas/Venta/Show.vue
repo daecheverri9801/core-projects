@@ -334,7 +334,7 @@ async function exportVentaPDF() {
           ],
           ['Parqueadero', parqueaderoTexto],
           [
-            'Parqueadero adicional',
+            'Parqueadero/Deposito adicional',
             v.parqueadero
               ? `Sí - ${safe(v.parqueadero.tipo)} ${safe(v.parqueadero.numero || '')}`
               : 'No',
@@ -408,7 +408,7 @@ async function exportVentaPDF() {
         esSeparacion() ? formatDate(v.fecha_limite_separacion) : 'No Aplica',
       ],
       ['Valor inmueble', formatMoney(valorBase || v.valor_total)],
-      ['Valor parqueadero adicional', formatMoney(valorParqueadero)],
+      ['Valor parqueadero/deposito adicional', formatMoney(valorParqueadero)],
       ['Valor total sin descuento', formatMoney(valorTotalSinDescuento)],
       ['Descuento aplicado', formatMoney(valorDescuento)],
       ['Valor total', formatMoney(valorTotal)],
@@ -798,7 +798,7 @@ async function exportVentaPDF() {
             </div>
 
             <div class="flex justify-between bg-gray-50 rounded-lg px-4 py-3">
-              <span class="text-gray-600">Parqueadero Adicional</span>
+              <span class="text-gray-600">Parqueadero/Deposito Adicional</span>
               <div v-if="venta?.parqueadero" class="mt-2 text-sm text-gray-900">
                 <span class="font-semibold text-gray-900">
                   {{ venta.parqueadero.tipo }}
@@ -832,7 +832,7 @@ async function exportVentaPDF() {
             </li>
 
             <li class="flex justify-between text-gray-700">
-              <span>Valor Parqueadero:</span>
+              <span>Valor Parqueadero/Deposito Adicional:</span>
               <span class="font-semibold">{{
                 formatCurrency(venta.parqueadero?.precio || 0)
               }}</span>

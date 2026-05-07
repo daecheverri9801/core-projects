@@ -448,10 +448,7 @@ function clearFilters() {
 
                 <td class="px-5 py-3 text-center">
                   <div class="text-xs font-semibold text-gray-900">
-                    {{ venta.plan_pago_nombre || 'Condiciones proyecto' }}
-                  </div>
-                  <div class="text-[11px] text-gray-500">
-                    {{ venta.plan_pago_tipo || '—' }}
+                    {{ venta.plan_pago_nombre || 'Plan Estandar' }}
                   </div>
                 </td>
 
@@ -476,7 +473,9 @@ function clearFilters() {
 
                 <td class="px-5 py-4 text-sm text-center text-gray-700">
                   {{
-                    venta.tipo_operacion === 'separacion'
+                    venta.tipo_operacion === 'separacion' ||
+                    !venta.frecuencia_cuota_inicial_meses ||
+                    venta.frecuencia_cuota_inicial_meses === 0
                       ? 'No Aplica'
                       : venta.frecuencia_cuota_inicial_meses + ' mes(es)'
                   }}
@@ -484,7 +483,9 @@ function clearFilters() {
 
                 <td class="px-5 py-4 text-sm text-center text-gray-700">
                   {{
-                    venta.tipo_operacion === 'separacion'
+                    venta.tipo_operacion === 'separacion' ||
+                    !venta.plazo_cuota_inicial_meses ||
+                    venta.plazo_cuota_inicial_meses === 0
                       ? 'No Aplica'
                       : venta.plazo_cuota_inicial_meses + ' mes(es)'
                   }}

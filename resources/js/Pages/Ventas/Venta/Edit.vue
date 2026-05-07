@@ -286,14 +286,14 @@ function submit() {
         <!-- ✅ Parqueadero adicional -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Parqueadero adicional (opcional)</label
+            >Parqueadero/Deposito adicional (opcional)</label
           >
           <select
             v-model="form.id_parqueadero"
             :disabled="!form.id_proyecto || form.inmueble_tipo !== 'apartamento'"
             class="w-full border-gray-300 rounded-lg shadow-sm"
           >
-            <option value="">Sin parqueadero adicional</option>
+            <option value="">Sin parqueadero/deposito adicional</option>
             <option
               v-for="p in parqueaderosDisponibles"
               :key="p.id_parqueadero"

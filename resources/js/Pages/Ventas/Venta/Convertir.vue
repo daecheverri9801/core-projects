@@ -1315,13 +1315,13 @@ function submitClienteInline() {
                 </div>
 
                 <div>
-                  <label :class="labelClass()">Parqueadero adicional (opcional)</label>
+                  <label :class="labelClass()">Parqueadero/Deposito adicional (opcional)</label>
                   <select
                     v-model="form.id_parqueadero"
                     :disabled="form.inmueble_tipo !== 'apartamento'"
                     :class="inputClass(false, form.inmueble_tipo !== 'apartamento')"
                   >
-                    <option value="">Sin parqueadero adicional</option>
+                    <option value="">Sin parqueadero/deposito adicional</option>
                     <option
                       v-for="p in parqueaderosDisponibles"
                       :key="p.id_parqueadero"
@@ -1682,7 +1682,7 @@ function submitClienteInline() {
                   </div>
 
                   <div class="flex items-center justify-between">
-                    <span class="text-gray-600">Parqueadero</span>
+                    <span class="text-gray-600">Parqueadero/Deposito</span>
                     <span class="font-extrabold text-[#1e3a5f]">
                       {{ resumenParqueadero ? formatearMoneda(resumenParqueadero.precio) : '—' }}
                     </span>
