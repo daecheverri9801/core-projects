@@ -154,12 +154,12 @@
                 <CheckCircleIcon class="h-5 w-5 mr-2" />
                 Iniciar Venta
               </Link>
-              <Link
+              <!-- <Link
                 :href="`/catalogo/simulador/${inmueble.tipo}/${inmueble.id}`"
                 class="mt-3 w-full bg-[#1e3a5f] text-white py-3 rounded-lg font-bold text-center hover:bg-[#2c5282] transition-colors flex items-center justify-center"
               >
                 Simular Cuotas
-              </Link>
+              </Link> -->
             </div>
           </div>
         </div>

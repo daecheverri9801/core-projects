@@ -1553,6 +1553,7 @@ function submit() {
                     v-model="form.fecha_venta"
                     :max="new Date().toISOString().slice(0, 10)"
                     :class="inputClass(false, false)"
+                    disabled
                   />
                   <p v-if="form.errors.fecha_venta" :class="errorClass()">
                     {{ form.errors.fecha_venta }}
@@ -1822,7 +1823,7 @@ function submit() {
                       :key="p.id_parqueadero"
                       :value="p.id_parqueadero"
                     >
-                      {{ p.numero }} · {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
+                      {{ p.tipo }} · {{ formatearMoneda(p.precio) }}
                     </option>
                   </select>
                 </div>
