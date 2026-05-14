@@ -89,15 +89,15 @@ function validateNombre() {
   return true
 }
 
-function validateTipoCliente() {
-  if (!form.id_tipo_cliente) {
-    setFieldError('id_tipo_cliente', 'Debes seleccionar un tipo de cliente.')
-    return false
-  }
+// function validateTipoCliente() {
+//   if (!form.id_tipo_cliente) {
+//     setFieldError('id_tipo_cliente', 'Debes seleccionar un tipo de cliente.')
+//     return false
+//   }
 
-  clearFieldError('id_tipo_cliente')
-  return true
-}
+//   clearFieldError('id_tipo_cliente')
+//   return true
+// }
 
 function validateTipoDocumento() {
   if (!form.id_tipo_documento) {
@@ -162,9 +162,9 @@ function validateTelefono() {
   const value = (form.telefono || '').trim()
 
   if (!value) {
-    clearFieldError('telefono')
-    return true
-  }
+  setFieldError('telefono', 'El teléfono es obligatorio.')
+  return false
+}
 
   if (!/^\d+$/.test(value)) {
     setFieldError('telefono', 'El teléfono solo puede contener números.')
@@ -189,9 +189,9 @@ function validateCorreo() {
   const value = (form.correo || '').trim()
 
   if (!value) {
-    clearFieldError('correo')
-    return true
-  }
+  setFieldError('correo', 'El correo es obligatorio.')
+  return false
+}
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -222,7 +222,6 @@ function validateAsesor() {
 function validateForm() {
   const results = [
     validateNombre(),
-    validateTipoCliente(),
     validateTipoDocumento(),
     validateDocumento(),
     validateDireccion(),
@@ -246,10 +245,10 @@ watch(
   }
 )
 
-watch(
-  () => form.id_tipo_cliente,
-  () => validateTipoCliente()
-)
+// watch(
+//   () => form.id_tipo_cliente,
+//   () => validateTipoCliente()
+// )
 
 watch(
   () => form.id_tipo_documento,

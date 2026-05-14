@@ -69,14 +69,25 @@ class ClienteWebController extends Controller
     {
         $validated = $request->validate([
             'nombre' => 'required|string|max:150',
-            'id_tipo_cliente' => 'required|exists:tipos_cliente,id_tipo_cliente',
-            'id_tipo_documento' => 'required|exists:tipos_documento,id_tipo_documento',
-            'documento' => 'required|string|max:40|unique:clientes,documento',
+            'id_tipo_cliente' => 'nullable|exists:tipos_cliente,id_tipo_cliente',
+            'id_tipo_documento' => 'nullable|exists:tipos_documento,id_tipo_documento',
+            'documento' => 'nullable|numeric|unique:clientes,documento',
             'direccion' => 'nullable|string|max:200',
-            'telefono' => 'nullable|string|max:30',
-            'correo' => 'nullable|email|max:150',
+            'telefono' => 'required|numeric',
+            'correo' => 'required|email|max:150',
             'id_empleado_asesor' => 'nullable|exists:empleados,id_empleado',
             'redirect_to' => 'nullable|string',
+        ], [
+            'documento.required' => 'El número de documento es obligatorio.',
+            'documento.unique' => 'Ya existe un cliente registrado con este número de documento.',
+            'documento.max' => 'El documento no puede tener más de 20 caracteres.',
+            'nombre.required' => 'El nombre completo es obligatorio.',
+            'telefono.required' => 'El número de teléfono es obligatorio.',
+            'correo.required' => 'El correo electrónico es obligatorio.',
+            'correo.email' => 'Debe ingresar un correo electrónico válido.',
+            'id_tipo_documento.required' => 'Debe seleccionar un tipo de documento.',
+            'id_tipo_cliente.required' => 'Debe seleccionar un tipo de cliente.',
+            'id_empleado_asesor.required' => 'El asesor responsable es obligatorio.',
         ]);
 
         $cliente = Cliente::create([
@@ -133,7 +144,9 @@ class ClienteWebController extends Controller
     public function edit(Request $request, $documento)
     {
         $empleado = $request->user()->load('cargo');
-        $cliente = Cliente::where('documento', $documento)->firstOrFail();
+        $cliente = Cliente::with('asesorResponsable')
+            ->where('documento', $documento)
+            ->firstOrFail();
         $tiposCliente = TipoCliente::orderBy('tipo_cliente')->get();
         $tiposDocumento = TipoDocumento::orderBy('tipo_documento')->get();
 
@@ -154,20 +167,32 @@ class ClienteWebController extends Controller
 
     public function update(Request $request, $documento)
     {
+        $cliente = Cliente::where('documento', $documento)->firstOrFail();
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'id_tipo_cliente' => 'required|exists:tipos_cliente,id_tipo_cliente',
-            'id_tipo_documento' => 'required|exists:tipos_documento,id_tipo_documento',
+            'id_tipo_cliente' => 'nullable|exists:tipos_cliente,id_tipo_cliente',
+            'id_tipo_documento' => 'nullable|exists:tipos_documento,id_tipo_documento',
+            'documento' => 'required|numeric|unique:clientes,documento,' . $cliente->id_cliente . ',id_cliente',
             'direccion' => 'nullable|string|max:255',
-            'telefono' => 'nullable|string|max:20',
-            'correo' => 'nullable|email|max:255',
+            'telefono' => 'required|numeric',
+            'correo' => 'required|email|max:255',
             'id_empleado_asesor' => 'required|exists:empleados,id_empleado',
+        ], [
+            'documento.unique' => 'Ya existe un cliente registrado con este número de documento.',
+            'documento.max' => 'El documento no puede tener más de 20 caracteres.',
+            'nombre.required' => 'El nombre completo es obligatorio.',
+            'telefono.required' => 'El número de teléfono es obligatorio.',
+            'correo.required' => 'El correo electrónico es obligatorio.',
+            'correo.email' => 'Debe ingresar un correo electrónico válido.',
+            'id_tipo_documento.required' => 'Debe seleccionar un tipo de documento.',
+            'id_tipo_cliente.required' => 'Debe seleccionar un tipo de cliente.',
+            'id_empleado_asesor.required' => 'El asesor responsable es obligatorio.',
         ]);
 
-        $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $cliente->update($validated);
 
-        return redirect()->route('clientes.show', $documento)
+        return redirect()->route('clientes.index')
             ->with('success', 'Cliente actualizado exitosamente');
     }
 

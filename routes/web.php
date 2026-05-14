@@ -279,8 +279,8 @@ Route::middleware(['auth', 'check.cargo:Directora Comercial,Asesora Comercial,Ge
     Route::get('clientes/create', [ClienteWebController::class, 'create'])->name('clientes.create');
     Route::post('clientes', [ClienteWebController::class, 'store'])->name('clientes.store');
     Route::get('clientes/{documento}', [ClienteWebController::class, 'show'])->name('clientes.show');
-    // Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
-    // Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
+    Route::get('clientes/{documento}/edit', [ClienteWebController::class, 'edit'])->name('clientes.edit');
+    Route::put('clientes/{documento}', [ClienteWebController::class, 'update'])->name('clientes.update');
     // Route::delete('clientes/{documento}', [ClienteWebController::class, 'destroy'])->name('clientes.destroy');
 
     // 4. Formas de Pago

@@ -56,12 +56,15 @@ function submit() {
   form.processing = true
   form.errors = {}
 
+  const documentoOriginal = props.cliente.documento
+
   router.put(
-    `/clientes/${props.cliente.documento}`,
+    `/clientes/${documentoOriginal}`,
     {
       nombre: form.nombre,
       id_tipo_cliente: form.id_tipo_cliente,
       id_tipo_documento: form.id_tipo_documento,
+      documento: form.documento,
       direccion: form.direccion,
       telefono: form.telefono,
       correo: form.correo,

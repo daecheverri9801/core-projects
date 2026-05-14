@@ -212,14 +212,14 @@
                   >
                     <EyeIcon class="w-5 h-5" />
                   </Link>
-                  <!-- <Link
+                  <Link
                     :href="`/clientes/${cliente.documento}/edit`"
                     class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
                     title="Editar"
                   >
                     <PencilSquareIcon class="w-5 h-5" />
                   </Link>
-                  <button
+                  <!-- <button
                     @click="confirmDelete(cliente.documento, cliente.nombre)"
                     class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                     title="Eliminar"
