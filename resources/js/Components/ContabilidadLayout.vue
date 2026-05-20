@@ -5,13 +5,9 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-3">
         <div class="flex items-center justify-between">
           <!-- Logo y Nombre (izquierda) -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3" style="height: 70px">
             <div>
-              <Logo class="h-[90px]" />
-            </div>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>
-              <!-- <p class="text-xs text-gray-500">Módulo de Contabilidad</p> -->
+              <Logo class="h-[160px]" />
             </div>
           </div>
 
@@ -21,7 +17,7 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold transition"
               :class="
                 isActive('/contabilidad/ventas')
-                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  ? 'bg-[#C3C3C6] text-[#0C0C0D] shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               "
             >
@@ -33,7 +29,7 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold transition"
               :class="
                 isActive('/contabilidad/pagos')
-                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  ? 'bg-[#C3C3C6] text-[#0C0C0D] shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               "
             >
@@ -45,7 +41,7 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold transition"
               :class="
                 isActive('/contabilidad/reportes/plan-pagos-ci')
-                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  ? 'bg-[#C3C3C6] text-[#0C0C0D] shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               "
             >
@@ -57,7 +53,7 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold transition"
               :class="
                 isActive('/contabilidad/inventario')
-                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  ? 'bg-[#C3C3C6] text-[#0C0C0D] shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               "
             >
@@ -69,7 +65,7 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold transition"
               :class="
                 isActive('/contabilidad/comisiones')
-                  ? 'bg-[#FFEA00] text-[#474100] shadow-sm'
+                  ? 'bg-[#C3C3C6] text-[#0C0C0D] shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               "
             >
@@ -84,7 +80,7 @@
               class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
             >
               <div
-                class="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center text-[#474100] font-bold shadow-sm"
+                class="w-9 h-9 rounded-full bg-gradient-to-br from-[#C3C3C6] to-[#A0A0A0] flex items-center justify-center text-[#0C0C0D] font-bold shadow-sm"
               >
                 {{ getInitials(empleadoCompleto) }}
               </div>

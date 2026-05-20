@@ -118,16 +118,16 @@ function eliminarPago(id) {
 
         <div v-if="pagosFiltrados.length" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-[#FFFDE6]">
+            <thead class="bg-[#C3C3C6]">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Fecha</th>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Cliente</th>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Proyecto / Inmueble</th>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Cuota</th>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Concepto</th>
-                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]">Valor</th>
-                <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]">Comprobante</th>
-                <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[#756C00]">Acciones</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Fecha</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Cliente</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Proyecto / Inmueble</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Cuota</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Concepto</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Valor</th>
+                <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Comprobante</th>
+                <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[#0C0C0D]">Acciones</th>
               </tr>
             </thead>
 

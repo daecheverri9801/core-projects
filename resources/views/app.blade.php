@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Constructora A&C</title>
+    <title>Olize Constructora</title>
 
     <link rel="icon" type="image/png" href="{{ asset('images/logo-ayc.png') }}">
 

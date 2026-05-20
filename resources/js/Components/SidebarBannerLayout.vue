@@ -101,7 +101,7 @@
           <div class="flex items-center gap-3 min-w-0">
             <Logo />
             <div class="min-w-0">
-              <h1 class="text-lg font-semibold text-gray-900 truncate">Constructora A&C</h1>
+              <h1 class="text-lg font-semibold text-gray-900 truncate">Olize Constructora</h1>
               <p class="text-xs text-gray-500 truncate">Sistema integrado</p>
             </div>
           </div>

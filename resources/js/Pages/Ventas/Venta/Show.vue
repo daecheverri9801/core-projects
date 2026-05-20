@@ -480,7 +480,7 @@ async function exportVentaPDF() {
       doc.setTextColor(120, 120, 120)
       doc.text(`Generado: ${new Date().toLocaleString('es-CO')}`, 15, 277)
       doc.text(`Página ${currentPage} de ${pageCount}`, 105, 277, { align: 'center' })
-      doc.text('Constructora A&C', 185, 277, { align: 'right' })
+      doc.text('Olize Constructora', 185, 277, { align: 'right' })
     }
 
     const sectionTitle = (title) => {

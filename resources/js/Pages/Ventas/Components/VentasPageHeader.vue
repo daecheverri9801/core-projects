@@ -2,7 +2,7 @@
   <div class="mb-8">
     <div class="flex items-center gap-3 mb-2">
       <div
-        class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center shadow-md"
+        class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#F2F2F3] to-[#0C0C0D] flex items-center justify-center shadow-md"
       >
         <component :is="icon" class="w-7 h-7 text-[#474100]" />
       </div>

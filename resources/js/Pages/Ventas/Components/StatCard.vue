@@ -33,6 +33,7 @@ const gradientClass = computed(() => {
     blue: 'from-blue-50 to-blue-100',
     green: 'from-green-50 to-green-100',
     purple: 'from-purple-50 to-purple-100',
+    grey: 'from-gray-50 to-gray-100',
   }
   return variants[props.variant] || variants.yellow
 })
@@ -43,6 +44,7 @@ const iconBgClass = computed(() => {
     blue: 'bg-blue-500',
     green: 'bg-green-500',
     purple: 'bg-purple-500',
+    grey: 'bg-gray-500',
   }
   return variants[props.variant] || variants.yellow
 })
@@ -53,6 +55,7 @@ const iconColorClass = computed(() => {
     blue: 'text-white',
     green: 'text-white',
     purple: 'text-white',
+    grey: 'text-white',
   }
   return variants[props.variant] || variants.yellow
 })

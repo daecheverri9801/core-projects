@@ -1,12 +1,13 @@
 <template>
-  <div class="min-h-screen flex flex-col">
-    <!-- Banner superior (igual que en login) -->
-    <header class="bg-brand-500/5 border-b border-brand-200/30">
-      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
-        <Logo class="w-10 h-10" />
-        <div>
-          <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
-          <p class="text-sm text-slate-600">Panel de Proyectos</p>
+  <div class="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
+    <header class="bg-white border-b border-slate-200/80 shadow-sm">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <Logo class="h-12 w-auto object-contain" />
+          <div class="h-6 w-[1px] bg-slate-300 hidden sm:block"></div>
+          <h1 class="text-lg font-bold tracking-wider text-slate-700 hidden sm:block">
+            PANEL DE PROYECTOS
+          </h1>
         </div>
       </div>
     </header>
@@ -88,7 +89,7 @@
 
         <!-- Footer copyright -->
         <p class="text-center text-xs text-slate-500 mt-4">
-          © {{ new Date().getFullYear() }} Constructora A&C. Todos los derechos reservados.
+          © {{ new Date().getFullYear() }} Olize Constructora. Todos los derechos reservados.
         </p>
       </div>
     </main>

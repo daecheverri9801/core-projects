@@ -26,7 +26,7 @@ class VentaCreadaAdministrativo extends Notification
     public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Nueva OPERACIÓN REGISTRADA - Constructora A&C')
+            ->subject('Nueva OPERACIÓN REGISTRADA - Olize Constructora')
             ->view('emails.venta-creada', [
                 'venta' => $this->venta,
                 'tipo'  => 'administrativo',

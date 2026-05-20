@@ -118,10 +118,10 @@ function limpiarFiltros() {
   <ContabilidadLayout :empleado="empleado">
     <div class="space-y-6">
       <section class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-        <div class="bg-gradient-to-r from-[#FFEA00] via-[#FFF15C] to-[#FFF9B8] px-6 py-6">
+        <div class="bg-white px-6 py-6">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div class="min-w-0">
-              <div class="flex items-center gap-3 text-[#474100]">
+              <div class="flex items-center gap-3 text-[#0C0C0D]">
                 <div
                   class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 shadow-sm"
                 >
@@ -245,50 +245,50 @@ function limpiarFiltros() {
 
         <div v-if="pagosFiltrados.length" class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-[#FFFDE6]">
+            <thead class="bg-[#F2F2F3]">
               <tr>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Fecha
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Cliente
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Proyecto / Inmueble
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Cuota
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Medio / Concepto
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Asesor
                 </th>
                 <th
-                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Valor
                 </th>
                 <th
-                  class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Comprobante
                 </th>
                 <th
-                  class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[#756C00]"
+                  class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider text-[#0C0C0D]"
                 >
                   Acciones
                 </th>

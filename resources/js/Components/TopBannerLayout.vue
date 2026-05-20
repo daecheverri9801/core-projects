@@ -6,7 +6,7 @@
         <div class="flex items-center gap-3 min-w-0">
           <Logo />
           <div class="min-w-0">
-            <h1 class="text-lg font-semibold text-gray-900 truncate">Constructora A&amp;C</h1>
+            <!-- <h1 class="text-lg font-semibold text-gray-900 truncate">Constructora A&amp;C</h1> -->
             <p class="text-xs text-gray-500 truncate">
               {{ panelName }}
             </p>
@@ -16,14 +16,14 @@
         <Link
           v-if="cargoNombre === 'Gerente'"
           href="/gerencia/metas"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#ABABB0] to-[#ABABB0] text-[#0C0C0D] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
         >
           <ChartBarSquareIcon class="w-5 h-5" /> Ir a Reportes
         </Link>
         <Link
           v-if="cargoNombre === 'Gerente'"
           href="/ventas"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#ABABB0] to-[#ABABB0] text-[#0C0C0D] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
         >
           <ShoppingCartIcon class="w-5 h-5" /> Ir a Ventas
         </Link>

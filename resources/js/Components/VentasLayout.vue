@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-[#FFF9B8]">
+  <div class="flex flex-col min-h-screen bg-[#DADADC]">
     <!-- Header Superior -->
     <header class="bg-white shadow-md sticky top-0 z-50">
       <!-- Barra Superior -->
@@ -14,21 +14,21 @@
                 <Logo />
               </div>
               <div>
-                <h1 class="text-xl font-bold text-gray-900">Constructora A&C</h1>
+                <!-- <h1 class="text-xl font-bold text-gray-900">Olize Constructora</h1> -->
                 <!-- <p class="text-xs text-gray-500">Módulo de Ventas</p> -->
               </div>
             </div>
             <Link
               v-if="cargoNombre === 'Gerente'"
               href="/gerencia/metas"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-[#7C7C83] text-[#0C0C0D] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
             >
               <ChartBarSquareIcon class="w-5 h-5" /> Ir a Reportes
             </Link>
             <Link
               v-if="cargoNombre === 'Gerente'"
               href="/dashboard"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-[#7C7C83] text-[#0C0C0D] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
             >
               <Cog6ToothIcon class="w-5 h-5" /> Ir a Administrador
             </Link>
@@ -39,7 +39,7 @@
                 class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
               >
                 <div
-                  class="w-9 h-9 rounded-full bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center text-[#474100] font-bold shadow-sm"
+                  class="w-9 h-9 rounded-full bg-gradient-to-br from-[#DADADC] to-[#ABABB0] flex items-center justify-center text-[#474100] font-bold shadow-sm"
                 >
                   {{ getInitials(empleadoCompleto) }}
                 </div>
@@ -113,7 +113,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-2">
           <p class="text-sm text-gray-600">
-            © {{ currentYear }} Constructora A&C - Todos los derechos reservados
+            © {{ currentYear }} Olize Constructora - Todos los derechos reservados
           </p>
           <p class="text-xs text-gray-500">Módulo de Ventas v1.0</p>
         </div>

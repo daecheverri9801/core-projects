@@ -1022,7 +1022,7 @@ function drawFooterCotizacion(doc, asesor, logoAyc) {
   } else {
     setFont(doc, 10, 'bold')
     doc.setTextColor(128, 128, 128)
-    doc.text('CONSTRUCTORA A&C', 160, footerY + 12)
+    doc.text('Olize Constructora', 160, footerY + 12)
   }
 }
 

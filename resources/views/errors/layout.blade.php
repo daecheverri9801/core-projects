@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Error') - Constructora A&C</title>
+    <title>@yield('title', 'Error') - Olize Constructora</title>
     
     <!-- Tailwind CSS (asumiendo que lo usas) -->
     @vite(['resources/css/app.css'])

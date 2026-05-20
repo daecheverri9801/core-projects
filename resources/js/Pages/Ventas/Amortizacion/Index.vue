@@ -362,7 +362,7 @@ function exportPDF() {
 
       doc.text(`Generado el: ${formattedDate}`, 15, 277)
       doc.text(`Página ${currentPage} de ${pageCount}`, 105, 277, { align: 'center' })
-      doc.text('Constructora A&C', 200 - 15, 277, { align: 'right' })
+      doc.text('Olize Constructora', 200 - 15, 277, { align: 'right' })
     },
   })
 

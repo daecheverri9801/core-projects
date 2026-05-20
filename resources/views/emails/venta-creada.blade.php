@@ -290,7 +290,7 @@
 
     <div class="container">
         <div class="header">
-            <img src="{{ asset('images/logo-ayc.png') }}" alt="Constructora A&C" class="header-logo">
+            <img src="{{ asset('images/logo-ayc.png') }}" alt="Olize Constructora" class="header-logo">
             <h1>REPORTE DE OPERACIÓN</h1>
             <p>{{ $tituloOperacion }} · {{ $tipoInmueble }}</p>
         </div>
@@ -669,7 +669,7 @@
 
         <div class="footer">
             <p>Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
-            <p>Constructora A&C - Todos los derechos reservados</p>
+            <p>Olize Constructora - Todos los derechos reservados</p>
             <p style="font-size: 10px; margin-top: 10px;">Este es un mensaje automático, por favor no responder.</p>
         </div>
     </div>

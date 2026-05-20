@@ -5,7 +5,7 @@
       <div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
         <Logo class="w-10 h-10" />
         <div>
-          <h1 class="text-xl font-semibold text-brand-900">Constructora A&C</h1>
+          <h1 class="text-xl font-semibold text-brand-900">Olize Constructora</h1>
           <p class="text-sm text-slate-600">Panel de Proyectos</p>
         </div>
       </div>
@@ -136,7 +136,7 @@
 
         <!-- Footer copyright -->
         <p class="text-center text-xs text-slate-500 mt-4">
-          © {{ new Date().getFullYear() }} Constructora A&C. Todos los derechos reservados.
+          © {{ new Date().getFullYear() }} Olize Constructora. Todos los derechos reservados.
         </p>
       </div>
     </main>

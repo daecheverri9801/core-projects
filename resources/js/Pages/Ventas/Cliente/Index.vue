@@ -12,7 +12,7 @@
         label="Total Clientes"
         :value="filtered.length"
         :icon="UserGroupIcon"
-        variant="yellow"
+        variant="grey"
       />
       <StatCard
         label="Personas Naturales"
@@ -112,7 +112,7 @@
           <div class="flex items-center gap-3">
             <Link
               href="/clientes/create"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFEA00] to-[#D1C000] text-[#474100] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7C7C83] to-[#7C7C83] text-[#0C0C0D] font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
             >
               <PlusIcon class="w-5 h-5" /> Nuevo Cliente
             </Link>
@@ -171,7 +171,7 @@
               <td class="px-4 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div
-                    class="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFEA00] to-[#D1C000] flex items-center justify-center text-[#474100] font-bold"
+                    class="w-10 h-10 rounded-full bg-gradient-to-br from-[#F2F2F3] to-[#0C0C0D] flex items-center justify-center text-[#0C0C0D] font-bold"
                   >
                     {{ getInitials(cliente.nombre) }}
                   </div>
