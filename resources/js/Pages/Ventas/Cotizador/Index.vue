@@ -1042,126 +1042,135 @@ function construirTablaPagosCotizacion({ plan, plazo, resumen, formatMoney }) {
   const yearBase = fechaBase.getFullYear()
   const monthBase = fechaBase.getMonth()
 
-  const cuotaSeparacion = Math.round(Number(resumen?.cuotaSeparacion || 0))
-  const cuotaInicial = Math.round(Number(resumen?.cuotaInicial || 0))
-  const saldoCuotaInicial = Math.round(Number(resumen?.saldoCuotaInicial || 0))
-  const saldoPagoDiferido = Math.round(Number(resumen?.saldoPagoDiferido || 0))
-  const totalCotizado = Math.round(Number(resumen?.totalCotizado || 0))
+  const cuotaSeparacion = Number(resumen.cuotaSeparacion || 0)
+  const saldoCuotaInicial = Number(resumen.saldoCuotaInicial || 0)
+  const saldoEscritura = Number(resumen.saldoEscritura || 0)
+  const saldoPagoDiferido = Number(resumen.saldoPagoDiferido || 0)
 
-  const valorRestanteInmueble = Math.max(totalCotizado - cuotaInicial, 0)
+  const totalCuotasCI = Number(plazo || 0)
 
-  const aplicaSeparacion = cuotaSeparacion > 0
-  const totalCuotasSeleccionadas = Math.max(Number(plazo || 0), 0)
+  /*
+  |--------------------------------------------------------------------------
+  | CUOTA 0 - SEPARACIÓN
+  |--------------------------------------------------------------------------
+  */
 
-  function labelMes(offset = 0) {
-    const fecha = new Date(yearBase, monthBase + offset, 1)
-    const yyyy = fecha.getFullYear()
-    const mm = String(fecha.getMonth() + 1).padStart(2, '0')
-    return `${yyyy}-${mm}`
-  }
+  tabla.push([
+    '0',
+    'Valor Separación',
+    formatMoney(cuotaSeparacion),
+    formatMoney(Math.max(saldoCuotaInicial)),
+  ])
 
-  function agregarFila(numeroCuota, mes, valor, valorRestante) {
+  /*
+  |--------------------------------------------------------------------------
+  | PLAN CUOTA INICIAL MENSUAL
+  |--------------------------------------------------------------------------
+  */
+
+  if (plan.tipo_plan === 'cuota_inicial_mensual') {
+    let saldo = saldoCuotaInicial
+
+    const valorCuotaMensual =
+      totalCuotasCI > 0 ? saldoCuotaInicial / totalCuotasCI : saldoCuotaInicial
+
+    for (let i = 1; i <= totalCuotasCI; i++) {
+      const fechaCuota = new Date(yearBase, monthBase + i, 1)
+
+      const yyyy = fechaCuota.getFullYear()
+      const mm = String(fechaCuota.getMonth() + 1).padStart(2, '0')
+
+      const labelMes = `${yyyy}-${mm}`
+
+      const valorCuota = i === totalCuotasCI ? saldo : Math.round(valorCuotaMensual)
+
+      saldo -= valorCuota
+
+      tabla.push([
+        String(i),
+        labelMes,
+        formatMoney(valorCuota),
+        formatMoney(Math.max(saldo, 0)),
+      ])
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CUOTA N+1 - SALDO RESTANTE / ESCRITURA
+    |--------------------------------------------------------------------------
+    */
+
     tabla.push([
-      String(numeroCuota),
-      String(mes || '—'),
-      typeof valor === 'string' ? valor : formatMoney(valor || 0),
-      typeof valorRestante === 'string'
-        ? valorRestante
-        : formatMoney(Math.max(valorRestante || 0, 0)),
+      String(totalCuotasCI + 1),
+      'Valor Restante',
+      formatMoney(saldoEscritura),
+      formatMoney(0),
     ])
   }
 
-  let numeroCuota = 1
-
-  if (aplicaSeparacion) {
-    let saldoDespuesSeparacion = 0
-
-    if (plan.tipo_plan === 'pago_total_diferido') {
-      saldoDespuesSeparacion = Math.max(totalCotizado - cuotaSeparacion, 0)
-    } else {
-      saldoDespuesSeparacion = saldoCuotaInicial
-    }
-
-    agregarFila(numeroCuota, 'Valor Separación', cuotaSeparacion, saldoDespuesSeparacion)
-    numeroCuota++
-  }
-
-  if (esPlanCuotaInicialMensual(plan)) {
-    const cuotasParaSaldoCuotaInicial = aplicaSeparacion
-      ? Math.max(totalCuotasSeleccionadas - 1, 0)
-      : totalCuotasSeleccionadas
-
-    if (saldoCuotaInicial > 0 && cuotasParaSaldoCuotaInicial > 0) {
-      let saldoPendienteCuotaInicial = saldoCuotaInicial
-      const valorCuotaBase = Math.round(saldoCuotaInicial / cuotasParaSaldoCuotaInicial)
-
-      for (let i = 1; i <= cuotasParaSaldoCuotaInicial; i++) {
-        const esUltimaCuotaInicial = i === cuotasParaSaldoCuotaInicial
-
-        const valorCuota = esUltimaCuotaInicial
-          ? saldoPendienteCuotaInicial
-          : Math.min(valorCuotaBase, saldoPendienteCuotaInicial)
-
-        saldoPendienteCuotaInicial -= valorCuota
-
-        agregarFila(
-          numeroCuota,
-          labelMes(aplicaSeparacion ? i : i - 1),
-          valorCuota,
-          saldoPendienteCuotaInicial
-        )
-
-        numeroCuota++
-      }
-    }
-
-    if (valorRestanteInmueble > 0) {
-      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
-    }
-
-    return tabla
-  }
+  /*
+  |--------------------------------------------------------------------------
+  | PLAN CONTADO
+  |--------------------------------------------------------------------------
+  */
 
   if (plan.tipo_plan === 'cuota_inicial_contado') {
-    if (saldoCuotaInicial > 0) {
-      agregarFila(numeroCuota, 'Contado', saldoCuotaInicial, 0)
-      numeroCuota++
-    }
+    tabla.push(['1', 'Contado', formatMoney(saldoCuotaInicial), formatMoney(saldoEscritura)])
 
-    if (valorRestanteInmueble > 0) {
-      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
-    }
-
-    return tabla
+    tabla.push(['2', 'Escritura', formatMoney(saldoEscritura), formatMoney(0)])
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | PLAN PAGO TOTAL DIFERIDO
+  |--------------------------------------------------------------------------
+  */
 
   if (plan.tipo_plan === 'pago_total_diferido') {
-    const saldoDiferido =
-      saldoPagoDiferido > 0 ? saldoPagoDiferido : Math.max(totalCotizado - cuotaSeparacion, 0)
-
-    if (saldoDiferido > 0) {
-      agregarFila(numeroCuota, `${plan.plazo_pago_total_dias || 60} días`, saldoDiferido, 0)
-    }
-
-    return tabla
+    tabla.push([
+      '1',
+      `${plan.plazo_pago_total_dias || 60} días`,
+      formatMoney(saldoPagoDiferido),
+      formatMoney(0),
+    ])
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | PLAN ESPECIAL MANUAL
+  |--------------------------------------------------------------------------
+  */
+
   if (plan.tipo_plan === 'especial_manual') {
-    if (saldoCuotaInicial > 0) {
-      agregarFila(numeroCuota, 'Manual', 'Definido al momento de la venta', saldoCuotaInicial)
-      numeroCuota++
-    }
+    const cuotasManuales = Array.isArray(resumen.cuotasManuales) ? resumen.cuotasManuales : []
 
-    if (valorRestanteInmueble > 0) {
-      agregarFila(numeroCuota, 'Valor restante', valorRestanteInmueble, 0)
-    }
+    let saldo = saldoCuotaInicial
 
-    return tabla
+    cuotasManuales.forEach((cuota, index) => {
+      const valorCuota = Number(cuota.valor || 0)
+
+      saldo -= valorCuota
+
+      tabla.push([
+        String(index + 1),
+        cuota.periodo || `Cuota ${index + 1}`,
+        formatMoney(valorCuota),
+        formatMoney(Math.max(saldo + saldoEscritura, 0)),
+      ])
+    })
+
+    if (saldoEscritura > 0) {
+      tabla.push([
+        String(cuotasManuales.length + 1),
+        'Escritura',
+        formatMoney(saldoEscritura),
+        formatMoney(0),
+      ])
+    }
   }
 
   return tabla
 }
-
 async function generarPDF() {
   if (!proyecto.value) return alert('Debe seleccionar un proyecto.')
   if (!cliente.value) return alert('Debe seleccionar un cliente.')
@@ -2069,9 +2078,7 @@ async function generarPDF() {
                   </p>
                   <p class="mt-1 font-bold text-gray-900">
                     {{
-                      parqueaderoSeleccionado
-                        ? `${parqueaderoSeleccionado.tipo}`
-                        : 'Sin adicional'
+                      parqueaderoSeleccionado ? `${parqueaderoSeleccionado.tipo}` : 'Sin adicional'
                     }}
                   </p>
                   <p class="mt-1 text-xs font-semibold text-gray-600">
