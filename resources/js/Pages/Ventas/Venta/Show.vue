@@ -22,6 +22,7 @@ const props = defineProps({
 })
 
 const exporting = ref(false)
+
 /* =========================
    FORMATOS
 ========================= */
@@ -105,7 +106,6 @@ const cuotasPlan = computed(() => plan.value?.cuotas || [])
 const cuotasCuotaInicial = computed(() => {
   return cuotasPlan.value.filter((cuota) => {
     const concepto = String(cuota.concepto || '').toLowerCase()
-
     return (
       concepto.includes('cuota inicial') ||
       concepto.includes('saldo cuota inicial') ||
@@ -118,17 +118,14 @@ const numeroCuotas = computed(() => {
   if (cuotasCuotaInicial.value.length) {
     return cuotasCuotaInicial.value.length
   }
-
   return Number(props.venta.plazo_cuota_inicial_meses || 0)
 })
 
 const valorCuotaMensual = computed(() => {
   const cuotasCI = cuotasCuotaInicial.value
-
   if (cuotasCI.length) {
     return Number(cuotasCI[0]?.valor_cuota || 0)
   }
-
   const n = Number(props.venta.plazo_cuota_inicial_meses || 0)
   const saldoAmortizar = Number(
     props.venta.saldo_cuota_inicial ??
@@ -138,7 +135,6 @@ const valorCuotaMensual = computed(() => {
           Number(props.venta.valor_separacion || props.venta.proyecto?.valor_min_separacion || 0)
       )
   )
-
   return n > 0 ? Math.round(saldoAmortizar / n) : 0
 })
 
@@ -160,11 +156,8 @@ const desgloseEconomico = computed(() => {
 
 // ===== Parqueadero =====
 const parqueaderoInfo = computed(() => {
-  // normalmente solo aplica a apto
   const a = props.venta?.apartamento
   if (!a) return { tiene: false, texto: 'No aplica (Local)' }
-
-  // Caso 2: relación 1 a N -> a.parqueaderos[]
   const arr = a.parqueaderos
   if (Array.isArray(arr) && arr.length) {
     const nums = arr
@@ -173,12 +166,163 @@ const parqueaderoInfo = computed(() => {
       .join(', ')
     return { tiene: true, texto: nums ? `Sí` : 'Sí' }
   }
-
   return { tiene: false, texto: 'No' }
 })
 
 /* =========================
-   PDF EXPORT (estructura tipo amortización)
+   HELPERS PDF (estilo cotizador)
+========================= */
+function formatPercent(v) {
+  if (v === null || v === undefined || v === '') return '—'
+
+  return `${Number(v || 0).toLocaleString('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  })}%`
+}
+
+function setFont(doc, size = 12, style = 'normal') {
+  doc.setFont('times', style); // helvetica, times, courier
+  doc.setFontSize(size);
+}
+
+function imageFormatFromSrc(src = '') {
+  const clean = String(src).split('?')[0].toLowerCase()
+  if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) return 'JPEG'
+  return 'PNG'
+}
+
+function loadImageSafe(src) {
+  return new Promise((resolve) => {
+    if (!src) {
+      resolve(null)
+      return
+    }
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve({ img, format: imageFormatFromSrc(src), src })
+    img.onerror = () => resolve(null)
+    img.src = src
+  })
+}
+
+function drawImageContain(doc, imageData, x, y, w, h) {
+  if (!imageData?.img) return false
+  const img = imageData.img
+  const imgW = img.naturalWidth || img.width
+  const imgH = img.naturalHeight || img.height
+  if (!imgW || !imgH) return false
+  const ratio = Math.min(w / imgW, h / imgH)
+  const drawW = imgW * ratio
+  const drawH = imgH * ratio
+  const drawX = x + (w - drawW) / 2
+  const drawY = y + (h - drawH) / 2
+  doc.addImage(img, imageData.format, drawX, drawY, drawW, drawH)
+  return true
+}
+
+function drawInlineKV(doc, label, value, x, y, options = {}) {
+  const {
+    labelSize = 10,
+    valueSize = 10,
+    labelStyle = 'bold',
+    valueStyle = 'normal',
+    maxWidth = null,
+    lineHeight = 5,
+  } = options
+
+  const safeLabel = `${String(label ?? '')}${label ? ': ' : ''}`
+  const safeValue = value === null || value === undefined || value === '' ? '—' : String(value)
+
+  setFont(doc, labelSize, labelStyle)
+  doc.text(safeLabel, x, y)
+  const labelWidth = doc.getTextWidth(safeLabel)
+  setFont(doc, valueSize, valueStyle)
+
+  if (maxWidth) {
+    const lines = doc.splitTextToSize(safeValue, Math.max(maxWidth - labelWidth, 15))
+    doc.text(lines, x + labelWidth, y)
+    return y + Math.max(lines.length, 1) * lineHeight
+  }
+
+  doc.text(safeValue, x + labelWidth, y)
+  return y + lineHeight
+}
+
+// Header estilo cotizador
+function drawHeaderCotizacion(doc, logoAyc, titulo, currentPage, totalPages) {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const M = 13
+
+  if (logoAyc) {
+    drawImageContain(doc, logoAyc, 10, 0, 60, 43)
+  } else {
+    setFont(doc, 18, 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text(titulo, 18, 25)
+  }
+
+  setFont(doc, 10, 'normal')
+  doc.setTextColor(0, 0, 0)
+  const textPage = `Página ${currentPage} de ${totalPages}`
+  const textWidth = doc.getTextWidth(textPage)
+  doc.text(textPage, pageWidth - textWidth - M, 22)
+
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.45)
+  doc.line(M, 33, pageWidth - M, 33)
+}
+
+function aplicarEncabezadoEnTodasLasPaginas(doc, logoAyc, titulo) {
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    drawHeaderCotizacion(doc, logoAyc, titulo, i, totalPages)
+  }
+}
+
+// Footer estilo cotizador
+function drawFooterCotizacion(doc, asesor, logoOlize) {
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const footerY = pageHeight - 30
+
+  setFont(doc, 9, 'normal')
+  doc.setTextColor(128, 128, 128)
+  doc.text('Datos del Asesor', 13, footerY)
+
+  doc.setTextColor(128, 128, 128)
+  setFont(doc, 9, 'normal')
+  doc.text(`${asesor?.nombre ?? ''} ${asesor?.apellido ?? ''}`.trim() || '—', 13, footerY + 5)
+  doc.text(asesor?.telefono ?? '—', 13, footerY + 10)
+  doc.text(asesor?.email ?? '—', 13, footerY + 15)
+
+  if (logoOlize) {
+    drawImageContain(doc, logoOlize, 160, footerY - 2, 36, 24)
+  } else {
+    setFont(doc, 10, 'bold')
+    doc.setTextColor(128, 128, 128)
+    doc.text('Olize Constructora', 160, footerY + 12)
+  }
+}
+
+function aplicarFooterEnTodasLasPaginas(doc, asesor, logoOlize) {
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    drawFooterCotizacion(doc, asesor, logoOlize)
+  }
+}
+
+function normalizarTextoBasico(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+/* =========================
+   PDF EXPORT (formato cotizador)
 ========================= */
 async function exportVentaPDF() {
   const v = props.venta
@@ -187,7 +331,9 @@ async function exportVentaPDF() {
   exporting.value = true
 
   try {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const M = 12.7
 
     const formatMoney = (value) => {
       const num = Math.ceil(Number(value || 0))
@@ -198,7 +344,7 @@ async function exportVentaPDF() {
       }).format(num)
     }
 
-    const formatDate = (date) => {
+    const formatDatePDF = (date) => {
       if (!date) return '—'
       const d = new Date(date)
       if (Number.isNaN(d.getTime())) return '—'
@@ -206,6 +352,16 @@ async function exportVentaPDF() {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
+      })
+    }
+
+    const formatDateTable = (date) => {
+      if (!date) return '—'
+      const d = new Date(date)
+      if (Number.isNaN(d.getTime())) return '—'
+      return d.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: '2-digit',
       })
     }
 
@@ -219,32 +375,12 @@ async function exportVentaPDF() {
         especial_manual: 'Plan especial manual',
         condiciones_proyecto: 'Condiciones económicas del proyecto',
       }
-
       return labels[tipo] || tipo || '—'
-    }
-
-    const getZonas = (proyecto) => {
-      const arr =
-        proyecto?.zonas_sociales ||
-        proyecto?.zonasSociales ||
-        proyecto?.zonas_sociales_proyecto ||
-        []
-
-      if (!Array.isArray(arr) || !arr.length) return '—'
-
-      return arr
-        .map((z) => z?.nombre)
-        .filter(Boolean)
-        .join(', ')
     }
 
     const getPlanSnapshot = () => {
       if (!v.plan_pago_snapshot) return null
-
-      if (typeof v.plan_pago_snapshot === 'object') {
-        return v.plan_pago_snapshot
-      }
-
+      if (typeof v.plan_pago_snapshot === 'object') return v.plan_pago_snapshot
       try {
         return JSON.parse(v.plan_pago_snapshot)
       } catch {
@@ -253,422 +389,540 @@ async function exportVentaPDF() {
     }
 
     const planSnapshot = getPlanSnapshot()
-
     const proyecto = v.proyecto || {}
-    const barrio = proyecto?.ubicacion?.barrio ?? '—'
-    const direccion = proyecto?.ubicacion?.direccion ?? '—'
-    const proyectoUbicacion = `${barrio} - ${direccion}`
-    const proyectoZonas = getZonas(proyecto)
+    const asesor = v.empleado || props.empleado || {}
 
     const esApto = !!v.apartamento
-    const inm = v.apartamento || v.local || {}
 
-    const parqueaderoTexto = (() => {
-      const a = v.apartamento
+    const adicionalSeleccionado = v.parqueadero || null
+    const adicionalTipo = normalizarTextoBasico(adicionalSeleccionado?.tipo)
+    const adicionalNumero = adicionalSeleccionado?.numero || ''
+    const adicionalPrecio = Number(adicionalSeleccionado?.precio || 0)
 
-      if (!a) return 'No aplica (Local)'
+    // Determinar si el inmueble tiene parqueadero base
+    let tieneParqueaderoBase = false
+    if (esApto) {
+      tieneParqueaderoBase = v.apartamento?.tiene_parqueadero === true
+    }
 
-      if (a.parqueadero) {
-        const numero =
-          a.parqueadero.numero ??
-          a.parqueadero.codigo ??
-          a.parqueadero.nombre ??
-          a.parqueadero.id_parqueadero ??
-          '—'
+    // 1. Determinar si el adicional ES un parqueadero de vehículo
+    const esParqueaderoVehiculo =
+      adicionalTipo.includes('parqueadero') ||
+      adicionalTipo.includes('vehiculo') ||
+      adicionalTipo.includes('vehículo') ||
+      adicionalTipo === 'moto' ||
+      adicionalTipo === 'carro' ||
+      adicionalTipo === 'auto'
 
-        return `Sí (${numero})`
-      }
+    // 2. Determinar si el adicional ES un depósito
+    const esDeposito =
+      adicionalTipo.includes('deposito') ||
+      adicionalTipo.includes('depósito') ||
+      adicionalTipo === 'bodega' ||
+      adicionalTipo === 'almacén'
 
-      if (Array.isArray(a.parqueaderos) && a.parqueaderos.length) {
-        const nums = a.parqueaderos
-          .map((x) => x?.numero ?? x?.codigo ?? x?.nombre ?? x?.id_parqueadero)
-          .filter(Boolean)
-          .join(', ')
+    // 3. Variables específicas
+    const tieneParqueaderoAdicional = esParqueaderoVehiculo
+    const tieneCuartoUtil = esDeposito
 
-        return nums ? `Sí (${nums})` : 'Sí'
-      }
+    // 4. Textos para mostrar
+    const parqueaderoAdicionalTexto = tieneParqueaderoAdicional ? 'Sí' : 'No'
+    const cuartoUtilTexto = tieneCuartoUtil ? 'Sí' : 'No'
 
-      if (typeof a.tiene_parqueadero === 'boolean') {
-        return a.tiene_parqueadero ? 'Sí' : 'No'
-      }
+    const tieneDepositoBase = Boolean(v.apartamento?.deposito)
+    const parqueaderoTexto = tieneParqueaderoBase ? 'Sí' : 'No'
+    const depositoTexto = tieneDepositoBase || esDeposito ? 'Sí' : 'No'
 
-      return 'No'
-    })()
+    const adicionalTexto = adicionalSeleccionado
+      ? `${adicionalSeleccionado.tipo}${adicionalNumero ? ' ' + adicionalNumero : ''}`
+      : 'No aplica'
 
-    const inmuebleInfo = esApto
-      ? [
-          [
-            'Tipo',
-            safe(v.apartamento?.tipo_apartamento?.nombre || v.apartamento?.tipoApartamento?.nombre),
-          ],
-          ['Número', safe(v.apartamento?.numero)],
-          ['Torre', safe(v.apartamento?.torre?.nombre_torre)],
-          ['Piso', safe(v.apartamento?.piso_torre?.nivel)],
-          [
-            'Habitaciones',
-            safe(
-              v.apartamento?.tipo_apartamento?.cantidad_habitaciones ||
-                v.apartamento?.tipoApartamento?.cantidad_habitaciones
-            ),
-          ],
-          [
-            'Baños',
-            safe(
-              v.apartamento?.tipo_apartamento?.cantidad_banos ||
-                v.apartamento?.tipoApartamento?.cantidad_banos
-            ),
-          ],
-          [
-            'Área construida',
-            `${safe(
-              v.apartamento?.tipo_apartamento?.area_construida ||
-                v.apartamento?.tipoApartamento?.area_construida
-            )} m²`,
-          ],
-          [
-            'Área privada',
-            `${safe(
-              v.apartamento?.tipo_apartamento?.area_privada ||
-                v.apartamento?.tipoApartamento?.area_privada
-            )} m²`,
-          ],
-          ['Parqueadero', parqueaderoTexto],
-          [
-            'Parqueadero/Deposito adicional',
-            v.parqueadero
-              ? `Sí - ${safe(v.parqueadero.tipo)} ${safe(v.parqueadero.numero || '')}`
-              : 'No',
-          ],
-        ]
-      : [
-          ['Tipo', 'Local Comercial'],
-          ['Número', safe(v.local?.numero)],
-          ['Torre', safe(v.local?.torre?.nombre_torre)],
-          ['Piso', safe(v.local?.piso_torre?.nivel)],
-          ['Área total', `${safe(v.local?.area_total_local)} m²`],
-        ]
+    // Cargar imágenes
+    const logoAyc = await loadImageSafe('/images/logo-ayc.png')
+    const logoOlize = await loadImageSafe('/images/logo-olize.png')
+
+    let planoInmueble = null
+    if (esApto && props.imagenTipoAptoUrl) {
+      planoInmueble = await loadImageSafe(props.imagenTipoAptoUrl)
+    }
+
+    const nombreProyecto = safe(proyecto?.nombre)
+    const tituloPDF = `${esVenta() ? 'Venta' : 'Separación'} · ${nombreProyecto}`
 
     const valorBase = Number(v.valor_base || 0)
     const valorParqueadero = Number(v.parqueadero?.precio || 0)
-    const valorTotalSinDescuento = Number(
-      v.valor_total_sin_descuento || valorBase + valorParqueadero || v.valor_total || 0
-    )
-    const valorDescuento = Number(v.valor_descuento || 0)
     const valorTotal = Number(v.valor_total || 0)
+    const valorDescuento = Number(v.valor_descuento || 0)
+    const valorTotalSinDescuento = Number(
+      v.valor_total_sin_descuento || valorBase + valorParqueadero || valorTotal
+    )
 
     const cuotaSep = Number(v.valor_separacion || proyecto?.valor_min_separacion || 0)
     const cuotaInicial = Number(v.cuota_inicial || 0)
     const saldoCuotaInicial = Number(v.saldo_cuota_inicial ?? Math.max(cuotaInicial - cuotaSep, 0))
-
     const cuotaMensual = Number(valorCuotaMensual.value || 0)
     const valorRestante = Number(v.valor_restante || Math.max(valorTotal - cuotaInicial, 0) || 0)
 
     const frecuenciaTexto = (() => {
       if (esSeparacion()) return 'No Aplica'
-
-      if (v.plan_pago_tipo === 'especial_manual') {
-        return 'No aplica - cuotas manuales'
-      }
-
-      if (!v.frecuencia_cuota_inicial_meses) {
-        return 'No aplica'
-      }
-
+      if (v.plan_pago_tipo === 'especial_manual') return 'No aplica - cuotas manuales'
+      if (!v.frecuencia_cuota_inicial_meses) return 'No aplica'
       return `${v.frecuencia_cuota_inicial_meses} meses`
     })()
+    // Porcentajes del plan
+    const porcentajeCuotaInicial = Number(planSnapshot?.porcentaje_cuota_inicial || 0)
+    const porcentajeEscritura = Number(planSnapshot?.porcentaje_escritura || 0)
 
-    const cuotasManualesTexto = (() => {
-      const cuotas = Array.isArray(v.cuotas_manual_ci) ? v.cuotas_manual_ci : []
+    // ==================
+    // PÁGINA 1
+    // ==================
 
-      if (!cuotas.length) return 'No aplica'
+    // Título principal (igual que cotizador: alineado derecha, debajo del header)
+    setFont(doc, 22, 'normal')
+    doc.setTextColor(0, 0, 0)
+    doc.text(`Negociación ${nombreProyecto}`, pageWidth - M, 43, { align: 'right' })
 
-      return `${cuotas.length} cuota${cuotas.length === 1 ? '' : 's'} manuales`
-    })()
+    setFont(doc, 11, 'normal')
+    doc.text(
+      `Fecha de ${esVenta() ? 'Venta' : 'Separación'} : ${formatDatePDF(v.fecha_venta)}`,
+      pageWidth - M,
+      50,
+      { align: 'right' }
+    )
 
-    const planRows = [
-      ['Plan de venta', safe(v.plan_pago_nombre || 'Condiciones del proyecto')],
-      ['Código del plan', safe(v.plan_pago_codigo || planSnapshot?.codigo)],
-      ['Tipo de plan', tipoPlanLabel(v.plan_pago_tipo || planSnapshot?.tipo_plan)],
-      ['Beneficio / compromiso comercial', safe(planSnapshot?.beneficio_comercial || 'No aplica')],
-      ['Tipo de descuento', safe(planSnapshot?.tipo_descuento || 'ninguno')],
-      ['Base del descuento', safe(planSnapshot?.base_descuento || 'ninguna')],
-      [
-        'Valor descuento configurado',
-        planSnapshot?.tipo_descuento === 'valor_fijo'
-          ? formatMoney(planSnapshot?.valor_descuento)
-          : planSnapshot?.tipo_descuento === 'porcentaje'
-            ? `${safe(planSnapshot?.valor_descuento)}%`
-            : 'No aplica',
-      ],
-    ]
+    // --- Datos del Cliente ---
+    setFont(doc, 18, 'normal')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Datos del Cliente:', M, 65)
 
-    const desglose = [
-      [
-        'Fecha límite de separación',
-        esSeparacion() ? formatDate(v.fecha_limite_separacion) : 'No Aplica',
-      ],
-      ['Valor inmueble', formatMoney(valorBase || v.valor_total)],
-      ['Valor parqueadero/deposito adicional', formatMoney(valorParqueadero)],
-      ['Valor total sin descuento', formatMoney(valorTotalSinDescuento)],
-      ['Descuento aplicado', formatMoney(valorDescuento)],
-      ['Valor total', formatMoney(valorTotal)],
-      ['Cuota inicial', esSeparacion() ? 'No Aplica' : formatMoney(cuotaInicial)],
-      ['Cuota de separación', formatMoney(cuotaSep)],
-      ['Saldo cuota inicial', esSeparacion() ? 'No Aplica' : formatMoney(saldoCuotaInicial)],
-      [
-        'Plazo cuota inicial',
-        esSeparacion() ? 'No Aplica' : `${safe(v.plazo_cuota_inicial_meses)} meses`,
-      ],
-      ['Frecuencia pago cuota inicial', frecuenciaTexto],
-      ['No. cuotas cuota inicial', esSeparacion() ? 'No Aplica' : safe(numeroCuotas.value)],
-      [
-        'Valor cuota mensual',
-        esSeparacion() ? 'No Aplica' : formatMoney(cuotaMensual),
-      ],
-      // ['Cuotas manuales CI', esSeparacion() ? 'No Aplica' : cuotasManualesTexto],
-      ['Valor restante', esSeparacion() ? 'No Aplica' : formatMoney(valorRestante)],
-      ['Forma de pago', safe(v.forma_pago?.forma_pago || v.formaPago?.forma_pago)],
-      ['Fecha operación', formatDate(v.fecha_venta)],
-    ]
+    drawInlineKV(doc, '', safe(v.cliente?.nombre), M + 5, 74, {
+      labelSize: 11,
+      valueSize: 11,
+      labelStyle: 'normal',
+      valueStyle: 'normal',
+    })
+    drawInlineKV(doc, '', safe(v.documento_cliente), M + 5, 80, {
+      labelSize: 11,
+      valueSize: 11,
+      labelStyle: 'normal',
+      valueStyle: 'normal',
+    })
+    drawInlineKV(doc, '', safe(v.cliente?.telefono), pageWidth / 2 + 5, 74, {
+      labelSize: 11,
+      valueSize: 11,
+      labelStyle: 'normal',
+      valueStyle: 'normal',
+    })
+
+    drawInlineKV(doc, '', safe(v.cliente?.correo), pageWidth / 2 + 5, 80, {
+      labelSize: 11,
+      valueSize: 11,
+      labelStyle: 'normal',
+      valueStyle: 'normal',
+    })
+    drawInlineKV(doc, '', safe(v.cliente?.direccion), M + 5, 86, {
+      labelSize: 11,
+      valueSize: 11,
+      labelStyle: 'normal',
+      valueStyle: 'normal',
+    })
+
+    // --- Información del Inmueble ---
+    setFont(doc, 18, 'normal')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Información del Inmueble:', M, 100)
+
+    // Plano / imagen tipo apartamento (igual que cotizador)
+    const planoX = 40
+    const planoY = 108
+    const planoW = 130
+    const planoH = 100
+
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.25)
+    doc.rect(planoX, planoY, planoW, planoH)
+
+    if (planoInmueble) {
+      drawImageContain(doc, planoInmueble, planoX + 2, planoY + 2, planoW - 4, planoH - 4)
+    } else {
+      doc.setFillColor(242, 242, 242)
+      doc.rect(planoX + 0.2, planoY + 0.2, planoW - 0.4, planoH - 0.4, 'F')
+      setFont(doc, 11, 'normal')
+      doc.setTextColor(120, 120, 120)
+      doc.text('Plano no disponible', planoX + planoW / 2, planoY + planoH / 2, { align: 'center' })
+      setFont(doc, 9, 'normal')
+      doc.text(
+        'No se encontró imagen asociada al tipo de apartamento.',
+        planoX + planoW / 2,
+        planoY + planoH / 2 + 7,
+        { align: 'center' }
+      )
+    }
+
+    // Datos inmueble - columna izquierda
+    const col1X = M + 5
+    const col2X = pageWidth / 2 + 5
+    let yDatos = 220
+
+    if (esApto) {
+      drawInlineKV(doc, 'Piso', safe(v.apartamento?.piso_torre?.nivel), col1X, yDatos)
+      drawInlineKV(doc, 'Número', safe(v.apartamento?.numero), col1X, yDatos + 6)
+      drawInlineKV(
+        doc,
+        'Habitaciones',
+        safe(
+          v.apartamento?.tipo_apartamento?.cantidad_habitaciones ||
+            v.apartamento?.tipoApartamento?.cantidad_habitaciones
+        ),
+        col1X,
+        yDatos + 12
+      )
+      drawInlineKV(
+        doc,
+        'Baños',
+        safe(
+          v.apartamento?.tipo_apartamento?.cantidad_banos ||
+            v.apartamento?.tipoApartamento?.cantidad_banos
+        ),
+        col1X,
+        yDatos + 18
+      )
+      drawInlineKV(doc, 'Parqueadero', parqueaderoTexto, col1X, yDatos + 24)
+      drawInlineKV(doc, 'Parqueadero Adicional', parqueaderoAdicionalTexto, col2X, yDatos)
+      drawInlineKV(doc, 'Cuarto Útil', cuartoUtilTexto, col2X, yDatos + 6)
+      drawInlineKV(
+        doc,
+        'Área Construida',
+        `${safe(v.apartamento?.tipo_apartamento?.area_construida || v.apartamento?.tipoApartamento?.area_construida)} m²`,
+        col2X,
+        yDatos + 12
+      )
+      drawInlineKV(
+        doc,
+        'Área Privada',
+        `${safe(v.apartamento?.tipo_apartamento?.area_privada || v.apartamento?.tipoApartamento?.area_privada)} m²`,
+        col2X,
+        yDatos + 18
+      )
+    } else {
+      drawInlineKV(doc, 'Número', safe(v.local?.numero), col1X, yDatos)
+      drawInlineKV(doc, 'Piso', safe(v.local?.piso_torre?.nivel), col1X, yDatos + 6)
+      drawInlineKV(doc, 'Torre', safe(v.local?.torre?.nombre_torre), col1X, yDatos + 12)
+      drawInlineKV(doc, 'Área Total', `${safe(v.local?.area_total_local)} m²`, col2X, yDatos)
+      drawInlineKV(doc, 'Tipo', 'Local Comercial', col2X, yDatos + 6)
+    }
+
+    // ==================
+    // PÁGINA 2
+    // ==================
+    doc.addPage()
+    // --- Desglose Económico ---
+    setFont(doc, 22, 'normal')
+    doc.text('Desglose Económico:', M, 43)
+
+    setFont(doc, 16, 'normal')
+    doc.text('Tipo de Negocio:', M, 55)
+
+    setFont(doc, 14, 'normal')
+    drawInlineKV(doc, 'Porcentaje Cuota Inicial', formatPercent(porcentajeCuotaInicial), 16, 65)
+
+    setFont(doc, 14, 'normal')
+    drawInlineKV(doc, 'Cuota de Separación', formatMoney(cuotaSep), 16, 71)
+
+    setFont(doc, 14, 'normal')
+    drawInlineKV(
+      doc,
+      'Beneficio',
+      safe(planSnapshot?.beneficio_comercial || 'No aplica'),
+      113,
+      65,
+      {
+        maxWidth: 78,
+      }
+    )
+
+    drawInlineKV(doc, 'Valor Total', formatMoney(valorTotal), M, 80, {
+      labelSize: 16,
+      valueSize: 14,
+    })
+
+    drawInlineKV(doc, 'Deposito Adicional', formatMoney(valorParqueadero), 18, 88)
+    drawInlineKV(doc, 'Valor Cuota Inicial', formatMoney(cuotaInicial), 18, 94)
+    drawInlineKV(doc, 'Cuota de Separación', formatMoney(cuotaSep), 18, 100)
+    drawInlineKV(doc, 'Saldo Cuota Inicial', formatMoney(saldoCuotaInicial), 18, 106)
+
+    drawInlineKV(
+      doc,
+      'No. Cuotas',
+      esSeparacion() ? 'No Aplica' : safe(numeroCuotas.value),
+      113,
+      88
+    )
+
+    drawInlineKV(
+      doc,
+      'Valor Cuota Mensual',
+      esSeparacion() ? 'No Aplica' : formatMoney(cuotaMensual),
+      113,
+      94
+    )
+
+    drawInlineKV(
+      doc,
+      'Saldo Escrituración',
+      esSeparacion() ? 'No Aplica' : formatMoney(valorRestante),
+      113,
+      100
+    )
+
+    // setFont(doc, 14, 'normal')
+    // drawInlineKV(doc, 'Valor Inmueble', formatMoney(valorBase || valorTotal), M + 5, 160)
+    // drawInlineKV(doc, 'Parqueadero/Depósito Adic.', formatMoney(valorParqueadero), M + 5, 166)
+    // drawInlineKV(doc, 'Valor Total sin Descuento', formatMoney(valorTotalSinDescuento), M + 5, 172)
+    // drawInlineKV(doc, 'Descuento Aplicado', formatMoney(valorDescuento), M + 5, 178)
+    // drawInlineKV(doc, 'Valor Total', formatMoney(valorTotal), M, 186, {
+    //   labelSize: 14,
+    //   valueSize: 12,
+    //   labelStyle: 'bold',
+    // })
+
+    // drawInlineKV(doc, 'Cuota de Separación', formatMoney(cuotaSep), pageWidth / 2 + 5, 160)
+    // drawInlineKV(
+    //   doc,
+    //   'Cuota Inicial',
+    //   esSeparacion() ? 'No Aplica' : formatMoney(cuotaInicial),
+    //   pageWidth / 2 + 5,
+    //   166
+    // )
+    // drawInlineKV(
+    //   doc,
+    //   'Saldo Cuota Inicial',
+    //   esSeparacion() ? 'No Aplica' : formatMoney(saldoCuotaInicial),
+    //   pageWidth / 2 + 5,
+    //   172
+    // )
+    // drawInlineKV(
+    //   doc,
+    //   'Plazo Cuota Inicial',
+    //   esSeparacion() ? 'No Aplica' : `${safe(v.plazo_cuota_inicial_meses)} meses`,
+    //   pageWidth / 2 + 5,
+    //   178
+    // )
+    // drawInlineKV(doc, 'Frecuencia Pago', frecuenciaTexto, pageWidth / 2 + 5, 184)
+    // drawInlineKV(
+    //   doc,
+    //   'No. Cuotas',
+    //   esSeparacion() ? 'No Aplica' : safe(numeroCuotas.value),
+    //   pageWidth / 2 + 5,
+    //   190
+    // )
+    // drawInlineKV(
+    //   doc,
+    //   'Valor Cuota Mensual',
+    //   esSeparacion() ? 'No Aplica' : formatMoney(cuotaMensual),
+    //   pageWidth / 2 + 5,
+    //   196
+    // )
+    // drawInlineKV(
+    //   doc,
+    //   'Valor Restante',
+    //   esSeparacion() ? 'No Aplica' : formatMoney(valorRestante),
+    //   pageWidth / 2 + 5,
+    //   202
+    // )
+
+    if (esSeparacion()) {
+      drawInlineKV(
+        doc,
+        'Fecha Límite Separación',
+        formatDatePDF(v.fecha_limite_separacion),
+        M + 5,
+        194
+      )
+    }
+
+    // drawInlineKV(
+    //   doc,
+    //   'Forma de Pago',
+    //   safe(v.forma_pago?.forma_pago || v.formaPago?.forma_pago),
+    //   M + 5,
+    //   210
+    // )
 
     const cuotasRows = (v.plan_amortizacion?.cuotas || [])
       .slice()
       .sort((a, b) => Number(a.numero_cuota || 0) - Number(b.numero_cuota || 0))
-      .map((c) => [
-        safe(c.numero_cuota),
-        formatDate(c.fecha_vencimiento),
-        safe(c.concepto || 'Cuota'),
-        formatMoney(c.valor_cuota),
-        formatMoney(c.saldo),
-        safe(c.estado || 'Pendiente'),
-      ])
-
-    const headerY = 18
-
-    try {
-      const logo = new Image()
-      logo.src = '/images/logo-ayc.png'
-      doc.addImage(logo, 'PNG', 16, 12, 14, 10)
-    } catch (e) {}
-
-    doc.setFont('Helvetica', 'bold')
-    doc.setFontSize(18)
-    doc.setTextColor(30, 58, 95)
-    doc.text('REPORTE DE OPERACIÓN', 105, headerY, { align: 'center' })
-
-    doc.setFont('Helvetica', 'normal')
-    doc.setFontSize(10)
-    doc.setTextColor(90, 90, 90)
-    doc.text(
-      `${esApto ? 'Apartamento' : 'Local'} · ${v.tipo_operacion?.toUpperCase() || '—'}`,
-      105,
-      headerY + 6,
-      { align: 'center' }
-    )
-
-    doc.setDrawColor(220, 220, 220)
-    doc.line(15, 30, 200, 30)
-
-    let y = 36
-
-    const drawFooter = () => {
-      const pageCount = doc.internal.getNumberOfPages()
-      const currentPage = doc.internal.getCurrentPageInfo().pageNumber
-
-      doc.setFont('Helvetica', 'normal')
-      doc.setFontSize(9)
-      doc.setTextColor(120, 120, 120)
-      doc.text(`Generado: ${new Date().toLocaleString('es-CO')}`, 15, 277)
-      doc.text(`Página ${currentPage} de ${pageCount}`, 105, 277, { align: 'center' })
-      doc.text('Olize Constructora', 185, 277, { align: 'right' })
-    }
-
-    const sectionTitle = (title) => {
-      doc.setFillColor(245, 247, 250)
-      doc.roundedRect(15, y, 185, 10, 2, 2, 'F')
-
-      doc.setFont('Helvetica', 'bold')
-      doc.setFontSize(12)
-      doc.setTextColor(30, 58, 95)
-      doc.text(title, 18, y + 7)
-
-      y += 14
-    }
-
-    const keyValueTable = (rows, options = {}) => {
-      autoTable(doc, {
-        startY: y,
-        theme: 'grid',
-        styles: {
-          font: 'Helvetica',
-          fontSize: 10,
-          textColor: [40, 40, 40],
-          cellPadding: 2.5,
-          valign: 'middle',
-        },
-        bodyStyles: {
-          fillColor: [255, 255, 255],
-        },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        columnStyles: {
-          0: { cellWidth: 62, fontStyle: 'bold', textColor: [55, 65, 81] },
-          1: { cellWidth: 123 },
-        },
-        margin: { left: 15, right: 15 },
-        body: rows.map(([k, val]) => [k, val]),
-        didDrawPage: () => drawFooter(),
-        ...options,
-      })
-
-      y = doc.lastAutoTable.finalY + 8
-    }
-
-    const ensureSpace = (needed = 30) => {
-      if (y + needed > 265) {
-        doc.addPage()
-        y = 18
-        doc.setDrawColor(230, 230, 230)
-        doc.line(15, y, 200, y)
-        y += 10
-      }
-    }
-
-    ensureSpace(45)
-    sectionTitle('1. Datos del Proyecto')
-    keyValueTable([
-      ['Nombre', safe(proyecto?.nombre)],
-      ['Ubicación', safe(proyectoUbicacion)],
-      ['Zonas sociales', safe(proyectoZonas)],
-    ])
-
-    ensureSpace(45)
-    sectionTitle('2. Datos del Cliente')
-    keyValueTable([
-      ['Nombre', safe(v.cliente?.nombre)],
-      ['Documento', safe(v.documento_cliente)],
-      ['Teléfono', safe(v.cliente?.telefono)],
-      ['Correo', safe(v.cliente?.correo)],
-      ['Dirección', safe(v.cliente?.direccion)],
-    ])
-
-    ensureSpace(45)
-    sectionTitle('3. Datos del Asesor')
-    keyValueTable([
-      ['Nombre', safe(`${v.empleado?.nombre || ''} ${v.empleado?.apellido || ''}`.trim())],
-      ['Correo', safe(v.empleado?.email)],
-      ['Teléfono', safe(v.empleado?.telefono)],
-    ])
-
-    ensureSpace(60)
-    sectionTitle('4. Información del Inmueble')
-    keyValueTable(inmuebleInfo)
-
-    if (esApto && props.imagenTipoAptoUrl) {
-      ensureSpace(80)
-      sectionTitle('5. Imagen tipo de apartamento')
-
-      const boxX = 15
-      const boxW = 185
-      const boxH = 60
-
-      doc.setDrawColor(220, 220, 220)
-      doc.setFillColor(250, 250, 250)
-      doc.roundedRect(boxX, y, boxW, boxH, 2, 2, 'FD')
-
-      const img = await new Promise((resolve) => {
-        const im = new Image()
-        im.crossOrigin = 'anonymous'
-        im.onload = () => resolve(im)
-        im.onerror = () => resolve(null)
-        im.src = props.imagenTipoAptoUrl
-      })
-
-      if (img) {
-        const iw = img.naturalWidth || img.width
-        const ih = img.naturalHeight || img.height
-        const scale = Math.min((boxW - 10) / iw, (boxH - 10) / ih)
-        const w = iw * scale
-        const h = ih * scale
-        const x = boxX + (boxW - w) / 2
-        const yy = y + (boxH - h) / 2
-
-        try {
-          doc.addImage(img, 'JPEG', x, yy, w, h)
-        } catch (e) {
-          try {
-            doc.addImage(img, 'PNG', x, yy, w, h)
-          } catch (e2) {
-            doc.setFontSize(10)
-            doc.setTextColor(120, 120, 120)
-            doc.text('No fue posible incrustar la imagen en el PDF.', 18, y + 12)
-          }
-        }
-      } else {
-        doc.setFontSize(10)
-        doc.setTextColor(120, 120, 120)
-        doc.text('Imagen no disponible.', 18, y + 12)
-      }
-
-      y += boxH + 10
-    }
-
-    ensureSpace(65)
-    sectionTitle('6. Plan de Venta')
-    keyValueTable(planRows)
-
-    ensureSpace(85)
-    sectionTitle('7. Desglose Económico')
-    keyValueTable(desglose)
 
     if (cuotasRows.length) {
-      ensureSpace(80)
-      sectionTitle('8. Plan de Pagos Generado')
+      setFont(doc, 18, 'normal')
+      doc.text('Tabla de Amortización:', M, 123)
+
+      let finalYTable = 0
 
       autoTable(doc, {
-        startY: y,
+        startY: 129,
+        tableWidth: 'auto',
+        head: [['# Cuota', 'Mes', 'Valor', 'Valor Restante']],
+        body: cuotasRows.map((c, index) => {
+          const numeroCuota = index === 0 ? '0' : String(index)
+
+          const concepto = (() => {
+            if (index === 0) return 'Valor Separación'
+            if (index === cuotasRows.length - 1) return 'Valor Restante'
+            return formatDateTable(c.fecha_vencimiento)
+          })()
+
+          return [numeroCuota, concepto, formatMoney(c.valor_cuota), formatMoney(c.saldo)]
+        }),
         theme: 'grid',
-        head: [['#', 'Fecha', 'Concepto', 'Valor cuota', 'Saldo', 'Estado']],
-        body: cuotasRows,
-        styles: {
-          font: 'Helvetica',
-          fontSize: 8,
-          textColor: [40, 40, 40],
-          cellPadding: 2,
-          valign: 'middle',
+        margin: {
+          left: M,
+          right: M,
+          top: 43,
+          bottom: 42,
         },
         headStyles: {
-          fillColor: [30, 58, 95],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
+          font: 'times',
+          fontStyle: 'normal',
+          fontSize: 11,
+          halign: 'center',
         },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
+        bodyStyles: {
+          textColor: [0, 0, 0],
+          lineColor: [0, 0, 0],
+          lineWidth: 0.15,
+          font: 'times',
+          fontStyle: 'normal',
+          fontSize: 9,
+          halign: 'center',
+          cellPadding: 2,
+        },
         columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 45 },
-          3: { cellWidth: 36, halign: 'right' },
-          4: { cellWidth: 36, halign: 'right' },
-          5: { cellWidth: 33 },
+          0: { cellWidth: 25 },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 52 },
+          3: { cellWidth: 52 },
         },
-        margin: { left: 15, right: 15 },
-        didDrawPage: () => drawFooter(),
+        // Encabezado se repite en cada página
+        head: [['# Cuota', 'Mes', 'Valor', 'Valor Restante']],
+        didDrawPage: function (data) {
+          finalYTable = data.cursor.y
+        },
       })
-
-      y = doc.lastAutoTable.finalY + 8
     }
 
-    ensureSpace(35)
-    sectionTitle('9. Observaciones')
-    keyValueTable([
-      ['Descripción', safe(v.descripcion)],
-      ['Estado operación', safe(v.estado_operacion || 'vigente')],
-    ])
+    // ==================
+    // PÁGINA FINAL: Observaciones
+    // ==================
+    doc.addPage()
 
-    const nombreProyecto = safe(proyecto?.nombre).replaceAll(' ', '_')
-    const nombreCliente = safe(v.cliente?.nombre).replaceAll(' ', '_')
-    const numeroInmueble = safe(v.apartamento?.numero || v.local?.numero).replaceAll(' ', '_')
+    setFont(doc, 16, 'normal')
+    doc.text('Aclaraciones Importantes', M, 43)
 
-    doc.save(`Operacion_${nombreProyecto}_${nombreCliente}_${numeroInmueble}.pdf`)
+    const aclaraciones = [
+      'CLAUSULA PENAL: DIEZ POR CIENTO (10%) SOBRE EL VALOR APORTADO AL MOMENTO DEL RETIRO VOLUNTARIO O POR INCUMPLIMIENTO DE LOS PLAZOS DE PAGO.',
+      'LOS RENDER USADOS EN LA PUBLICIDAD SON UNA APROXIMACIÓN A LA REALIDAD. Las áreas, animaciones y diseños pueden variar en el desarrollo arquitectónico y constructivo. Solo es válido lo acordado en la promesa de compraventa.',
+      'Todo material publicitario (brochures, web, redes, prensa), renders e imágenes tiene carácter ilustrativo e informativo. No modifica lo pactado contractualmente salvo que se incorpore expresamente.',
+      'Salvo indicación expresa, no se incluyen muebles, electrodomésticos, decoración ni equipamiento mostrado en piezas publicitarias. La entrega se realiza conforme a la ficha técnica y el inventario de entrega.',
+      'Las áreas, distribuciones y especificaciones pueden registrar ajustes razonables debido a tolerancias constructivas, instalaciones u obligaciones técnicas. Dichos ajustes no afectarán la funcionalidad esencial del inmueble.',
+    ]
+
+    function drawJustifiedText(doc, text, x, y, maxWidth, lineHeight = 4.4, fontSize = 9) {
+      setFont(doc, fontSize, 'normal')
+
+      // Dividir el texto en líneas
+      const lines = doc.splitTextToSize(text, maxWidth)
+      let currentY = y
+
+      lines.forEach((line, index) => {
+        const isLastLine = index === lines.length - 1
+
+        if (isLastLine || line.trim().length === 0) {
+          // Última línea o línea vacía: alineación izquierda normal
+          doc.text(line.trim(), x, currentY)
+        } else {
+          // Justificar la línea
+          const words = line.trim().split(/\s+/)
+          const wordCount = words.length
+
+          if (wordCount <= 1) {
+            doc.text(line, x, currentY)
+          } else {
+            // Calcular el ancho total de las palabras sin espacios
+            let totalWordsWidth = 0
+            const wordWidths = words.map((word) => doc.getTextWidth(word))
+            totalWordsWidth = wordWidths.reduce((sum, width) => sum + width, 0)
+
+            // Espacio disponible para distribuir
+            const availableSpace = maxWidth - totalWordsWidth
+            const spaceBetweenWords = availableSpace / (wordCount - 1)
+
+            // Construir la línea posicionando cada palabra
+            let currentX = x
+            words.forEach((word, idx) => {
+              doc.text(word, currentX, currentY)
+              if (idx < words.length - 1) {
+                currentX += wordWidths[idx] + spaceBetweenWords
+              }
+            })
+          }
+        }
+
+        currentY += lineHeight
+      })
+
+      return currentY
+    }
+
+    let yAclaracion = 54
+    let yFinalAclaraciones = yAclaracion
+
+    aclaraciones.forEach((texto, index) => {
+      setFont(doc, 9, 'normal')
+      doc.text(`${index + 1}.`, M + 1, yAclaracion)
+
+      yAclaracion = drawJustifiedText(
+        doc,
+        texto,
+        M + 8,
+        yAclaracion,
+        170, // maxWidth
+        4.4, // lineHeight
+        9 // fontSize
+      )
+
+      yAclaracion += 1
+    })
+
+    yFinalAclaraciones = yAclaracion
+
+    setFont(doc, 16, 'normal')
+    doc.text('Aceptacion del Cliente:', M, yFinalAclaraciones + 15)
+    doc.text('Recibido por:', 113, yFinalAclaraciones + 15)
+
+    doc.text('Firma:', M, yFinalAclaraciones + 50)
+    doc.text('Firma:', 113, yFinalAclaraciones + 50)
+    doc.text(safe(v.cliente?.nombre), M, yFinalAclaraciones + 56)
+    doc.text('Constructora', 113, yFinalAclaraciones + 56)
+    doc.text(safe(v.documento_cliente), M, yFinalAclaraciones + 62)
+
+    // Aplicar encabezado y footer en TODAS las páginas (igual que cotizador)
+    aplicarEncabezadoEnTodasLasPaginas(doc, logoAyc, tituloPDF)
+    aplicarFooterEnTodasLasPaginas(doc, asesor, logoOlize)
+
+    const nombreArchivoProyecto = safe(proyecto?.nombre)
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+    const nombreArchivoCliente = safe(v.cliente?.nombre)
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+    const numeroInmueble = safe(v.apartamento?.numero || v.local?.numero).replace(/\s+/g, '-')
+
+    doc.save(`Operacion-${nombreArchivoProyecto}-${nombreArchivoCliente}-${numeroInmueble}.pdf`)
   } finally {
     exporting.value = false
   }
@@ -866,13 +1120,11 @@ async function exportVentaPDF() {
 
             <li class="flex justify-between text-gray-700">
               <span>Frecuencia Pago Cuota Inicial:</span>
-              <span class="font-semibold"
-                >{{
-                  esSeparacion()
-                    ? 'No Aplica'
-                    : desgloseEconomico.frecuencia_cuota_inicial_meses + ' meses'
-                }}
-              </span>
+              <span class="font-semibold">{{
+                esSeparacion()
+                  ? 'No Aplica'
+                  : desgloseEconomico.frecuencia_cuota_inicial_meses + ' meses'
+              }}</span>
             </li>
 
             <li class="flex justify-between text-gray-700">
