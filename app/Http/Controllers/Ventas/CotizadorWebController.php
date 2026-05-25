@@ -25,6 +25,7 @@ class CotizadorWebController extends Controller
             'pisoTorre',
             'estadoInmueble',
         ])
+            ->withCount('parqueaderos')
             ->whereHas('estadoInmueble', function ($q) {
                 $q->whereRaw('LOWER(nombre) = ?', ['disponible']);
             })
@@ -47,7 +48,7 @@ class CotizadorWebController extends Controller
                     'pisoTorre'       => $a->pisoTorre,
                     'tipoApartamento' => $a->tipoApartamento,
                     'estadoInmueble'  => $a->estadoInmueble,
-
+                    'tiene_parqueadero' => $a->parqueaderos_count > 0,
                 ];
             });
 
@@ -77,6 +78,7 @@ class CotizadorWebController extends Controller
                     'pisoTorre'       => null,
                     'tipoApartamento' => null,
                     'estadoInmueble'  => $l->estadoInmueble,
+                    'tiene_parqueadero' => false,
                 ];
             });
 
