@@ -169,6 +169,10 @@ class ClienteWebController extends Controller
     {
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
 
+        // Obtener el empleado que está realizando la edición
+        $empleadoActual = $request->user();
+
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'id_tipo_cliente' => 'nullable|exists:tipos_cliente,id_tipo_cliente',
@@ -177,7 +181,7 @@ class ClienteWebController extends Controller
             'direccion' => 'nullable|string|max:255',
             'telefono' => 'required|numeric',
             'correo' => 'required|email|max:255',
-            'id_empleado_asesor' => 'required|exists:empleados,id_empleado',
+            'id_empleado_asesor' => 'nullable|exists:empleados,id_empleado',
         ], [
             'documento.unique' => 'Ya existe un cliente registrado con este número de documento.',
             'documento.max' => 'El documento no puede tener más de 20 caracteres.',
@@ -189,6 +193,15 @@ class ClienteWebController extends Controller
             'id_tipo_cliente.required' => 'Debe seleccionar un tipo de cliente.',
             'id_empleado_asesor.required' => 'El asesor responsable es obligatorio.',
         ]);
+
+        // Lógica para asignar asesor solo si no tiene uno asignado
+        if (is_null($cliente->id_empleado_asesor)) {
+            // Si el cliente no tiene asesor asignado, se le asigna el empleado que está editando
+            $validated['id_empleado_asesor'] = $empleadoActual->id_empleado;
+        } else {
+            // Si ya tiene asesor, mantenemos el que ya tenía (ignoramos lo que venga del formulario)
+            $validated['id_empleado_asesor'] = $cliente->id_empleado_asesor;
+        }
 
         $cliente->update($validated);
 

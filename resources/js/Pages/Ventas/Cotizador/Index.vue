@@ -1086,12 +1086,7 @@ function construirTablaPagosCotizacion({ plan, plazo, resumen, formatMoney }) {
 
       saldo -= valorCuota
 
-      tabla.push([
-        String(i),
-        labelMes,
-        formatMoney(valorCuota),
-        formatMoney(Math.max(saldo, 0)),
-      ])
+      tabla.push([String(i), labelMes, formatMoney(valorCuota), formatMoney(Math.max(saldo, 0))])
     }
 
     /*
@@ -1266,10 +1261,12 @@ async function generarPDF() {
     const adicionalNumero = adicionalSeleccionado?.numero || ''
     const adicionalPrecio = Number(adicionalSeleccionado?.precio || 0)
 
-    const tieneParqueaderoBase =
-      Boolean(inmueble.value?.tiene_parqueadero) ||
-      Boolean(inmueble.value?.parqueadero) ||
-      Boolean(inmueble.value?.parqueaderos?.length)
+    // const tieneParqueaderoBase =
+    //   (inmueble.value?.tipo === 'apartamento' &&
+    //     inmueble.value?.parqueaderos &&
+    //     inmueble.value?.parqueaderos.length > 0) ||
+    //   Boolean(inmueble.value?.tiene_parqueadero) ||
+    //   Boolean(inmueble.value?.parqueadero)
 
     const tieneDepositoBase = Boolean(inmueble.value?.deposito)
 
@@ -1281,8 +1278,18 @@ async function generarPDF() {
     const adicionalCuentaComoDeposito =
       adicionalTipo.includes('deposito') || adicionalTipo.includes('depósito')
 
-    const parqueaderoTexto = tieneParqueaderoBase || adicionalCuentaComoParqueadero ? 'Sí' : 'No'
+    // const parqueaderoTexto = tieneParqueaderoBase || adicionalCuentaComoParqueadero ? 'Sí' : 'No'
 
+    // Determinar parqueadero usando el mismo campo que el catálogo
+    let tieneParqueaderoBase = false
+
+    if (inmueble.value?.tipo === 'apartamento') {
+      // Usar el mismo campo booleano que funciona en el catálogo
+      tieneParqueaderoBase = inmueble.value?.tiene_parqueadero === true
+    }
+
+    const parqueaderoTexto = tieneParqueaderoBase || adicionalCuentaComoParqueadero ? 'Sí' : 'No'
+    
     const depositoTexto = tieneDepositoBase || adicionalCuentaComoDeposito ? 'Sí' : 'No'
 
     const adicionalTexto = adicionalSeleccionado
