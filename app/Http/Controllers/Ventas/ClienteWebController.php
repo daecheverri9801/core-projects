@@ -248,20 +248,15 @@ class ClienteWebController extends Controller
 
         // Usar una transacción para garantizar consistencia
         DB::transaction(function () use ($cliente, $validated, $cambioDocumento, $documentoActual, $documentoNuevo) {
-            // Si el documento cambia, actualizar primero las tablas relacionadas
+            // 1. PRIMERO actualizar el cliente (cambiar su documento)
+            $cliente->update($validated);
+
+            // 2. LUEGO, si el documento cambió, actualizar las referencias
             if ($cambioDocumento) {
-                // Actualizar referencias en cliente_bitacoras
                 DB::table('cliente_bitacoras')
                     ->where('documento_cliente', $documentoActual)
                     ->update(['documento_cliente' => $documentoNuevo]);
-
-                // Aquí podrías actualizar otras tablas que tengan foreign key a clientes.documento
-                // Por ejemplo, si tienes ventas, cotizaciones, etc.
-                // DB::table('ventas')->where('documento_cliente', $documentoActual)->update(['documento_cliente' => $documentoNuevo]);
             }
-
-            // Actualizar el cliente
-            $cliente->update($validated);
         });
 
         return redirect()->route('clientes.index')
