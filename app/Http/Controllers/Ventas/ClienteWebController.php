@@ -215,9 +215,6 @@ class ClienteWebController extends Controller
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
         $empleadoActual = $request->user();
 
-        // Obtener el documento actual antes de validar (para comparar después)
-        $documentoActual = $cliente->documento;
-
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'id_tipo_cliente' => 'nullable|exists:tipos_cliente,id_tipo_cliente',
@@ -235,29 +232,15 @@ class ClienteWebController extends Controller
             'correo.email' => 'Debe ingresar un correo electrónico válido.',
         ]);
 
-        // Verificar si el documento ha cambiado
-        $documentoNuevo = $validated['documento'];
-        $cambioDocumento = ($documentoNuevo != $documentoActual);
-
-        // Lógica para asignar asesor (sin cambios)
+        // Lógica de asesor
         if (is_null($cliente->id_empleado_asesor)) {
             $validated['id_empleado_asesor'] = $empleadoActual->id_empleado;
         } else {
             $validated['id_empleado_asesor'] = $cliente->id_empleado_asesor;
         }
 
-        // Usar una transacción para garantizar consistencia
-        DB::transaction(function () use ($cliente, $validated, $cambioDocumento, $documentoActual, $documentoNuevo) {
-            // 1. PRIMERO actualizar el cliente (cambiar su documento)
-            $cliente->update($validated);
-
-            // 2. LUEGO, si el documento cambió, actualizar las referencias
-            if ($cambioDocumento) {
-                DB::table('cliente_bitacoras')
-                    ->where('documento_cliente', $documentoActual)
-                    ->update(['documento_cliente' => $documentoNuevo]);
-            }
-        });
+        // Actualizar cliente (incluyendo el documento)
+        $cliente->update($validated);
 
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente actualizado exitosamente');
