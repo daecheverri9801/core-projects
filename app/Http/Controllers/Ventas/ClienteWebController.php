@@ -9,6 +9,7 @@ use App\Models\TipoDocumento;
 use App\Models\Cargo;
 use App\Models\Empleado;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ClienteWebController extends Controller
@@ -165,13 +166,57 @@ class ClienteWebController extends Controller
         ]);
     }
 
+    // public function update(Request $request, $documento)
+    // {
+    //     $cliente = Cliente::where('documento', $documento)->firstOrFail();
+
+    //     // Obtener el empleado que está realizando la edición
+    //     $empleadoActual = $request->user();
+
+
+    //     $validated = $request->validate([
+    //         'nombre' => 'required|string|max:255',
+    //         'id_tipo_cliente' => 'nullable|exists:tipos_cliente,id_tipo_cliente',
+    //         'id_tipo_documento' => 'nullable|exists:tipos_documento,id_tipo_documento',
+    //         'documento' => 'required|numeric|unique:clientes,documento,' . $cliente->id_cliente . ',id_cliente',
+    //         'direccion' => 'nullable|string|max:255',
+    //         'telefono' => 'required|numeric',
+    //         'correo' => 'required|email|max:255',
+    //         'id_empleado_asesor' => 'nullable|exists:empleados,id_empleado',
+    //     ], [
+    //         'documento.unique' => 'Ya existe un cliente registrado con este número de documento.',
+    //         'documento.max' => 'El documento no puede tener más de 20 caracteres.',
+    //         'nombre.required' => 'El nombre completo es obligatorio.',
+    //         'telefono.required' => 'El número de teléfono es obligatorio.',
+    //         'correo.required' => 'El correo electrónico es obligatorio.',
+    //         'correo.email' => 'Debe ingresar un correo electrónico válido.',
+    //         'id_tipo_documento.required' => 'Debe seleccionar un tipo de documento.',
+    //         'id_tipo_cliente.required' => 'Debe seleccionar un tipo de cliente.',
+    //         'id_empleado_asesor.required' => 'El asesor responsable es obligatorio.',
+    //     ]);
+
+    //     // Lógica para asignar asesor solo si no tiene uno asignado
+    //     if (is_null($cliente->id_empleado_asesor)) {
+    //         // Si el cliente no tiene asesor asignado, se le asigna el empleado que está editando
+    //         $validated['id_empleado_asesor'] = $empleadoActual->id_empleado;
+    //     } else {
+    //         // Si ya tiene asesor, mantenemos el que ya tenía (ignoramos lo que venga del formulario)
+    //         $validated['id_empleado_asesor'] = $cliente->id_empleado_asesor;
+    //     }
+
+    //     $cliente->update($validated);
+
+    //     return redirect()->route('clientes.index')
+    //         ->with('success', 'Cliente actualizado exitosamente');
+    // }
+
     public function update(Request $request, $documento)
     {
         $cliente = Cliente::where('documento', $documento)->firstOrFail();
-
-        // Obtener el empleado que está realizando la edición
         $empleadoActual = $request->user();
 
+        // Obtener el documento actual antes de validar (para comparar después)
+        $documentoActual = $cliente->documento;
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
@@ -184,26 +229,40 @@ class ClienteWebController extends Controller
             'id_empleado_asesor' => 'nullable|exists:empleados,id_empleado',
         ], [
             'documento.unique' => 'Ya existe un cliente registrado con este número de documento.',
-            'documento.max' => 'El documento no puede tener más de 20 caracteres.',
             'nombre.required' => 'El nombre completo es obligatorio.',
             'telefono.required' => 'El número de teléfono es obligatorio.',
             'correo.required' => 'El correo electrónico es obligatorio.',
             'correo.email' => 'Debe ingresar un correo electrónico válido.',
-            'id_tipo_documento.required' => 'Debe seleccionar un tipo de documento.',
-            'id_tipo_cliente.required' => 'Debe seleccionar un tipo de cliente.',
-            'id_empleado_asesor.required' => 'El asesor responsable es obligatorio.',
         ]);
 
-        // Lógica para asignar asesor solo si no tiene uno asignado
+        // Verificar si el documento ha cambiado
+        $documentoNuevo = $validated['documento'];
+        $cambioDocumento = ($documentoNuevo != $documentoActual);
+
+        // Lógica para asignar asesor (sin cambios)
         if (is_null($cliente->id_empleado_asesor)) {
-            // Si el cliente no tiene asesor asignado, se le asigna el empleado que está editando
             $validated['id_empleado_asesor'] = $empleadoActual->id_empleado;
         } else {
-            // Si ya tiene asesor, mantenemos el que ya tenía (ignoramos lo que venga del formulario)
             $validated['id_empleado_asesor'] = $cliente->id_empleado_asesor;
         }
 
-        $cliente->update($validated);
+        // Usar una transacción para garantizar consistencia
+        DB::transaction(function () use ($cliente, $validated, $cambioDocumento, $documentoActual, $documentoNuevo) {
+            // Si el documento cambia, actualizar primero las tablas relacionadas
+            if ($cambioDocumento) {
+                // Actualizar referencias en cliente_bitacoras
+                DB::table('cliente_bitacoras')
+                    ->where('documento_cliente', $documentoActual)
+                    ->update(['documento_cliente' => $documentoNuevo]);
+
+                // Aquí podrías actualizar otras tablas que tengan foreign key a clientes.documento
+                // Por ejemplo, si tienes ventas, cotizaciones, etc.
+                // DB::table('ventas')->where('documento_cliente', $documentoActual)->update(['documento_cliente' => $documentoNuevo]);
+            }
+
+            // Actualizar el cliente
+            $cliente->update($validated);
+        });
 
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente actualizado exitosamente');
