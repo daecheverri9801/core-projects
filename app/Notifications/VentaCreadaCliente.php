@@ -26,6 +26,7 @@ class VentaCreadaCliente extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
+            ->from(config('mail.from.address'), config('mail.from.name'))
             ->subject('REGISTRO DE OPERACIÓN - Olize Constructora')
             ->view('emails.venta-creada', [
                 'venta' => $this->venta,
