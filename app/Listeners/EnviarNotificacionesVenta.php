@@ -9,8 +9,7 @@ use App\Notifications\VentaCreadaAdministrativo;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Notifications\AnonymousNotifiable;
-use Illuminate\Support\Facades\Notification as Notifications;
+use Illuminate\Support\Facades\Notification;
 
 class EnviarNotificacionesVenta implements ShouldQueue
 {
@@ -94,7 +93,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
         Log::info('🔵 INICIANDO enviarAGerentes', ['emails' => $this->emailsGerentes]);
         foreach ($this->emailsGerentes as $email) {
             try {
-                Notifications::route('mail', $email)
+                Notification::route('mail', $email)
                     ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a gerente: ' . $email);
@@ -109,7 +108,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
         Log::info('🔵 INICIANDO enviarAContabilidad', ['emails' => $this->emailsContabilidad]);
         foreach ($this->emailsContabilidad as $email) {
             try {
-                Notifications::route('mail', $email)
+                Notification::route('mail', $email)
                     ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a contabilidad: ' . $email);
@@ -127,7 +126,7 @@ class EnviarNotificacionesVenta implements ShouldQueue
             try {
                 Log::info('📧 Intentando enviar a SIEMPRE: ' . $email);
 
-                Notifications::route('mail', $email)
+                Notification::route('mail', $email)
                     ->notify(new VentaCreadaAdministrativo($venta));
 
                 Log::info('✅ Notificación enviada a SIEMPRE: ' . $email);
