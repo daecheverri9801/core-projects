@@ -3,30 +3,19 @@
 namespace App\Listeners;
 
 use App\Events\VentaCreada;
-use App\Notifications\VentaCreadaCliente;
-use App\Notifications\VentaCreadaEmpleado;
-use App\Notifications\VentaCreadaAdministrativo;
+use App\Mail\VentaNotificacionMailable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 
 class EnviarNotificacionesVenta implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    protected $emailsGerentes = [
-        'gerencia@constructora-ayc.com',
-    ];
-
-    protected $emailsContabilidad = [
-        'contabilidad@constructora-ayc.com',
-    ];
-
-    // También puedes tener un array de copia oculta (BCC) general
-    protected $emailsSiempre = [
-        'daecheverri98@gmail.com',
-    ];
+    protected $emailsGerentes = ['gerencia@constructora-ayc.com'];
+    protected $emailsContabilidad = ['contabilidad@constructora-ayc.com'];
+    protected $emailsSiempre = ['daecheverri98@gmail.com'];
 
     public function handle(VentaCreada $event)
     {
@@ -34,37 +23,10 @@ class EnviarNotificacionesVenta implements ShouldQueue
 
         Log::info('📧 Procesando notificaciones para venta #' . $venta->id_venta);
 
-        // 1. Cliente
-        $this->enviarAlCliente($venta);
-
-        // 2. Empleado asesor (si existe en BD)
-        $this->enviarAlEmpleado($venta);
-
-        Log::info('🟢 Antes de enviaraGerente');
-
-        // 3. Gerentes (BD + correos fijos)
-        $this->enviarAGerentes($venta);
-
-        Log::info('🟢 Después de enviarAGerente');
-        Log::info('🟢 Antes de enviarAContabilidad');
-
-        // 4. Contabilidad (BD + correos fijos)
-        $this->enviarAContabilidad($venta);
-
-        Log::info('🟢 Después de enviarAContabilidad');
-        Log::info('🟢 Antes de enviarACorreosSiempre');
-
-        // 5. Siempre enviar a correos adicionales
-        $this->enviarACorreosSiempre($venta);
-
-        Log::info('🟢 Después de enviarACorreosSiempre');
-    }
-
-    protected function enviarAlCliente($venta)
-    {
+        // Cliente
         if ($venta->cliente && !empty($venta->cliente->correo)) {
             try {
-                $venta->cliente->notify(new VentaCreadaCliente($venta));
+                Mail::to($venta->cliente->correo)->send(new VentaNotificacionMailable($venta, 'cliente'));
                 Log::info('✅ Cliente: ' . $venta->cliente->correo);
             } catch (\Exception $e) {
                 Log::error('❌ Error cliente: ' . $e->getMessage());
@@ -72,13 +34,11 @@ class EnviarNotificacionesVenta implements ShouldQueue
         } else {
             Log::warning('⚠️ Cliente sin correo registrado');
         }
-    }
 
-    protected function enviarAlEmpleado($venta)
-    {
+        // Empleado
         if ($venta->empleado && !empty($venta->empleado->email)) {
             try {
-                $venta->empleado->notify(new VentaCreadaEmpleado($venta));
+                Mail::to($venta->empleado->email)->send(new VentaNotificacionMailable($venta, 'empleado'));
                 Log::info('✅ Empleado: ' . $venta->empleado->email);
             } catch (\Exception $e) {
                 Log::error('❌ Error empleado: ' . $e->getMessage());
@@ -86,72 +46,35 @@ class EnviarNotificacionesVenta implements ShouldQueue
         } else {
             Log::warning('⚠️ Empleado sin email registrado');
         }
-    }
 
-    protected function enviarAGerentes($venta)
-    {
-        Log::info('🔵 INICIANDO enviarAGerentes', ['emails' => $this->emailsGerentes]);
+        // Gerentes
         foreach ($this->emailsGerentes as $email) {
             try {
-                Notification::route('mail', $email)
-                    ->notify(new VentaCreadaAdministrativo($venta));
-
-                Log::info('✅ Notificación enviada a gerente: ' . $email);
+                Mail::to($email)->send(new VentaNotificacionMailable($venta, 'admin'));
+                Log::info('✅ Gerente: ' . $email);
             } catch (\Exception $e) {
-                Log::error('❌ Error enviando a gerente ' . $email . ': ' . $e->getMessage());
+                Log::error('❌ Error gerente: ' . $e->getMessage());
             }
         }
-    }
 
-    protected function enviarAContabilidad($venta)
-    {
-        Log::info('🔵 INICIANDO enviarAContabilidad', ['emails' => $this->emailsContabilidad]);
+        // Contabilidad
         foreach ($this->emailsContabilidad as $email) {
             try {
-                Notification::route('mail', $email)
-                    ->notify(new VentaCreadaAdministrativo($venta));
-
-                Log::info('✅ Notificación enviada a contabilidad: ' . $email);
+                Mail::to($email)->send(new VentaNotificacionMailable($venta, 'admin'));
+                Log::info('✅ Contabilidad: ' . $email);
             } catch (\Exception $e) {
-                Log::error('❌ Error enviando a contabilidad ' . $email . ': ' . $e->getMessage());
+                Log::error('❌ Error contabilidad: ' . $e->getMessage());
             }
         }
-    }
 
-    protected function enviarACorreosSiempre($venta)
-    {
-        Log::info('🔵 INICIANDO enviarACorreosSiempre', ['emails' => $this->emailsSiempre]);
-
+        // Siempre
         foreach ($this->emailsSiempre as $email) {
             try {
-                Log::info('📧 Intentando enviar a SIEMPRE: ' . $email);
-
-                Notification::route('mail', $email)
-                    ->notify(new VentaCreadaAdministrativo($venta));
-
-                Log::info('✅ Notificación enviada a SIEMPRE: ' . $email);
+                Mail::to($email)->send(new VentaNotificacionMailable($venta, 'admin'));
+                Log::info('✅ Siempre: ' . $email);
             } catch (\Exception $e) {
-                Log::error('❌ Error enviando a SIEMPRE ' . $email . ': ' . $e->getMessage());
+                Log::error('❌ Error siempre: ' . $e->getMessage());
             }
         }
-
-        Log::info('🔵 FINALIZADO enviarACorreosSiempre');
     }
-
-    // // 1. Enviar correo al CLIENTE (si tiene email)
-    // if ($venta->cliente && $venta->cliente->correo) {
-    //     $venta->cliente->notify(new VentaCreadaCliente($venta));
-    // }
-
-    // // 2. Enviar correo al EMPLEADO (asesor)
-    // if ($venta->empleado && $venta->empleado->email) {
-    //     $venta->empleado->notify(new VentaCreadaEmpleado($venta));
-    // }
-
-    // 3. (Opcional) Enviar correo a administradores
-    // $admins = User::where('rol', 'admin')->get();
-    // foreach ($admins as $admin) {
-    //     $admin->notify(new VentaCreadaAdministrativo($venta));
-    // }
-    // }
 }
