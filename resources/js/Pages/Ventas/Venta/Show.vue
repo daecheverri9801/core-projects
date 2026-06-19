@@ -64,7 +64,7 @@ const esApartamento = computed(() => !!props.venta.apartamento)
 const esLocal = computed(() => !!props.venta.local)
 
 const cuotaSeparacionOperacion = computed(() => {
-  return Number(props.venta.valor_separacion || props.venta.proyecto?.valor_min_separacion || 0)
+  return Number(props.venta.valor_min_separacion ?? props.venta.proyecto?.valor_min_separacion ?? 0)
 })
 
 // ===== Info inmueble =====
@@ -132,7 +132,7 @@ const valorCuotaMensual = computed(() => {
       Math.max(
         0,
         Number(props.venta.cuota_inicial || 0) -
-          Number(props.venta.valor_separacion || props.venta.proyecto?.valor_min_separacion || 0)
+          Number(props.venta.valor_min_separacion || props.venta.proyecto?.valor_min_separacion || 0)
       )
   )
   return n > 0 ? Math.round(saldoAmortizar / n) : 0
@@ -457,7 +457,7 @@ async function exportVentaPDF() {
       v.valor_total_sin_descuento || valorBase + valorParqueadero || valorTotal
     )
 
-    const cuotaSep = Number(v.valor_separacion || proyecto?.valor_min_separacion || 0)
+    const cuotaSep = Number(v.valor_min_separacion || proyecto?.valor_min_separacion || 0)
     const cuotaInicial = Number(v.cuota_inicial || 0)
     const saldoCuotaInicial = Number(v.saldo_cuota_inicial ?? Math.max(cuotaInicial - cuotaSep, 0))
     const cuotaMensual = Number(valorCuotaMensual.value || 0)
@@ -470,7 +470,7 @@ async function exportVentaPDF() {
       return `${v.frecuencia_cuota_inicial_meses} meses`
     })()
     // Porcentajes del plan
-    const porcentajeCuotaInicial = Number(planSnapshot?.porcentaje_cuota_inicial || 0)
+    const porcentajeCuotaInicial = Number(planSnapshot?.porcentaje_cuota_inicial || v.porcentaje_cuota_inicial || 0)
     const porcentajeEscritura = Number(planSnapshot?.porcentaje_escritura || 0)
 
     // ==================
