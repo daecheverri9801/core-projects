@@ -254,7 +254,7 @@ class VentaAdminController extends Controller
     public function edit(Request $request, $id)
     {
         $empleado = $request->user()->load('cargo');
-        $venta = Venta::with(['apartamento', 'local', 'proyecto'])
+        $venta = Venta::with(['apartamento', 'local', 'proyecto', 'empleado'])
             ->findOrFail($id);
 
         $proyecto = $venta->proyecto;

@@ -477,7 +477,11 @@ function submit() {
                   />
                   <input
                     type="text"
-                    :value="(empleadoAuth?.nombre || '') + ' ' + (empleadoAuth?.apellido || '')"
+                    :value="
+                      props.venta?.empleado
+                        ? `${props.venta.empleado.nombre} ${props.venta.empleado.apellido}`
+                        : ''
+                    "
                     readonly
                     class="w-full rounded-xl border border-gray-300 bg-gray-50 pl-10 pr-3 py-2.5 text-sm text-gray-900 cursor-not-allowed"
                   />
