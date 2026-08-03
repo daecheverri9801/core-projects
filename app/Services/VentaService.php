@@ -211,6 +211,7 @@ class VentaService
             $venta->update($data);
             $venta->refresh();
 
+
             $this->regenerarPlanCuotaInicial($venta);
 
             return $venta;
@@ -397,6 +398,7 @@ class VentaService
         $valorSeparacion = (float) ($venta->valor_separacion ?? 0);
         $saldoCuotaInicial = (float) ($venta->saldo_cuota_inicial ?? 0);
         $valorRestante = (float) ($venta->valor_restante ?? 0);
+
 
         if ($valorSeparacion > 0) {
             $this->crearCuota($plan, $numeroCuota, $fechaInicio, 'Separación', $valorSeparacion, $saldoCuotaInicial);

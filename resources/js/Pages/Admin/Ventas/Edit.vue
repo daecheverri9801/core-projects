@@ -53,7 +53,7 @@ const form = useForm({
   tipo_operacion: props.venta?.tipo_operacion || 'venta',
   id_empleado: props.venta?.id_empleado,
   documento_cliente: props.venta?.documento_cliente,
-  fecha_venta: props.venta?.fecha_venta,
+  fecha_venta: inicializarFecha(props.venta?.fecha_venta),
   fecha_vencimiento: props.venta?.fecha_vencimiento,
   id_proyecto: props.venta?.id_proyecto,
   inmueble_tipo: props.venta?.id_apartamento ? 'apartamento' : 'local',
@@ -485,7 +485,7 @@ function submit() {
               </FormField>
             </div>
 
-            <div class="md:col-span-6">
+            <div class="md:col-span-4">
               <FormField label="Proyecto">
                 <div class="relative">
                   <BuildingOffice2Icon
@@ -501,7 +501,7 @@ function submit() {
               </FormField>
             </div>
 
-            <div class="md:col-span-6">
+            <div class="md:col-span-4">
               <FormField label="Inmueble">
                 <div class="relative">
                   <HomeModernIcon
@@ -525,6 +525,18 @@ function submit() {
                 >
                   <ExclamationTriangleIcon class="w-5 h-5" />
                   No hay inmuebles disponibles para este proyecto.
+                </div>
+              </FormField>
+            </div>
+
+            <div class="md:col-span-4">
+              <FormField label="Fecha de venta">
+                <div class="relative">
+                  <CalendarDaysIcon
+                    class="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+                  />
+
+                  <TextInput v-model="form.fecha_venta" type="date" class="pl-10" />
                 </div>
               </FormField>
             </div>
