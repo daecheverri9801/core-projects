@@ -173,13 +173,22 @@ function recalcularEconomia() {
 
 onMounted(() => {
   // Plazos
-  const p = proyectoSeleccionado.value
-  if (p) {
-    const plazos = calcularPlazosProyecto(p)
-    plazosDisponibles.value = plazos
-    if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
-      plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
-    }
+  // const p = proyectoSeleccionado.value
+  // if (p) {
+  //   const plazos = calcularPlazosProyecto(p)
+  //   plazosDisponibles.value = plazos
+  //   if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
+  //     plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
+  //   }
+  // }
+
+  plazosDisponibles.value = [...props.plazos_disponibles]
+
+  if (
+    form.plazo_cuota_inicial_meses &&
+    !plazosDisponibles.value.includes(Number(form.plazo_cuota_inicial_meses))
+  ) {
+    plazosDisponibles.value.unshift(Number(form.plazo_cuota_inicial_meses))
   }
 
   if (form.id_proyecto) {
@@ -338,19 +347,34 @@ watch(
   }
 )
 
+// watch(
+//   () => form.id_proyecto,
+//   () => {
+//     const p = proyectoSeleccionado.value
+//     if (!p) {
+//       plazosDisponibles.value = []
+//       return
+//     }
+//     const plazos = calcularPlazosProyecto(p)
+//     plazosDisponibles.value = plazos
+
+//     if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
+//       plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
+//     }
+//   },
+//   { immediate: true }
+// )
+
 watch(
   () => form.id_proyecto,
   () => {
-    const p = proyectoSeleccionado.value
-    if (!p) {
-      plazosDisponibles.value = []
-      return
-    }
-    const plazos = calcularPlazosProyecto(p)
-    plazosDisponibles.value = plazos
+    plazosDisponibles.value = [...props.plazos_disponibles]
 
-    if (form.plazo_cuota_inicial_meses && !plazos.includes(form.plazo_cuota_inicial_meses)) {
-      plazosDisponibles.value.unshift(form.plazo_cuota_inicial_meses)
+    if (
+      form.plazo_cuota_inicial_meses &&
+      !plazosDisponibles.value.includes(Number(form.plazo_cuota_inicial_meses))
+    ) {
+      plazosDisponibles.value.unshift(Number(form.plazo_cuota_inicial_meses))
     }
   },
   { immediate: true }
@@ -383,19 +407,19 @@ function parseMoneda(valorStr) {
   )
 }
 
-function calcularPlazosProyecto(proyecto) {
-  if (!proyecto) return []
-  const inicio = proyecto.fecha_inicio
-  const plazoTotal = proyecto.plazo_cuota_inicial_meses
-  if (!inicio || !plazoTotal) return []
+// function calcularPlazosProyecto(proyecto) {
+//   if (!proyecto) return []
+//   const inicio = proyecto.fecha_inicio
+//   const plazoTotal = proyecto.plazo_cuota_inicial_meses
+//   if (!inicio || !plazoTotal) return []
 
-  const start = new Date(inicio)
-  const now = new Date()
-  const diffMonths =
-    (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
-  const plazosRestantes = Math.max(Number(plazoTotal) - diffMonths, 0)
-  return Array.from({ length: plazosRestantes }, (_, i) => i + 1)
-}
+//   const start = new Date(inicio)
+//   const now = new Date()
+//   const diffMonths =
+//     (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+//   const plazosRestantes = Math.max(Number(plazoTotal) - diffMonths, 0)
+//   return Array.from({ length: plazosRestantes }, (_, i) => i + 1)
+// }
 
 function onCuotaInicialInput(value) {
   const clean = String(value || '').replace(/[^\d]/g, '')

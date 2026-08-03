@@ -258,7 +258,9 @@ class VentaAdminController extends Controller
             ->findOrFail($id);
 
         $proyecto = $venta->proyecto;
-        $plazos = $this->calcularPlazosDisponibles($proyecto);
+        $plazos = $proyecto && $proyecto->plazo_cuota_inicial_meses
+            ? range(1, (int) $proyecto->plazo_cuota_inicial_meses)
+            : [];
 
         // ✅ Parqueaderos para edit:
         // - libres (id_apartamento NULL)
