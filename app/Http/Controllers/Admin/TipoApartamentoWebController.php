@@ -214,14 +214,7 @@ class TipoApartamentoWebController extends Controller
 
     public function update(Request $request, $id)
     {
-
         $t = TipoApartamento::findOrFail($id);
-
-        dd([
-            'id_url' => $id,
-            'id_modelo' => $t->id_tipo_apartamento,
-            'request' => $request->all(),
-        ]);
 
         $validated = $request->validate([
             'id_proyecto' => 'required|exists:proyectos,id_proyecto',
@@ -253,6 +246,14 @@ class TipoApartamentoWebController extends Controller
             'imagen.image' => 'El archivo debe ser una imagen válida',
             'imagen.mimes' => 'La imagen debe ser en formato JPG, PNG o WEBP',
             'imagen.max' => 'La imagen no puede pesar más de 2MB',
+        ]);
+
+        dd([
+            'fails' => $validator->fails(),
+            'errors' => $validator->errors()->toArray(),
+            'coincidencias' => TipoApartamento::where('nombre', $request->nombre)
+                ->select('id_tipo_apartamento', 'id_proyecto', 'nombre')
+                ->get(),
         ]);
 
         if ($request->hasFile('imagen')) {
