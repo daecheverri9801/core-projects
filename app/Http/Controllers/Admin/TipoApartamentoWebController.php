@@ -217,56 +217,41 @@ class TipoApartamentoWebController extends Controller
     {
         $t = TipoApartamento::findOrFail($id);
 
-        // $validated = $request->validate([
-        //     'id_proyecto' => 'required|exists:proyectos,id_proyecto',
-        //     'nombre' => [
-        //         'required',
-        //         'string',
-        //         'max:100',
-        //         Rule::unique('tipos_apartamento')->ignore($t->id_tipo_apartamento, 'id_tipo_apartamento')
-        //     ],
-        //     'area_construida' => 'nullable|numeric|min:0|max:99999999.99',
-        //     'area_privada' => 'nullable|numeric|min:0|max:99999999.99',
-        //     'cantidad_habitaciones' => 'nullable|integer|min:0|max:32767',
-        //     'cantidad_banos' => 'nullable|integer|min:0|max:32767',
-        //     'valor_m2' => 'nullable|numeric|min:0|max:9999999999999999.99',
-        //     'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        // ], [
-        //     'nombre.required' => 'El nombre del tipo de apartamento es obligatorio',
-        //     'nombre.max' => 'El nombre no puede exceder 100 caracteres',
-        //     'area_construida.numeric' => 'El área construida debe ser un valor numérico',
-        //     'area_construida.min' => 'El área construida no puede ser negativa',
-        //     'area_privada.numeric' => 'El área privada debe ser un valor numérico',
-        //     'area_privada.min' => 'El área privada no puede ser negativa',
-        //     'cantidad_habitaciones.integer' => 'La cantidad de habitaciones debe ser un número entero',
-        //     'cantidad_habitaciones.min' => 'La cantidad de habitaciones no puede ser negativa',
-        //     'cantidad_banos.integer' => 'La cantidad de baños debe ser un número entero',
-        //     'cantidad_banos.min' => 'La cantidad de baños no puede ser negativa',
-        //     'valor_m2.numeric' => 'El valor por m² debe ser un valor numérico',
-        //     'valor_m2.min' => 'El valor por m² no puede ser negativo',
-        //     'imagen.image' => 'El archivo debe ser una imagen válida',
-        //     'imagen.mimes' => 'La imagen debe ser en formato JPG, PNG o WEBP',
-        //     'imagen.max' => 'La imagen no puede pesar más de 2MB',
-        // ]);
-
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'id_proyecto' => 'required|exists:proyectos,id_proyecto',
             'nombre' => [
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('tipos_apartamento')
+                Rule::unique('tipos_apartamento', 'nombre')
+                    ->where(function ($query) use ($request) {
+                        return $query->where('id_proyecto', $request->id_proyecto);
+                    })
                     ->ignore($t->id_tipo_apartamento, 'id_tipo_apartamento'),
             ],
+            'area_construida' => 'nullable|numeric|min:0|max:99999999.99',
+            'area_privada' => 'nullable|numeric|min:0|max:99999999.99',
+            'cantidad_habitaciones' => 'nullable|integer|min:0|max:32767',
+            'cantidad_banos' => 'nullable|integer|min:0|max:32767',
+            'valor_m2' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ], [
+            'nombre.required' => 'El nombre del tipo de apartamento es obligatorio',
+            'nombre.max' => 'El nombre no puede exceder 100 caracteres',
+            'area_construida.numeric' => 'El área construida debe ser un valor numérico',
+            'area_construida.min' => 'El área construida no puede ser negativa',
+            'area_privada.numeric' => 'El área privada debe ser un valor numérico',
+            'area_privada.min' => 'El área privada no puede ser negativa',
+            'cantidad_habitaciones.integer' => 'La cantidad de habitaciones debe ser un número entero',
+            'cantidad_habitaciones.min' => 'La cantidad de habitaciones no puede ser negativa',
+            'cantidad_banos.integer' => 'La cantidad de baños debe ser un número entero',
+            'cantidad_banos.min' => 'La cantidad de baños no puede ser negativa',
+            'valor_m2.numeric' => 'El valor por m² debe ser un valor numérico',
+            'valor_m2.min' => 'El valor por m² no puede ser negativo',
+            'imagen.image' => 'El archivo debe ser una imagen válida',
+            'imagen.mimes' => 'La imagen debe ser en formato JPG, PNG o WEBP',
+            'imagen.max' => 'La imagen no puede pesar más de 2MB',
         ]);
-
-        dd([
-            'coincidencias' => TipoApartamento::where('nombre', $request->nombre)
-                ->select('id_tipo_apartamento', 'id_proyecto', 'nombre')
-                ->get()
-                ->toArray(),
-        ]);
-
 
         if ($request->hasFile('imagen')) {
             if ($t->imagen) {
