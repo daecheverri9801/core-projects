@@ -214,8 +214,14 @@ class TipoApartamentoWebController extends Controller
 
     public function update(Request $request, $id)
     {
-        dd('Entró al UPDATE');
+
         $t = TipoApartamento::findOrFail($id);
+
+        dd([
+            'id_url' => $id,
+            'id_modelo' => $t->id_tipo_apartamento,
+            'request' => $request->all(),
+        ]);
 
         $validated = $request->validate([
             'id_proyecto' => 'required|exists:proyectos,id_proyecto',
