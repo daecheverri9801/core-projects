@@ -214,6 +214,7 @@ class TipoApartamentoWebController extends Controller
 
     public function update(Request $request, $id)
     {
+        dd('Entró al UPDATE');
         $t = TipoApartamento::findOrFail($id);
 
         $validated = $request->validate([

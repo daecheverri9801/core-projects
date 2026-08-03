@@ -1025,7 +1025,7 @@ function submitClienteInline() {
         </ul>
       </div>
 
-      <div class="px-6 py-6 bg-white">
+      <div class="px-6 py-6 bg-white"> 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <form @submit.prevent="submit" class="lg:col-span-2 space-y-6">
             <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
