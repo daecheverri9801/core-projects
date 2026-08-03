@@ -261,14 +261,12 @@ class TipoApartamentoWebController extends Controller
         ]);
 
         dd([
-            'fails' => $validator->fails(),
-            'errors' => $validator->errors()->toArray(),
             'coincidencias' => TipoApartamento::where('nombre', $request->nombre)
                 ->select('id_tipo_apartamento', 'id_proyecto', 'nombre')
-                ->get(),
+                ->get()
+                ->toArray(),
         ]);
 
-        
 
         if ($request->hasFile('imagen')) {
             if ($t->imagen) {
