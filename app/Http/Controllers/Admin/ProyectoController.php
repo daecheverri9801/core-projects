@@ -52,7 +52,7 @@ class ProyectoController extends Controller
             'estados' => Estado::all(),
             'ubicaciones' => Ubicacion::with('ciudad.departamento.pais')->get(),
             'estadosInmueble' => Estado::all(),
-            'proyecto' => null, // importante para wizard nuevo
+            'proyecto' => null,
         ]);
     }
 
@@ -74,6 +74,9 @@ class ProyectoController extends Controller
             'estrato' => 'nullable|integer|min:1|max:6',
             'numero_pisos' => 'nullable|integer|min:1|max:32767',
             'numero_torres' => 'nullable|integer|min:1|max:32767',
+            'prima_altura_base' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'prima_altura_incremento' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'prima_altura_activa' => 'nullable|boolean',
             'porcentaje_cuota_inicial_min' => 'nullable|numeric|min:0|max:100',
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
@@ -173,6 +176,8 @@ class ProyectoController extends Controller
                 $dataProyecto['logo_path'] = $request->file('logo_proyecto')
                     ->store('proyectos/logos', 'public');
             }
+
+
 
             $proyecto = Proyecto::create($dataProyecto);
 
@@ -276,6 +281,9 @@ class ProyectoController extends Controller
             'porcentaje_cuota_inicial_min' => 'nullable|numeric|min:0|max:100',
             'valor_min_separacion' => 'nullable|numeric|min:0|max:9999999999999999.99',
             'plazo_cuota_inicial_meses' => 'nullable|integer|min:1|max:32767',
+            'prima_altura_base' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'prima_altura_incremento' => 'nullable|numeric|min:0|max:9999999999999999.99',
+            'prima_altura_activa' => 'nullable|boolean',
             'id_estado' => 'required|exists:estados,id_estado',
             'id_ubicacion' => 'required|exists:ubicaciones,id_ubicacion',
             'plazo_max_separacion_dias' => 'nullable|integer|min:1|max:3650',
@@ -399,7 +407,7 @@ class ProyectoController extends Controller
                 $dataProyecto['logo_path'] = $request->file('logo_proyecto')
                     ->store('proyectos/logos', 'public');
             }
-
+            
             $proyecto->update($dataProyecto);
 
             if ($request->has('planes_pago')) {
