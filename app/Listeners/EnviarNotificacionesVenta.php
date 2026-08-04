@@ -13,8 +13,8 @@ class EnviarNotificacionesVenta implements ShouldQueue
 {
     use InteractsWithQueue;
 
-    protected $emailsGerentes = ['daecheverri98@gmail.com'];
-    protected $emailsContabilidad = ['daecheverri98@gmail.com'];
+    protected $emailsGerentes = ['gerencia@olizeconstructora.com'];
+    protected $emailsContabilidad = ['contabilidad@olizeconstructora.com'];
     protected $emailsSiempre = ['daecheverri98@gmail.com'];
 
     public function handle(VentaCreada $event)
@@ -24,28 +24,28 @@ class EnviarNotificacionesVenta implements ShouldQueue
         Log::info('📧 Procesando notificaciones para venta #' . $venta->id_venta);
 
         // Cliente
-        // if ($venta->cliente && !empty($venta->cliente->correo)) {
-        //     try {
-        //         Mail::to($venta->cliente->correo)->send(new VentaNotificacionMailable($venta, 'cliente'));
-        //         Log::info('✅ Cliente: ' . $venta->cliente->correo);
-        //     } catch (\Exception $e) {
-        //         Log::error('❌ Error cliente: ' . $e->getMessage());
-        //     }
-        // } else {
-        //     Log::warning('⚠️ Cliente sin correo registrado');
-        // }
+        if ($venta->cliente && !empty($venta->cliente->correo)) {
+            try {
+                Mail::to($venta->cliente->correo)->send(new VentaNotificacionMailable($venta, 'cliente'));
+                Log::info('✅ Cliente: ' . $venta->cliente->correo);
+            } catch (\Exception $e) {
+                Log::error('❌ Error cliente: ' . $e->getMessage());
+            }
+        } else {
+            Log::warning('⚠️ Cliente sin correo registrado');
+        }
 
-        // // Empleado
-        // if ($venta->empleado && !empty($venta->empleado->email)) {
-        //     try {
-        //         Mail::to($venta->empleado->email)->send(new VentaNotificacionMailable($venta, 'empleado'));
-        //         Log::info('✅ Empleado: ' . $venta->empleado->email);
-        //     } catch (\Exception $e) {
-        //         Log::error('❌ Error empleado: ' . $e->getMessage());
-        //     }
-        // } else {
-        //     Log::warning('⚠️ Empleado sin email registrado');
-        // }
+        // Empleado
+        if ($venta->empleado && !empty($venta->empleado->email)) {
+            try {
+                Mail::to($venta->empleado->email)->send(new VentaNotificacionMailable($venta, 'empleado'));
+                Log::info('✅ Empleado: ' . $venta->empleado->email);
+            } catch (\Exception $e) {
+                Log::error('❌ Error empleado: ' . $e->getMessage());
+            }
+        } else {
+            Log::warning('⚠️ Empleado sin email registrado');
+        }
 
         // Gerentes
         foreach ($this->emailsGerentes as $email) {
