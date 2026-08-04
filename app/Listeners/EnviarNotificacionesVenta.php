@@ -35,17 +35,17 @@ class EnviarNotificacionesVenta implements ShouldQueue
         //     Log::warning('⚠️ Cliente sin correo registrado');
         // }
 
-        // Empleado
-        if ($venta->empleado && !empty($venta->empleado->email)) {
-            try {
-                Mail::to($venta->empleado->email)->send(new VentaNotificacionMailable($venta, 'empleado'));
-                Log::info('✅ Empleado: ' . $venta->empleado->email);
-            } catch (\Exception $e) {
-                Log::error('❌ Error empleado: ' . $e->getMessage());
-            }
-        } else {
-            Log::warning('⚠️ Empleado sin email registrado');
-        }
+        // // Empleado
+        // if ($venta->empleado && !empty($venta->empleado->email)) {
+        //     try {
+        //         Mail::to($venta->empleado->email)->send(new VentaNotificacionMailable($venta, 'empleado'));
+        //         Log::info('✅ Empleado: ' . $venta->empleado->email);
+        //     } catch (\Exception $e) {
+        //         Log::error('❌ Error empleado: ' . $e->getMessage());
+        //     }
+        // } else {
+        //     Log::warning('⚠️ Empleado sin email registrado');
+        // }
 
         // Gerentes
         foreach ($this->emailsGerentes as $email) {
