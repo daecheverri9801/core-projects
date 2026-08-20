@@ -149,7 +149,7 @@
                       Número *
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Preview valor 
+                      Preview valor
                     </th>
                     <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
                       Acción
@@ -227,9 +227,7 @@
                       <div class="text-sm font-semibold text-gray-900">
                         {{ formatCurrency(previewTotal(row)) }}
                       </div>
-                      <div class="text-xs text-gray-500 mt-1">
-                        Tipo + Prima Altura
-                      </div>
+                      <div class="text-xs text-gray-500 mt-1">Valor Base + Prima Altura</div>
                     </td>
                     <!-- Acción -->
                     <td class="px-4 py-3 align-top">
@@ -338,7 +336,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+
 import { Link, router, usePage } from '@inertiajs/vue3'
 
 import TopBannerLayout from '@/Components/TopBannerLayout.vue'
@@ -356,33 +355,63 @@ import {
   PlusIcon,
   InformationCircleIcon,
   BuildingOffice2Icon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
   CheckIcon,
   SquaresPlusIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
-  proyectos: { type: Array, default: () => [] },
-  tipos: { type: Array, default: () => [] },
-  estados: { type: Array, default: () => [] },
-  torres: { type: Array, default: () => [] },
-  pisos: { type: Array, default: () => [] },
-  empleado: { type: Object, default: null },
+  proyectos: {
+    type: Array,
+    default: () => [],
+  },
+
+  tipos: {
+    type: Array,
+    default: () => [],
+  },
+
+  estados: {
+    type: Array,
+    default: () => [],
+  },
+
+  torres: {
+    type: Array,
+    default: () => [],
+  },
+
+  pisos: {
+    type: Array,
+    default: () => [],
+  },
+
+  empleado: {
+    type: Object,
+    default: null,
+  },
 })
 
 const page = usePage()
+
 const flowProyectoId = computed(() => {
   const url = page?.url || ''
+
   const qs = url.split('?')[1] || ''
+
   const sp = new URLSearchParams(qs)
+
   return sp.get('proyecto')
 })
 
 const activeStep = 'apartamentos'
+
 const steps = computed(() => {
-  if (!flowProyectoId.value) return []
+  if (!flowProyectoId.value) {
+    return []
+  }
+
   const pid = flowProyectoId.value
+
   return [
     {
       n: '1/8',
@@ -390,8 +419,18 @@ const steps = computed(() => {
       label: 'Políticas',
       href: `/politicas-precio-proyecto/crear?proyecto=${pid}`,
     },
-    { n: '2/8', key: 'torres', label: 'Torres', href: `/admin/torres/create?proyecto=${pid}` },
-    { n: '3/8', key: 'pisos', label: 'Pisos', href: `/pisos-torre/create?proyecto=${pid}` },
+    {
+      n: '2/8',
+      key: 'torres',
+      label: 'Torres',
+      href: `/admin/torres/create?proyecto=${pid}`,
+    },
+    {
+      n: '3/8',
+      key: 'pisos',
+      label: 'Pisos',
+      href: `/pisos-torre/create?proyecto=${pid}`,
+    },
     {
       n: '4/8',
       key: 'tipos',
@@ -404,7 +443,12 @@ const steps = computed(() => {
       label: 'Apartamentos',
       href: `/admin/apartamentos/create?proyecto=${pid}`,
     },
-    { n: '6/8', key: 'locales', label: 'Locales', href: `/locales/create?proyecto=${pid}` },
+    {
+      n: '6/8',
+      key: 'locales',
+      label: 'Locales',
+      href: `/locales/create?proyecto=${pid}`,
+    },
     {
       n: '7/8',
       key: 'parqueaderos',
@@ -420,35 +464,44 @@ const steps = computed(() => {
   ]
 })
 
-/* ↓↓↓ TU CÓDIGO ORIGINAL DE APARTAMENTOS (sin cambios de lógica) ↓↓↓ */
-const base = reactive({ id_proyecto: '', id_torre: '' })
+const base = reactive({
+  id_proyecto: '',
+  id_torre: '',
+})
+
 const torresLocal = ref(Array.isArray(props.torres) ? props.torres : [])
+
 const pisosLocal = ref(Array.isArray(props.pisos) ? props.pisos : [])
+
 const rows = ref([newRow()])
+
 const rowErrors = ref([])
+
 const errors = ref({})
+
 const processing = ref(false)
+
 const rangeOpen = ref(false)
 
-onMounted(async () => {
-  if (flowProyectoId.value && !base.id_proyecto) {
-    base.id_proyecto = String(flowProyectoId.value)
-    await onProyectoChange()
-  }
-})
+/* ============================================================
+ * Helpers filas
+ * ============================================================ */
 
 function key() {
   return crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}_${Math.random().toString(16).slice(2)}`
 }
+
 function newRow(overrides = {}) {
   return {
     _key: key(),
+
     id_piso_torre: '',
     id_tipo_apartamento: '',
     id_estado_inmueble: '',
     numero: '',
+
     ...overrides,
   }
 }
@@ -456,167 +509,360 @@ function newRow(overrides = {}) {
 function addRow() {
   rows.value.push(newRow())
 }
+
 function removeRow(idx) {
-  if (rows.value.length <= 1) return
+  if (rows.value.length <= 1) {
+    return
+  }
+
   rows.value.splice(idx, 1)
 }
 
-const torreSeleccionada = computed(
-  () => torresLocal.value.find((t) => Number(t.id_torre) === Number(base.id_torre)) || null
-)
-const tiposFiltrados = computed(() =>
-  props.tipos.filter((t) => Number(t.id_proyecto) === Number(base.id_proyecto))
-)
+/* ============================================================
+ * Selecciones
+ * ============================================================ */
+
+const torreSeleccionada = computed(() => {
+  return torresLocal.value.find((torre) => Number(torre.id_torre) === Number(base.id_torre)) || null
+})
+
+const tiposFiltrados = computed(() => {
+  return props.tipos.filter((tipo) => Number(tipo.id_proyecto) === Number(base.id_proyecto))
+})
 
 const canSubmit = computed(() => {
-  if (!base.id_proyecto || !base.id_torre) return false
-  if (!rows.value.length) return false
+  if (!base.id_proyecto || !base.id_torre) {
+    return false
+  }
+
+  if (!rows.value.length) {
+    return false
+  }
+
   return rows.value.every(
-    (r) =>
-      String(r.numero || '').trim().length > 0 &&
-      !!r.id_piso_torre &&
-      !!r.id_tipo_apartamento &&
-      !!r.id_estado_inmueble
+    (row) =>
+      String(row.numero || '').trim().length > 0 &&
+      !!row.id_piso_torre &&
+      !!row.id_tipo_apartamento &&
+      !!row.id_estado_inmueble
   )
 })
 
+/* ============================================================
+ * Inicialización
+ * ============================================================ */
+
+onMounted(async () => {
+  if (!flowProyectoId.value) {
+    return
+  }
+
+  base.id_proyecto = String(flowProyectoId.value)
+
+  await cargarTorres()
+
+  /*
+   * Mantiene comportamiento actual:
+   * selecciona primera torre en flujo.
+   */
+  if (torresLocal.value.length) {
+    base.id_torre = String(torresLocal.value[0].id_torre)
+
+    await cargarPisos()
+  }
+})
+
+/* ============================================================
+ * Proyecto
+ * ============================================================ */
+
 async function onProyectoChange() {
   base.id_torre = ''
+
   torresLocal.value = []
   pisosLocal.value = []
+
   rows.value = [newRow()]
+
   errors.value = {}
   rowErrors.value = []
-  if (!base.id_proyecto) return
 
+  if (!base.id_proyecto) {
+    return
+  }
+
+  await cargarTorres()
+}
+
+async function cargarTorres() {
   try {
-    const res = await fetch(`/torres-por-proyecto/${base.id_proyecto}`)
-    if (!res.ok) throw new Error('Error cargando torres')
+    const res = await fetch(`/torres-por-proyecto/${base.id_proyecto}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (!res.ok) {
+      throw new Error('Error cargando torres')
+    }
+
     torresLocal.value = await res.json()
-  } catch (e) {
-    console.error(e)
+  } catch (error) {
+    console.error(error)
+
     errors.value.general = 'No se pudieron cargar las torres del proyecto.'
   }
 }
 
+/* ============================================================
+ * Torre
+ * ============================================================ */
+
 async function onTorreChange() {
   pisosLocal.value = []
+
   rows.value = [newRow()]
+
   errors.value = {}
   rowErrors.value = []
-  if (!base.id_torre) return
 
+  if (!base.id_torre) {
+    return
+  }
+
+  await cargarPisos()
+}
+
+async function cargarPisos() {
   try {
-    const url = `/api/pisos-por-torre/${base.id_torre}`
-    const res = await fetch(url, { headers: { Accept: 'application/json' } })
+    const res = await fetch(`/api/pisos-por-torre/${base.id_torre}`, {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
 
-    const raw = await res.text()
-    console.log('PISOS fetch:', url, 'status:', res.status, 'raw:', raw)
+    if (!res.ok) {
+      throw new Error('Error cargando pisos')
+    }
 
-    if (!res.ok) throw new Error('Error cargando pisos')
+    pisosLocal.value = await res.json()
+  } catch (error) {
+    console.error(error)
 
-    pisosLocal.value = JSON.parse(raw)
-    console.log('PISOS parsed:', pisosLocal.value)
-  } catch (e) {
-    console.error(e)
     errors.value.general = 'No se pudieron cargar los pisos de la torre.'
   }
 }
 
-onMounted(async () => {
-  if (flowProyectoId.value && !base.id_proyecto) {
-    base.id_proyecto = String(flowProyectoId.value)
-    await onProyectoChange()
+/* ============================================================
+ * Tipo seleccionado
+ * ============================================================ */
 
-    // opcional: autoseleccionar primera torre y cargar pisos
-    if (torresLocal.value.length) {
-      base.id_torre = String(torresLocal.value[0].id_torre)
-      await onTorreChange()
-    }
-  }
-})
-
-function formatCurrency(val) {
-  const num = Number(val || 0)
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(num)
+function tipoRow(row) {
+  return (
+    props.tipos.find(
+      (tipo) => Number(tipo.id_tipo_apartamento) === Number(row.id_tipo_apartamento)
+    ) || null
+  )
 }
+
+function pisoRow(row) {
+  return (
+    pisosLocal.value.find((piso) => Number(piso.id_piso_torre) === Number(row.id_piso_torre)) ||
+    null
+  )
+}
+
+/* ============================================================
+ * Valor base
+ * ============================================================ */
 
 function valorEstimadoTipoRow(row) {
-  const t = props.tipos.find(
-    (x) => Number(x.id_tipo_apartamento) === Number(row.id_tipo_apartamento)
-  )
-  return t ? Number(t.valor_estimado || 0) : 0
+  const tipo = tipoRow(row)
+
+  return tipo ? Number(tipo.valor_estimado || 0) : 0
 }
+
+/* ============================================================
+ * Prima altura PREVIEW
+ * ============================================================ */
 
 function primaAlturaRow(row) {
-  const piso = pisosLocal.value.find((p) => Number(p.id_piso_torre) === Number(row.id_piso_torre))
-  if (!piso) return 0
+  const tipo = tipoRow(row)
 
-  const nivel = Number(piso.nivel || 0)
+  const piso = pisoRow(row)
+
+  if (!tipo || !piso) {
+    return 0
+  }
+
+  const nivelActual = Number(piso.nivel || 0)
+
+  /*
+   * ========================================================
+   * NUEVA CONFIGURACIÓN
+   * ========================================================
+   *
+   * null = tipo legacy.
+   */
+  if (tipo.prima_altura_activa !== null && typeof tipo.prima_altura_activa !== 'undefined') {
+    const activa =
+      tipo.prima_altura_activa === true ||
+      tipo.prima_altura_activa === 1 ||
+      tipo.prima_altura_activa === '1'
+
+    if (!activa) {
+      return 0
+    }
+
+    const nivelInicio = Number(tipo.nivel_inicio_prima || 0)
+
+    if (nivelInicio <= 0 || nivelActual < nivelInicio) {
+      return 0
+    }
+
+    const basePrima = Number(tipo.prima_altura_base || 0)
+
+    const incremento = Number(tipo.prima_altura_incremento || 0)
+
+    return basePrima + (nivelActual - nivelInicio) * incremento
+  }
+
+  /*
+   * ========================================================
+   * FALLBACK LEGACY
+   * ========================================================
+   */
   const torre = torreSeleccionada.value
-  if (!torre || !torre.proyecto) return 0
+
+  if (!torre || !torre.proyecto) {
+    return 0
+  }
 
   const proyecto = torre.proyecto
-  if (!proyecto.prima_altura_activa) return 0
 
-  const nivelBase = Number(torre.nivel_inicio_prima ?? 2)
-  if (nivel < nivelBase) return 0
+  if (!proyecto.prima_altura_activa) {
+    return 0
+  }
 
-  const baseVal = Number(proyecto.prima_altura_base || 0)
-  const inc = Number(proyecto.prima_altura_incremento || 0)
-  return baseVal + (nivel - nivelBase) * inc
+  const nivelInicio = Number(torre.nivel_inicio_prima ?? 2)
+
+  if (nivelActual < nivelInicio) {
+    return 0
+  }
+
+  const basePrima = Number(proyecto.prima_altura_base || 0)
+
+  const incremento = Number(proyecto.prima_altura_incremento || 0)
+
+  return basePrima + (nivelActual - nivelInicio) * incremento
 }
+
+/* ============================================================
+ * Preview
+ * ============================================================ */
 
 function previewTotal(row) {
   return valorEstimadoTipoRow(row) + primaAlturaRow(row)
 }
 
+/* ============================================================
+ * Rango
+ * ============================================================ */
+
 function onRangeConfirm({ desde, hasta }) {
   const nuevos = []
-  for (let n = Number(desde); n <= Number(hasta); n++) nuevos.push(newRow({ numero: String(n) }))
-  if (rows.value.length === 1 && !String(rows.value[0].numero || '').trim()) rows.value = nuevos
-  else rows.value.push(...nuevos)
+
+  for (let numero = Number(desde); numero <= Number(hasta); numero++) {
+    nuevos.push(
+      newRow({
+        numero: String(numero),
+      })
+    )
+  }
+
+  if (rows.value.length === 1 && !String(rows.value[0].numero || '').trim()) {
+    rows.value = nuevos
+  } else {
+    rows.value.push(...nuevos)
+  }
+
   rangeOpen.value = false
 }
 
+/* ============================================================
+ * Guardar
+ * ============================================================ */
+
 function saveAndNext_Locales() {
+  processing.value = true
+
+  errors.value = {}
+  rowErrors.value = []
+
   router.post(
     route('apartamentos.store'),
     {
       id_torre: base.id_torre,
-      apartamentos: rows.value.map((r) => ({
-        numero: String(r.numero || '').trim(),
-        id_piso_torre: r.id_piso_torre,
-        id_tipo_apartamento: r.id_tipo_apartamento,
-        id_estado_inmueble: r.id_estado_inmueble,
+
+      apartamentos: rows.value.map((row) => ({
+        numero: String(row.numero || '').trim(),
+
+        id_piso_torre: row.id_piso_torre,
+
+        id_tipo_apartamento: row.id_tipo_apartamento,
+
+        id_estado_inmueble: row.id_estado_inmueble,
       })),
     },
     {
       preserveScroll: true,
-      onSuccess: () => router.visit(`/locales/create?proyecto=${base.id_proyecto}`),
-      onError: (e) => {
-        errors.value = e || {}
+
+      onSuccess: () => {
+        router.visit(`/locales/create?proyecto=${base.id_proyecto}`)
+      },
+
+      onError: (responseErrors) => {
+        errors.value = responseErrors || {}
+
         const rowE = rows.value.map(() => ({}))
-        for (const [k, v] of Object.entries(e || {})) {
-          const m = k.match(
+
+        for (const [key, value] of Object.entries(responseErrors || {})) {
+          const match = key.match(
             /^apartamentos\.(\d+)\.(numero|id_piso_torre|id_tipo_apartamento|id_estado_inmueble)$/
           )
-          if (m) {
-            const idx = Number(m[1])
-            const field = m[2]
-            if (!Number.isNaN(idx) && rowE[idx]) rowE[idx][field] = Array.isArray(v) ? v[0] : v
+
+          if (!match) {
+            continue
+          }
+
+          const index = Number(match[1])
+
+          const field = match[2]
+
+          if (!Number.isNaN(index) && rowE[index]) {
+            rowE[index][field] = Array.isArray(value) ? value[0] : value
           }
         }
+
         rowErrors.value = rowE
       },
+
       onFinish: () => {
         processing.value = false
       },
     }
   )
+}
+
+/* ============================================================
+ * Formato
+ * ============================================================ */
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))
 }
 </script>

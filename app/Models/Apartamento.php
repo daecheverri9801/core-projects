@@ -27,6 +27,7 @@ class Apartamento extends Model
 
     protected $casts = [
         'valor_total' => 'decimal:2',
+        'prima_altura' => 'decimal:2',
         'valor_politica' => 'decimal:2',
         'valor_final' => 'decimal:2',
     ];

@@ -22,7 +22,26 @@ class TipoApartamento extends Model
         'valor_m2',
         'valor_estimado',
         'imagen',
+
+        // Prima de altura por tipo
+        'prima_altura_activa',
+        'nivel_inicio_prima',
+        'prima_altura_base',
+        'prima_altura_incremento',
     ];
+
+    protected $casts = [
+        'area_construida' => 'decimal:2',
+        'area_privada' => 'decimal:2',
+        'valor_m2' => 'decimal:2',
+        'valor_estimado' => 'decimal:2',
+
+        'prima_altura_activa' => 'boolean',
+        'nivel_inicio_prima' => 'integer',
+        'prima_altura_base' => 'decimal:2',
+        'prima_altura_incremento' => 'decimal:2',
+    ];
+
 
     public function proyecto()
     {
